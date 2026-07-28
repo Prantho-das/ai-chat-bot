@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     WA_VERIFY_TOKEN: str = ""
     WA_PHONE_NUMBER_ID: str = ""
     
+    # Google Calendar Settings
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REFRESH_TOKEN: str = ""
+    GOOGLE_CALENDAR_ID: str = "primary"
+    
     # Admin Auth Settings
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "admin123"
@@ -32,5 +38,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 settings = Settings()

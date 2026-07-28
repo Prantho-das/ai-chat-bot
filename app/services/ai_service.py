@@ -157,15 +157,35 @@ Support AI Reply:"""
             # Automatic Google Calendar Event Creation Trigger
             calendar_config = await self.get_calendar_config(db)
             if calendar_config.get("google_calendar_token") or calendar_config.get("google_refresh_token"):
-                if any(k in user_message.lower() for k in ["meeting", "appointment", "book", "schedule", "মিটিং", "অ্যাপয়েন্টমেন্ট", "বুক", "কালকে", "আগামীকাল", "সময়"]):
-                    tomorrow_2pm = (datetime.now() + timedelta(days=1)).replace(hour=14, minute=0, second=0, microsecond=0)
-                    start_iso = tomorrow_2pm.isoformat()
-                    booking_time_str = tomorrow_2pm.strftime('%Y-%m-%d %H:%M')
+                if any(k in user_message.lower() for k in ["meeting", "appointment", "book", "schedule", "মিটিং", "অ্যাপয়েন্টমেন্ট", "বুক", "কালকে", "আগামীকাল", "সময়", "টাই"]):
+                    import re
+                    # Extract phone number if present
+                    phone_match = re.search(r'01[3-9]\d{8}', user_message)
+                    cust_phone = phone_match.group(0) if phone_match else ""
+
+                    # Extract hour if mentioned (e.g. 12, 2, 10, 3, ১২, ২)
+                    hour = 14 # default 2 PM
+                    bn_to_en = {'১': '1', '২': '2', '৩': '3', '৪': '4', '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9', '০': '0'}
+                    msg_translated = user_message
+                    for bn, en in bn_to_en.items():
+                        msg_translated = msg_translated.replace(bn, en)
+
+                    hour_match = re.search(r'\b(1[0-2]|[1-9])\s*(?:ta|tai|টার|টা|pm|am|:\d\d)?\b', msg_translated.lower())
+                    if hour_match:
+                        parsed_h = int(hour_match.group(1))
+                        if parsed_h in [1, 2, 3, 4, 5, 6, 7]:
+                            hour = parsed_h + 12 # Convert PM hours (1-7 PM)
+                        else:
+                            hour = parsed_h
+
+                    booking_dt = (datetime.now() + timedelta(days=1)).replace(hour=hour, minute=0, second=0, microsecond=0)
+                    start_iso = booking_dt.isoformat()
+                    booking_time_str = booking_dt.strftime('%Y-%m-%d %H:%M')
                     
                     cal_res = await calendar_service.create_event(
                         calendar_config=calendar_config,
-                        summary=f"Customer Meeting: {user_message[:30]}",
-                        description=f"Automated Booking via AI Chatbot.\nCustomer Query: {user_message}",
+                        summary=f"Meeting with {cust_phone or 'Customer'}",
+                        description=f"Automated Booking via AI Chatbot.\nCustomer Phone: {cust_phone}\nQuery: {user_message}",
                         start_time_iso=start_iso,
                         duration_minutes=30
                     )
@@ -174,7 +194,8 @@ Support AI Reply:"""
                     from app.models import Appointment
                     new_appointment = Appointment(
                         customer_name="Customer",
-                        summary=f"Meeting: {user_message[:40]}",
+                        customer_phone=cust_phone,
+                        summary=f"Meeting ({booking_dt.strftime('%I:%M %p')}): {user_message[:40]}",
                         booking_time=booking_time_str,
                         google_event_link=cal_res.get('html_link', ''),
                         status="confirmed" if cal_res.get("success") else "pending"
