@@ -141,18 +141,19 @@
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
                 <h4 class="text-sm font-bold text-slate-900">📅 Google Calendar Integration</h4>
-                <p class="text-xs text-slate-500">বট স্বয়ংক্রিয়ভাবে অ্যাপয়েন্টমেন্ট শিডিউল করবে</p>
+                <p class="text-xs text-slate-500">বট স্বয়ংক্রিয়ভাবে কাস্টমারের মিটিং ও অ্যাপয়েন্টমেন্ট গুগল ক্যালেন্ডারে বুক করবে</p>
             </div>
         </div>
         
         <form action="/admin/settings" method="POST" class="space-y-4">
             <input type="hidden" name="form_type" value="calendar">
             <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">OAuth 2.0 JSON Token</label>
-                <textarea name="google_calendar_token" rows="5" placeholder='{"token": "...", "refresh_token": "...", "client_id": "..."}' class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 leading-relaxed">{{ creds.google_calendar_token }}</textarea>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Google Calendar Authorization Token / Key</label>
+                <textarea name="google_calendar_token" rows="4" placeholder="আপনার Google Cloud Console থেকে প্রাপ্ত সিক্রেট কী কোডটি এখানে পেস্ট করুন" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 leading-relaxed">{{ creds.google_calendar_token }}</textarea>
+                <p class="text-[11px] text-slate-400 mt-1.5">💡 সাধারণ ব্যবহারকারীদের জন্য: Google Cloud Console থেকে সার্ভিস একাউন্টের কী কোড সম্পূর্ণ কপি করে এখানে একবার পেস্ট করে দিন। কোনো ব্র্যাকেট বা ফরম্যাট পরিবর্তনের প্রয়োজন নেই।</p>
             </div>
             <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20">
-                Save Calendar Credentials
+                Save Calendar Settings
             </button>
         </form>
     </div>
