@@ -250,15 +250,17 @@ async def update_settings(
         await db.commit()
 
     elif form_type == "credentials":
-        creds_to_update = {
-            "gemini_api_key": gemini_api_key or "",
-            "gemini_model": gemini_model or "gemini-2.0-flash",
-            "fb_page_access_token": fb_page_access_token or "",
-            "fb_verify_token": fb_verify_token or "",
-            "wa_access_token": wa_access_token or "",
-            "wa_phone_number_id": wa_phone_number_id or "",
-            "wa_verify_token": wa_verify_token or "",
+        raw_creds = {
+            "gemini_api_key": gemini_api_key,
+            "gemini_model": gemini_model,
+            "fb_page_access_token": fb_page_access_token,
+            "fb_verify_token": fb_verify_token,
+            "wa_access_token": wa_access_token,
+            "wa_phone_number_id": wa_phone_number_id,
+            "wa_verify_token": wa_verify_token,
         }
+        creds_to_update = {k: v.strip() for k, v in raw_creds.items() if v is not None and v.strip() != ""}
+
         for k, v in creds_to_update.items():
             stmt = select(BotSetting).where(BotSetting.key == k)
             res = await db.execute(stmt)
@@ -272,13 +274,18 @@ async def update_settings(
         await db.commit()
 
     elif form_type == "calendar":
-        cal_settings = {
-            "google_client_id": google_client_id or "",
-            "google_client_secret": google_client_secret or "",
-            "google_refresh_token": google_refresh_token or "",
-            "google_calendar_id": google_calendar_id or "primary",
-            "google_calendar_token": google_calendar_token or "",
-        }
+        cal_settings = {}
+        if google_client_id is not None and google_client_id.strip() != "":
+            cal_settings["google_client_id"] = google_client_id.strip()
+        if google_client_secret is not None and google_client_secret.strip() != "":
+            cal_settings["google_client_secret"] = google_client_secret.strip()
+        if google_refresh_token is not None and google_refresh_token.strip() != "":
+            cal_settings["google_refresh_token"] = google_refresh_token.strip()
+        if google_calendar_id is not None and google_calendar_id.strip() != "":
+            cal_settings["google_calendar_id"] = google_calendar_id.strip()
+        if google_calendar_token is not None and google_calendar_token.strip() != "":
+            cal_settings["google_calendar_token"] = google_calendar_token.strip()
+
         for k, v in cal_settings.items():
             stmt = select(BotSetting).where(BotSetting.key == k)
             res = await db.execute(stmt)

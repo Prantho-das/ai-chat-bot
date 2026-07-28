@@ -43,8 +43,8 @@ class CalendarService:
             target_id = calendar_id if ("@" in calendar_id and not calendar_id.endswith(".gserviceaccount.com")) else "primary"
             events_result = service.events().list(
                 calendarId=target_id,
-                timeMin=start_dt.isoformat() + "+06:00",
-                timeMax=end_dt.isoformat() + "+06:00",
+                timeMin=start_dt.strftime('%Y-%m-%dT%H:%M:%S+06:00'),
+                timeMax=end_dt.strftime('%Y-%m-%dT%H:%M:%S+06:00'),
                 singleEvents=True
             ).execute()
             items = events_result.get('items', [])
@@ -110,19 +110,17 @@ class CalendarService:
             if attendees:
                 event_body['attendees'] = attendees
 
-            # Try inserting directly to target_calendar_id, fallback to primary with attendees if 404/403
+            # Robust insert logic with clean fallback
             try:
                 event = service.events().insert(
                     calendarId=target_calendar_id,
-                    body=event_body,
-                    sendUpdates="all" if attendees else "none"
+                    body=event_body
                 ).execute()
             except Exception as inner_e:
-                print(f"Direct calendar insert into {target_calendar_id} failed ({inner_e}), trying primary fallback with attendees...")
+                print(f"Direct calendar insert into {target_calendar_id} failed ({inner_e}), creating on Service Account calendar...")
                 event = service.events().insert(
                     calendarId="primary",
-                    body=event_body,
-                    sendUpdates="all" if attendees else "none"
+                    body=event_body
                 ).execute()
 
             return {
@@ -130,6 +128,7 @@ class CalendarService:
                 "event_id": event.get('id'),
                 "html_link": event.get('htmlLink'),
                 "start_time": start_dt.strftime('%Y-%m-%d %H:%M'),
+                "formatted_date": start_dt.strftime('%d %B, %Y'),
                 "formatted_time": start_dt.strftime('%I:%M %p'),
                 "is_rescheduled": is_rescheduled
             }

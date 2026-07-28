@@ -95,7 +95,7 @@ class AIService:
         normalized_query = user_message.strip().lower()
 
         # Dynamic appointment/booking detection
-        is_booking_query = any(k in normalized_query for k in ["meeting", "appointment", "book", "schedule", "মিটিং", "অ্যাপয়েন্টমেন্ট", "বুক", "কালকে", "আগামীকাল", "সময়", "টাই", "১২", "12", "২", "2", "১", "1"])
+        is_booking_query = any(k in normalized_query for k in ["meeting", "appointment", "book", "schedule", "মিটিং", "অ্যাপয়েন্টমেন্ট", "বুক", "কালকে", "আগামীকাল", "সময়", "টাই", "তারিখ", "তারিখের", "tarikh", "tariker", "১২", "12", "২", "2", "১", "1", "৩০", "30"])
 
         query_hash = hashlib.sha256(f"{response_length}:{normalized_query}".encode("utf-8")).hexdigest()
         if not is_booking_query:
@@ -122,12 +122,36 @@ class AIService:
                     phone_match = re.search(r'01[3-9]\d{8}', user_message)
                     cust_phone = phone_match.group(0) if phone_match else ""
 
-                    hour = 12 # default 12 PM
+                    # Translate Bengali numbers to English
                     bn_to_en = {'১': '1', '২': '2', '৩': '3', '৪': '4', '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9', '০': '0'}
                     msg_translated = user_message
                     for bn, en in bn_to_en.items():
                         msg_translated = msg_translated.replace(bn, en)
 
+                    # Extract specific day of month if mentioned (e.g. 30, 29, 28)
+                    now = datetime.now()
+                    target_date = now + timedelta(days=1) # default tomorrow
+                    
+                    day_match = re.search(r'\b(3[01]|[12]\d|[1-9])\s*(?:tarikh|tariker|তারিখ|তারিখের)\b', msg_translated.lower())
+                    if not day_match:
+                        day_match = re.search(r'\b(3[01]|[12]\d)\b', msg_translated.lower())
+
+                    if day_match:
+                        parsed_day = int(day_match.group(1))
+                        if 1 <= parsed_day <= 31:
+                            target_month = now.month
+                            target_year = now.year
+                            if parsed_day < now.day:
+                                target_month = target_month + 1 if target_month < 12 else 1
+                                if target_month == 1:
+                                    target_year += 1
+                            try:
+                                target_date = datetime(target_year, target_month, parsed_day)
+                            except ValueError:
+                                pass
+
+                    # Extract hour if mentioned
+                    hour = 12 # default 12 PM Noon
                     hour_match = re.search(r'\b(1[0-2]|[1-9])\s*(?:ta|tai|টার|টা|pm|am|:\d\d)?\b', msg_translated.lower())
                     if hour_match:
                         parsed_h = int(hour_match.group(1))
@@ -138,9 +162,10 @@ class AIService:
                         else:
                             hour = parsed_h
 
-                    booking_dt = (datetime.now() + timedelta(days=1)).replace(hour=hour, minute=0, second=0, microsecond=0)
+                    booking_dt = target_date.replace(hour=hour, minute=0, second=0, microsecond=0)
                     start_iso = booking_dt.isoformat()
                     formatted_time = booking_dt.strftime('%I:%M %p')
+                    formatted_date = booking_dt.strftime('%d %B, %Y')
                     booking_time_str = booking_dt.strftime('%Y-%m-%d %H:%M')
 
                     cal_res = await calendar_service.create_event(
@@ -152,13 +177,14 @@ class AIService:
                     )
 
                     final_time = cal_res.get("formatted_time", formatted_time)
+                    final_date = cal_res.get("formatted_date", formatted_date)
                     is_rescheduled = cal_res.get("is_rescheduled", False)
 
                     from app.models import Appointment
                     new_appointment = Appointment(
                         customer_name="Customer",
                         customer_phone=cust_phone,
-                        summary=f"Meeting ({final_time}): {user_message[:40]}",
+                        summary=f"Meeting ({final_date} at {final_time}): {user_message[:40]}",
                         booking_time=cal_res.get("start_time", booking_time_str),
                         google_event_link=cal_res.get('html_link', ''),
                         status="confirmed" if cal_res.get("success") else "pending"
@@ -167,9 +193,9 @@ class AIService:
                     await db.commit()
 
                     if is_rescheduled:
-                        calendar_booking_info = f"[NOTE: The requested time ({formatted_time}) was occupied, so appointment has been booked for {final_time} tomorrow.]"
+                        calendar_booking_info = f"[SYSTEM ACTION: Requested slot on {final_date} at {formatted_time} was busy. Google Calendar booked next available slot for {final_date} at {final_time}. Clearly confirm this date ({final_date}) and time ({final_time}) to customer.]"
                     else:
-                        calendar_booking_info = f"[NOTE: Google Calendar appointment successfully booked for {final_time} tomorrow.]"
+                        calendar_booking_info = f"[SYSTEM ACTION: Google Calendar appointment successfully booked for {final_date} at {final_time}. Clearly confirm this exact date ({final_date}) and time ({final_time}) to customer.]"
 
             system_prompt = await self.get_system_prompt(db)
             knowledge_base = await self.get_knowledge_base(db)
