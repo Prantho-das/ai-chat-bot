@@ -221,13 +221,43 @@
     <div x-show="activeTab === 'calendar'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-                <h4 class="text-sm font-bold text-slate-900">📅 Google Calendar Integration & Appointment Setup</h4>
-                <p class="text-xs text-slate-500">বট স্বয়ংক্রিয়ভাবে কাস্টমারের মিটিং ও অ্যাপয়েন্টমেন্ট গুগল ক্যালেন্ডারে বুক করবে</p>
+                <h4 class="text-sm font-bold text-slate-900">📅 Google Calendar Integration (n8n Super Easy Flow)</h4>
+                <p class="text-xs text-slate-500">n8n-এর মতো ১-ক্লিকে সার্ভিস একাউন্ট JSON ফাইল আপলোড করে ইন্সট্যান্ট কানেক্ট করুন</p>
             </div>
-            <a href="https://console.cloud.google.com/" target="_blank" class="text-xs text-indigo-600 hover:underline font-bold">Google Cloud Console →</a>
+            {% if creds.google_calendar_token or creds.google_refresh_token %}
+            <span class="text-xs bg-emerald-50 text-emerald-700 font-bold px-3 py-1.5 rounded-full border border-emerald-100 flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Connected & Active</span>
+            </span>
+            {% else %}
+            <span class="text-xs bg-amber-50 text-amber-700 font-bold px-3 py-1.5 rounded-full border border-amber-100">
+                ⚠️ Not Connected
+            </span>
+            {% if creds.google_calendar_token or creds.google_refresh_token %}
+            <span class="text-xs bg-emerald-50 text-emerald-700 font-bold px-3 py-1.5 rounded-full border border-emerald-100 flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Connected & Active</span>
+            </span>
+            {% endif %}
+            {% endif %}
         </div>
         
-        <form action="/admin/settings" method="POST" class="space-y-4">
+        <!-- 1-Click File Upload Box (n8n Style) -->
+        <div class="bg-indigo-50/70 border-2 border-dashed border-indigo-200 p-5 rounded-2xl text-center space-y-3">
+            <div class="text-3xl">📁</div>
+            <div>
+                <h5 class="text-xs font-bold text-indigo-950">১-ক্লিক সার্ভিস একাউন্ট JSON ফাইল আপলোড (Easy Upload)</h5>
+                <p class="text-[11px] text-slate-500 mt-0.5">Google Cloud থেকে ডাউনলোড করা `.json` ফাইলটি কম্পিউটার থেকে সিলেক্ট করুন</p>
+            </div>
+            <form action="/admin/calendar/upload-json" method="POST" enctype="multipart/form-data" class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <input type="file" name="file" accept=".json" required class="block w-full max-w-xs text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-md">
+                    Upload & Connect Instant
+                </button>
+            </form>
+        </div>
+
+        <form action="/admin/settings" method="POST" class="space-y-4 pt-2">
             <input type="hidden" name="form_type" value="calendar">
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

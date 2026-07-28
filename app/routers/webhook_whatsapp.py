@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Request, Response, Depends, Query
+from fastapi import APIRouter, Request, Response, Depends, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.config import settings
-from app.database import get_db
+from app.database import get_db, AsyncSessionLocal
 from app.models import Conversation, Message, BotSetting
 from app.services.ai_service import ai_service
 from app.services.whatsapp_service import whatsapp_service
@@ -35,77 +35,76 @@ async def verify_webhook(
     return Response(content="Verification failed", status_code=403)
 
 
-@router.post("")
-async def handle_whatsapp_webhook(request: Request, db: AsyncSession = Depends(get_db)):
-    data = await request.json()
-    _, access_token, phone_id = await get_wa_tokens(db)
-    
-    try:
-        entries = data.get("entry", [])
-        for entry in entries:
-            changes = entry.get("changes", [])
-            for change in changes:
-                value = change.get("value", {})
-                messages = value.get("messages", [])
-                
-                for msg_data in messages:
-                    if msg_data.get("type") == "text":
-                        sender_id = msg_data.get("from") # Phone number
-                        user_text = msg_data.get("text", {}).get("body", "")
-                        
-                        contacts = value.get("contacts", [])
-                        sender_name = contacts[0].get("profile", {}).get("name") if contacts else f"WA {sender_id[-4:]}"
+async def process_whatsapp_event(data: dict):
+    async with AsyncSessionLocal() as db:
+        _, access_token, phone_id = await get_wa_tokens(db)
+        
+        try:
+            entries = data.get("entry", [])
+            for entry in entries:
+                changes = entry.get("changes", [])
+                for change in changes:
+                    value = change.get("value", {})
+                    messages = value.get("messages", [])
+                    
+                    for msg_data in messages:
+                        if msg_data.get("type") == "text":
+                            sender_id = msg_data.get("from") # Phone number
+                            user_text = msg_data.get("text", {}).get("body", "")
+                            
+                            contacts = value.get("contacts", [])
+                            sender_name = contacts[0].get("profile", {}).get("name") if contacts else f"WA {sender_id[-4:]}"
 
-                        # Fetch or create conversation
-                        stmt = select(Conversation).where(
-                            Conversation.platform == "whatsapp",
-                            Conversation.sender_id == sender_id
-                        )
-                        result = await db.execute(stmt)
-                        conversation = result.scalar_one_or_none()
-                        
-                        if not conversation:
-                            conversation = Conversation(
-                                platform="whatsapp",
-                                sender_id=sender_id,
-                                sender_name=sender_name
+                            stmt = select(Conversation).where(
+                                Conversation.platform == "whatsapp",
+                                Conversation.sender_id == sender_id
                             )
-                            db.add(conversation)
+                            result = await db.execute(stmt)
+                            conversation = result.scalar_one_or_none()
+                            
+                            if not conversation:
+                                conversation = Conversation(
+                                    platform="whatsapp",
+                                    sender_id=sender_id,
+                                    sender_name=sender_name
+                                )
+                                db.add(conversation)
+                                await db.commit()
+                                await db.refresh(conversation)
+
+                            user_msg = Message(
+                                conversation_id=conversation.id,
+                                role="user",
+                                content=user_text,
+                                is_ai_generated=False
+                            )
+                            db.add(user_msg)
                             await db.commit()
-                            await db.refresh(conversation)
 
-                        # Store user message
-                        user_msg = Message(
-                            conversation_id=conversation.id,
-                            role="user",
-                            content=user_text,
-                            is_ai_generated=False
-                        )
-                        db.add(user_msg)
-                        await db.commit()
+                            stmt_msg = select(Message).where(Message.conversation_id == conversation.id).order_by(Message.created_at.asc())
+                            history_res = await db.execute(stmt_msg)
+                            history = history_res.scalars().all()
 
-                        # History & AI Response
-                        stmt_msg = select(Message).where(Message.conversation_id == conversation.id).order_by(Message.created_at.asc())
-                        history_res = await db.execute(stmt_msg)
-                        history = history_res.scalars().all()
+                            ai_reply, is_cached = await ai_service.generate_response(user_text, history, db)
 
-                        ai_reply, is_cached = await ai_service.generate_response(user_text, history, db)
+                            ai_msg = Message(
+                                conversation_id=conversation.id,
+                                role="assistant",
+                                content=ai_reply,
+                                is_ai_generated=True,
+                                is_cached=is_cached
+                            )
+                            db.add(ai_msg)
+                            await db.commit()
 
-                        # Store AI message
-                        ai_msg = Message(
-                            conversation_id=conversation.id,
-                            role="assistant",
-                            content=ai_reply,
-                            is_ai_generated=True,
-                            is_cached=is_cached
-                        )
-                        db.add(ai_msg)
-                        await db.commit()
+                            await whatsapp_service.send_text_message(sender_id, ai_reply, access_token, phone_id)
 
-                        # Reply on WhatsApp using dynamic credentials
-                        await whatsapp_service.send_text_message(sender_id, ai_reply, access_token, phone_id)
+        except Exception as e:
+            print(f"Error handling WA Webhook in background: {e}")
 
-    except Exception as e:
-        print(f"Error handling WA Webhook: {e}")
 
-    return {"status": "ok"}
+@router.post("")
+async def handle_whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
+    data = await request.json()
+    background_tasks.add_task(process_whatsapp_event, data)
+    return Response(content="EVENT_RECEIVED", status_code=200)

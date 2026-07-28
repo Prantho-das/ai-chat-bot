@@ -22,7 +22,6 @@ class Conversation(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-
     messages: Mapped[list["Message"]] = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
 
 class Message(Base):
@@ -67,4 +66,14 @@ class CacheEntry(Base):
     ai_response: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+class Appointment(Base):
+    __tablename__ = "appointments"
 
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    customer_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    customer_phone: Mapped[str] = mapped_column(String(50), nullable=True)
+    summary: Mapped[str] = mapped_column(String(255))
+    booking_time: Mapped[str] = mapped_column(String(100))
+    google_event_link: Mapped[str] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="confirmed")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

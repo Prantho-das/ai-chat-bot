@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Request, Response, Depends, Form, status
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -5,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.database import get_db
 from app.config import settings
-from app.models import Conversation, Message, KnowledgeEntry, BotSetting
+from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment
 
 router = APIRouter(prefix="/admin", tags=["Admin Panel"])
 templates = Jinja2Templates(directory="app/templates")
@@ -307,3 +308,62 @@ async def delete_knowledge(entry_id: int, request: Request, db: AsyncSession = D
         await db.commit()
 
     return RedirectResponse(url="/admin/knowledge", status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/appointments", response_class=HTMLResponse)
+async def appointments_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    stmt = select(Appointment).order_by(Appointment.created_at.desc())
+    result = await db.execute(stmt)
+    appointments = result.scalars().all()
+
+    return templates.TemplateResponse("appointments.html", {
+        "request": request,
+        "appointments": appointments
+    })
+
+@router.post("/appointments/delete/{appointment_id}")
+async def delete_appointment(appointment_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    stmt = select(Appointment).where(Appointment.id == appointment_id)
+    result = await db.execute(stmt)
+    appt = result.scalar_one_or_none()
+
+    if appt:
+        await db.delete(appt)
+        await db.commit()
+
+    return RedirectResponse(url="/admin/appointments", status_code=status.HTTP_302_FOUND)
+
+
+from fastapi import UploadFile, File
+
+@router.post("/calendar/upload-json")
+async def upload_calendar_json(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db)
+):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    try:
+        content_bytes = await file.read()
+        json_str = content_bytes.decode("utf-8")
+        
+        stmt = select(BotSetting).where(BotSetting.key == "google_calendar_token")
+        res = await db.execute(stmt)
+        setting = res.scalar_one_or_none()
+        if setting:
+            setting.value = json_str
+        else:
+            db.add(BotSetting(key="google_calendar_token", value=json_str))
+        await db.commit()
+    except Exception as e:
+        print(f"Error uploading Google Calendar JSON key: {e}")
+
+    return RedirectResponse(url="/admin/settings", status_code=status.HTTP_302_FOUND)

@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Request, Response, Depends, Query
+from fastapi import APIRouter, Request, Response, Depends, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.config import settings
-from app.database import get_db
+from app.database import get_db, AsyncSessionLocal
 from app.models import Conversation, Message, BotSetting
 from app.services.ai_service import ai_service
 from app.services.messenger_service import messenger_service
@@ -34,16 +34,14 @@ async def verify_webhook(
     return Response(content="Verification failed", status_code=403)
 
 
-@router.post("")
-async def handle_messenger_webhook(request: Request, db: AsyncSession = Depends(get_db)):
-    data = await request.json()
-    _, access_token = await get_fb_tokens(db)
+async def process_messenger_event(data: dict):
+    async with AsyncSessionLocal() as db:
+        _, access_token = await get_fb_tokens(db)
 
-    if data.get("object") == "page":
         for entry in data.get("entry", []):
             page_id = entry.get("id")
 
-            # 1. Handle Messenger Messages
+            # 1. Handle Messenger Direct Messages
             for messaging_event in entry.get("messaging", []):
                 sender_id = messaging_event.get("sender", {}).get("id")
                 message_data = messaging_event.get("message", {})
@@ -51,7 +49,6 @@ async def handle_messenger_webhook(request: Request, db: AsyncSession = Depends(
                 if sender_id and "text" in message_data and not message_data.get("is_echo"):
                     user_text = message_data["text"]
 
-                    # Fetch or create conversation
                     stmt = select(Conversation).where(
                         Conversation.platform == "messenger",
                         Conversation.sender_id == sender_id
@@ -69,7 +66,6 @@ async def handle_messenger_webhook(request: Request, db: AsyncSession = Depends(
                         await db.commit()
                         await db.refresh(conversation)
 
-                    # Store user message
                     user_msg = Message(
                         conversation_id=conversation.id,
                         role="user",
@@ -79,15 +75,12 @@ async def handle_messenger_webhook(request: Request, db: AsyncSession = Depends(
                     db.add(user_msg)
                     await db.commit()
 
-                    # Fetch previous history
                     stmt_msg = select(Message).where(Message.conversation_id == conversation.id).order_by(Message.created_at.asc())
                     history_res = await db.execute(stmt_msg)
                     history = history_res.scalars().all()
 
-                    # Generate AI Response
                     ai_reply, is_cached = await ai_service.generate_response(user_text, history, db)
 
-                    # Store AI message
                     ai_msg = Message(
                         conversation_id=conversation.id,
                         role="assistant",
@@ -98,7 +91,6 @@ async def handle_messenger_webhook(request: Request, db: AsyncSession = Depends(
                     db.add(ai_msg)
                     await db.commit()
 
-                    # Send message to Facebook Messenger using DB access token
                     await messenger_service.send_text_message(sender_id, ai_reply, access_token)
 
             # 2. Handle Post Comments Auto-Reply (feed field)
@@ -111,12 +103,10 @@ async def handle_messenger_webhook(request: Request, db: AsyncSession = Depends(
                     sender_id = val.get("from", {}).get("id")
                     comment_text = val.get("message", "")
 
-                    # Check item is comment, verb is add/edit, and not posted by the Page itself
                     if comment_id and comment_text and sender_id != page_id:
                         if item in ["comment", "status", "post"] and verb in ["add", "edited", None]:
                             sender_name = val.get("from", {}).get("name", "FB Commenter")
 
-                            # Fetch or Create conversation for comment thread
                             stmt = select(Conversation).where(
                                 Conversation.platform == "fb_comment",
                                 Conversation.sender_id == sender_id
@@ -146,7 +136,6 @@ async def handle_messenger_webhook(request: Request, db: AsyncSession = Depends(
                             db.add(user_msg)
                             await db.commit()
 
-                            # Generate AI response
                             stmt_msg = select(Message).where(Message.conversation_id == conversation.id).order_by(Message.created_at.asc())
                             history_res = await db.execute(stmt_msg)
                             history = history_res.scalars().all()
@@ -163,7 +152,13 @@ async def handle_messenger_webhook(request: Request, db: AsyncSession = Depends(
                             db.add(ai_msg)
                             await db.commit()
 
-                            # Reply directly to the FB comment using DB access token
                             await messenger_service.reply_to_comment(comment_id, ai_reply, access_token)
 
-    return {"status": "ok"}
+
+@router.post("")
+async def handle_messenger_webhook(request: Request, background_tasks: BackgroundTasks):
+    data = await request.json()
+    if data.get("object") == "page":
+        # Dispatch processing to async background task for instant <50ms response to Meta
+        background_tasks.add_task(process_messenger_event, data)
+    return Response(content="EVENT_RECEIVED", status_code=200)

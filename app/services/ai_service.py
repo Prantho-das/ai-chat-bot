@@ -1,5 +1,6 @@
 import hashlib
 import json
+from datetime import datetime, timedelta
 import google.generativeai as genai
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -90,10 +91,10 @@ class AIService:
 
     async def generate_response(self, user_message: str, history: list, db: AsyncSession) -> tuple[str, bool]:
         response_length = await self.get_response_length(db)
-        clean_query = f"{response_length}:{user_message.strip().lower()}"
-        query_hash = hashlib.sha256(clean_query.encode("utf-8")).hexdigest()
+        normalized_query = user_message.strip().lower()
+        query_hash = hashlib.sha256(f"{response_length}:{normalized_query}".encode("utf-8")).hexdigest()
 
-        # Check Cache to save API Tokens
+        # Check Cache first to save API Tokens
         stmt_cache = select(CacheEntry).where(CacheEntry.prompt_hash == query_hash)
         cache_res = await db.execute(stmt_cache)
         cached_entry = cache_res.scalar_one_or_none()
@@ -109,12 +110,24 @@ class AIService:
 
         try:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(model_name)
+
+            max_tokens_map = {
+                "short": 150,
+                "medium": 350,
+                "long": 800
+            }
+            max_tokens = max_tokens_map.get(response_length.lower(), 150)
+
+            generation_config = genai.types.GenerationConfig(
+                max_output_tokens=max_tokens,
+                temperature=0.3
+            )
+
+            model = genai.GenerativeModel(model_name, generation_config=generation_config)
 
             system_prompt = await self.get_system_prompt(db)
             knowledge_base = await self.get_knowledge_base(db)
 
-            # Response length instructions
             length_instructions = {
                 "short": "[RESPONSE LENGTH INSTRUCTION: Keep response very SHORT, crisp, and concise (within 2-3 sentences max).]",
                 "medium": "[RESPONSE LENGTH INSTRUCTION: Provide a moderate/medium length response with clear details.]",
@@ -123,40 +136,59 @@ class AIService:
             length_guide = length_instructions.get(response_length.lower(), length_instructions["short"])
 
             formatted_history = ""
-            for msg in history[-5:]:
+            for msg in history[-3:]:
                 role = "Customer" if msg.role == "user" else "Support AI"
                 formatted_history += f"{role}: {msg.content}\n"
 
-            full_prompt = f"""
-{system_prompt}
-
+            full_prompt = f"""{system_prompt}
 {length_guide}
 
-[BUSINESS KNOWLEDGE BASE]
+[KNOWLEDGE BASE]
 {knowledge_base}
 
-[RECENT CONVERSATION HISTORY]
+[HISTORY]
 {formatted_history}
-
-[CURRENT USER MESSAGE]
 Customer: {user_message}
+Support AI Reply:"""
 
-Support AI Reply:
-"""
             response = model.generate_content(full_prompt)
             ai_text = response.text.strip()
 
-            # Check if user message or response implies Google Calendar booking attempt
+            # Automatic Google Calendar Event Creation Trigger
             calendar_config = await self.get_calendar_config(db)
-            if any(k in user_message.lower() for k in ["meeting", "appointment", "book", "schedule", "মিটিং", "অ্যাপয়েন্টমেন্ট", "বুক"]):
-                # Try auto creating event if user provided date/time
-                # Keep original response, calendar service ready for direct API calls
-                pass
+            if calendar_config.get("google_calendar_token") or calendar_config.get("google_refresh_token"):
+                if any(k in user_message.lower() for k in ["meeting", "appointment", "book", "schedule", "মিটিং", "অ্যাপয়েন্টমেন্ট", "বুক", "কালকে", "আগামীকাল", "সময়"]):
+                    tomorrow_2pm = (datetime.now() + timedelta(days=1)).replace(hour=14, minute=0, second=0, microsecond=0)
+                    start_iso = tomorrow_2pm.isoformat()
+                    booking_time_str = tomorrow_2pm.strftime('%Y-%m-%d %H:%M')
+                    
+                    cal_res = await calendar_service.create_event(
+                        calendar_config=calendar_config,
+                        summary=f"Customer Meeting: {user_message[:30]}",
+                        description=f"Automated Booking via AI Chatbot.\nCustomer Query: {user_message}",
+                        start_time_iso=start_iso,
+                        duration_minutes=30
+                    )
+                    
+                    # Save to DB appointments table
+                    from app.models import Appointment
+                    new_appointment = Appointment(
+                        customer_name="Customer",
+                        summary=f"Meeting: {user_message[:40]}",
+                        booking_time=booking_time_str,
+                        google_event_link=cal_res.get('html_link', ''),
+                        status="confirmed" if cal_res.get("success") else "pending"
+                    )
+                    db.add(new_appointment)
+                    await db.commit()
+
+                    if cal_res.get("success"):
+                        print(f"[GOOGLE CALENDAR SUCCESS] Event Created: {cal_res.get('html_link')}")
 
             # Save in cache for future identical queries
             new_cache = CacheEntry(
                 prompt_hash=query_hash,
-                user_query=clean_query,
+                user_query=normalized_query,
                 ai_response=ai_text
             )
             db.add(new_cache)

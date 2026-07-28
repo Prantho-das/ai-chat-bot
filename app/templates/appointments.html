@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Booked Appointments - MarketFlow Admin{% endblock %}
+{% block header_title %}Calendar Appointments & Meetings{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-6xl">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900">📅 Booked Appointments & Meetings</h3>
+            <p class="text-xs text-slate-500 font-medium">বট কর্তৃক স্বয়ংক্রিয়ভাবে বুককৃত কাস্টমার মিটিং ও অ্যাপয়েন্টমেন্টের তালিকা</p>
+        </div>
+        <span class="text-xs bg-purple-50 text-purple-700 font-bold px-3 py-1.5 rounded-full border border-purple-100 flex items-center space-x-1.5">
+            <span>Google Calendar Synced</span>
+        </span>
+    </div>
+
+    <!-- Appointments Table Card -->
+    <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+        {% if appointments %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        <th class="py-3.5 px-4">#ID</th>
+                        <th class="py-3.5 px-4">Customer Info</th>
+                        <th class="py-3.5 px-4">Meeting Summary</th>
+                        <th class="py-3.5 px-4">Scheduled Time</th>
+                        <th class="py-3.5 px-4">Status</th>
+                        <th class="py-3.5 px-4">Google Calendar</th>
+                        <th class="py-3.5 px-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    {% for appt in appointments %}
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="py-3.5 px-4 font-mono font-semibold text-slate-400">#{{ appt.id }}</td>
+                        <td class="py-3.5 px-4">
+                            <div class="font-bold text-slate-900">{{ appt.customer_name or 'Customer' }}</div>
+                            <div class="text-[11px] text-slate-400 font-mono">{{ appt.customer_phone or 'Direct Inbox' }}</div>
+                        </td>
+                        <td class="py-3.5 px-4 font-medium text-slate-800 max-w-xs truncate" title="{{ appt.summary }}">
+                            {{ appt.summary }}
+                        </td>
+                        <td class="py-3.5 px-4 font-semibold text-indigo-700">
+                            🕒 {{ appt.booking_time }}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            {% if appt.status == 'confirmed' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                ✅ Confirmed
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
+                                ⏳ Pending
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            {% if appt.google_event_link %}
+                            <a href="{{ appt.google_event_link }}" target="_blank" class="inline-flex items-center space-x-1 text-indigo-600 hover:text-indigo-800 font-semibold underline text-[11px]">
+                                <span>View Event</span>
+                                <span>↗</span>
+                            </a>
+                            {% else %}
+                            <span class="text-slate-400 text-[11px]">Local Record</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <form action="/admin/appointments/delete/{{ appt.id }}" method="POST" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই অ্যাপয়েন্টমেন্ট রেকর্ডটি মুছে ফেলতে চান?');" class="inline">
+                                <button type="submit" class="text-rose-600 hover:text-rose-800 text-xs font-semibold px-2.5 py-1 rounded-lg hover:bg-rose-50 transition-all">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center space-y-3">
+            <div class="text-4xl">📅</div>
+            <h4 class="text-sm font-bold text-slate-800">এখনো কোনো মিটিং বুক হয়নি</h4>
+            <p class="text-xs text-slate-500 max-w-sm mx-auto">কাস্টমার যখন পেজে বা হোয়াটসঅ্যাপে মিটিং বা অ্যাপয়েন্টমেন্ট বুক করবে, তখন তা স্বয়ংক্রিয়ভাবে এখানে যুক্ত হবে।</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
