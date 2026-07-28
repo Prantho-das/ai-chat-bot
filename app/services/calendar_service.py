@@ -16,21 +16,28 @@ class CalendarService:
             client_secret = calendar_config.get("google_client_secret", "")
             refresh_token = calendar_config.get("google_refresh_token", "")
 
+            # Prioritize Service Account JSON Key
             if token_json_str and token_json_str.strip().startswith("{"):
-                token_data = json.loads(token_json_str)
-                if token_data.get("type") == "service_account":
-                    creds = service_account.Credentials.from_service_account_info(token_data, scopes=SCOPES)
-                else:
-                    creds = Credentials.from_authorized_user_info(token_data, scopes=SCOPES)
-            elif refresh_token and client_id and client_secret:
-                creds = Credentials(
-                    token=None,
-                    refresh_token=refresh_token,
-                    token_uri="https://oauth2.googleapis.com/token",
-                    client_id=client_id,
-                    client_secret=client_secret,
-                    scopes=SCOPES
-                )
+                try:
+                    token_data = json.loads(token_json_str)
+                    if token_data.get("type") == "service_account":
+                        creds = service_account.Credentials.from_service_account_info(token_data, scopes=SCOPES)
+                    else:
+                        creds = Credentials.from_authorized_user_info(token_data, scopes=SCOPES)
+                except Exception as json_e:
+                    print(f"Error parsing Service Account JSON token: {json_e}")
+
+            # Fallback to OAuth Refresh Token if valid (and not dummy placeholder)
+            if not creds and refresh_token and client_id and client_secret:
+                if not client_id.startswith("your_"):
+                    creds = Credentials(
+                        token=None,
+                        refresh_token=refresh_token,
+                        token_uri="https://oauth2.googleapis.com/token",
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        scopes=SCOPES
+                    )
 
             if creds:
                 return build('calendar', 'v3', credentials=creds)
@@ -77,7 +84,7 @@ class CalendarService:
 
             target_calendar_id = user_email if user_email else "primary"
 
-            # Check if requested slot is available
+            # Check slot availability
             slot_free = self.is_slot_available(service, target_calendar_id, start_dt, end_dt)
             is_rescheduled = False
 
@@ -110,14 +117,16 @@ class CalendarService:
             if attendees:
                 event_body['attendees'] = attendees
 
-            # Robust insert logic with clean fallback
+            # 1. Try target_calendar_id
+            # 2. Fallback to primary Service Account calendar
+            event = None
             try:
                 event = service.events().insert(
                     calendarId=target_calendar_id,
                     body=event_body
                 ).execute()
             except Exception as inner_e:
-                print(f"Direct calendar insert into {target_calendar_id} failed ({inner_e}), creating on Service Account calendar...")
+                print(f"Direct calendar insert into {target_calendar_id} failed ({inner_e}), inserting into primary calendar...")
                 event = service.events().insert(
                     calendarId="primary",
                     body=event_body
