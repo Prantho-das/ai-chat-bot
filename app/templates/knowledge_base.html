@@ -3,7 +3,7 @@
 {% block header_title %}Knowledge Base{% endblock %}
 
 {% block content %}
-<div class="space-y-6" x-data="{ showModal: false }">
+<div class="space-y-6" x-data="{ showModal: false, showEditModal: false, editItem: {id: '', category: '', title: '', content: ''} }">
     <div class="flex items-center justify-between">
         <div>
             <h3 class="text-base font-bold text-slate-900">Business Knowledge Items</h3>
@@ -14,6 +14,13 @@
             <span>Add Knowledge Item</span>
         </button>
     </div>
+
+    {% if saved %}
+    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center space-x-2 shadow-sm">
+        <span>✅</span>
+        <span>নলেজ বেস আইটেম সফলভাবে আপডেট/সংরক্ষিত হয়েছে! (Knowledge Base Saved)</span>
+    </div>
+    {% endif %}
 
     <!-- Knowledge Base Entries Table -->
     <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
@@ -43,7 +50,9 @@
                             <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">Inactive</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-6 py-4 flex items-center space-x-2">
+                            <button type="button" @click="editItem = { id: '{{ item.id }}', category: '{{ item.category }}', title: '{{ item.title | escape }}', content: '{{ item.content | escape }}' }; showEditModal = true" class="text-xs text-indigo-600 hover:text-indigo-700 font-semibold bg-indigo-50 px-2.5 py-1 rounded-lg">Edit</button>
+
                             <form action="/admin/knowledge/delete/{{ item.id }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this item?')">
                                 <button type="submit" class="text-xs text-rose-600 hover:text-rose-700 font-semibold bg-rose-50 px-2.5 py-1 rounded-lg">Delete</button>
                             </form>
@@ -74,7 +83,7 @@
             <form x-show="tab === 'manual'" action="/admin/knowledge/add" method="POST" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Category</label>
-                    <select name="category" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10">
+                    <select name="category" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
                         <option value="general">General Info</option>
                         <option value="product">Product & Pricing</option>
                         <option value="faq">FAQ</option>
@@ -83,11 +92,11 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Title</label>
-                    <input type="text" name="title" required placeholder="e.g. Delivery Charge Details" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10">
+                    <input type="text" name="title" required placeholder="e.g. Delivery Charge Details" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Content</label>
-                    <textarea name="content" rows="4" required placeholder="e.g. Inside Dhaka 60 tk, Outside Dhaka 120 tk" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10"></textarea>
+                    <textarea name="content" rows="4" required placeholder="e.g. Inside Dhaka 60 tk, Outside Dhaka 120 tk" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"></textarea>
                 </div>
                 <div class="flex items-center justify-end space-x-3 pt-2">
                     <button type="button" @click="showModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
@@ -99,7 +108,7 @@
             <form x-show="tab === 'file'" action="/admin/knowledge/upload" method="POST" enctype="multipart/form-data" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Category</label>
-                    <select name="category" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10">
+                    <select name="category" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
                         <option value="general">General Info</option>
                         <option value="product">Product & Pricing</option>
                         <option value="faq">FAQ</option>
@@ -108,13 +117,46 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">ফাইল আপলোড করুন (.txt, .md, .csv)</label>
-                    <input type="file" name="file" accept=".txt,.md,.csv" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 focus:outline-none file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                    <p class="text-[11px] text-slate-400 mt-1.5">আপনার ব্যবসার প্রোডাক্ট তথ্য, দাম বা প্রশ্ন-উত্তরের সাধারণ টেক্সট বা নোট ফাইল আপলোড করুন।</p>
+                    <input type="file" name="file" accept=".txt,.md,.csv" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600">
                 </div>
 
                 <div class="flex items-center justify-end space-x-3 pt-2">
                     <button type="button" @click="showModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
                     <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-600/20">Upload & Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Entry Modal -->
+    <div x-show="showEditModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50" x-cloak>
+        <div class="bg-white border border-slate-200/80 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl" @click.away="showEditModal = false">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <h3 class="text-base font-bold text-slate-900">Edit Knowledge Item</h3>
+                <button type="button" @click="showEditModal = false" class="text-slate-400 hover:text-slate-600 text-xs">✕ Close</button>
+            </div>
+
+            <form :action="'/admin/knowledge/edit/' + editItem.id" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Category</label>
+                    <select name="category" x-model="editItem.category" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                        <option value="general">General Info</option>
+                        <option value="product">Product & Pricing</option>
+                        <option value="faq">FAQ</option>
+                        <option value="policy">Policy / Delivery</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Title</label>
+                    <input type="text" name="title" x-model="editItem.title" required class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Content</label>
+                    <textarea name="content" rows="5" x-model="editItem.content" required class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"></textarea>
+                </div>
+                <div class="flex items-center justify-end space-x-3 pt-2">
+                    <button type="button" @click="showEditModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-600/20">Update Knowledge</button>
                 </div>
             </form>
         </div>

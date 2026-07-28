@@ -14,6 +14,13 @@
         </span>
     </div>
 
+    {% if saved %}
+    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center space-x-2 shadow-sm">
+        <span>✅</span>
+        <span>অ্যাপয়েন্টমেন্ট স্ট্যাটাস সফলভাবে আপডেট করা হয়েছে! (Appointment Updated)</span>
+    </div>
+    {% endif %}
+
     <!-- Appointments Table Card -->
     <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
         {% if appointments %}
@@ -45,15 +52,14 @@
                             🕒 {{ appt.booking_time }}
                         </td>
                         <td class="py-3.5 px-4">
-                            {% if appt.status == 'confirmed' %}
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                ✅ Confirmed
-                            </span>
-                            {% else %}
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
-                                ⏳ Pending
-                            </span>
-                            {% endif %}
+                            <form action="/admin/appointments/status/{{ appt.id }}" method="POST" class="inline">
+                                <select name="status_val" onchange="this.form.submit()" class="text-[11px] font-bold px-2.5 py-1 rounded-full border cursor-pointer focus:outline-none {% if appt.status == 'confirmed' %}bg-emerald-50 text-emerald-700 border-emerald-200{% elif appt.status == 'completed' %}bg-blue-50 text-blue-700 border-blue-200{% elif appt.status == 'cancelled' %}bg-rose-50 text-rose-700 border-rose-200{% else %}bg-amber-50 text-amber-700 border-amber-200{% endif %}">
+                                    <option value="confirmed" {% if appt.status == 'confirmed' %}selected{% endif %}>✅ Confirmed</option>
+                                    <option value="completed" {% if appt.status == 'completed' %}selected{% endif %}>🟦 Completed</option>
+                                    <option value="pending" {% if appt.status == 'pending' %}selected{% endif %}>⏳ Pending</option>
+                                    <option value="cancelled" {% if appt.status == 'cancelled' %}selected{% endif %}>❌ Cancelled</option>
+                                </select>
+                            </form>
                         </td>
                         <td class="py-3.5 px-4">
                             {% if appt.google_event_link %}

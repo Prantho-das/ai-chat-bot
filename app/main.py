@@ -5,10 +5,19 @@ from app.config import settings
 from app.database import engine, Base
 from app.routers import webhook_messenger, webhook_whatsapp, admin
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
 app = FastAPI(
     title=settings.APP_NAME,
     description="Facebook Messenger + WhatsApp AI Chatbot with Built-in Admin Dashboard",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Include Routers
@@ -16,10 +25,6 @@ app.include_router(webhook_messenger.router)
 app.include_router(webhook_whatsapp.router)
 app.include_router(admin.router)
 
-@app.on_event("startup")
-async def startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates

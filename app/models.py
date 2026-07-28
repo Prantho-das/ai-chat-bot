@@ -64,6 +64,7 @@ class CacheEntry(Base):
     prompt_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     user_query: Mapped[str] = mapped_column(Text)
     ai_response: Mapped[str] = mapped_column(Text)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 class Appointment(Base):
@@ -77,3 +78,5 @@ class Appointment(Base):
     google_event_link: Mapped[str] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="confirmed")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
