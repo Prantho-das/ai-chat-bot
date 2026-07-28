@@ -8,6 +8,13 @@ class SheetsService:
         if not s_id:
             return {"success": False, "message": "Spreadsheet ID missing."}
 
+        # Auto-extract ID from full Google Sheet URL
+        if "/d/" in s_id:
+            try:
+                s_id = s_id.split("/d/")[1].split("/")[0]
+            except Exception:
+                pass
+
         if not token_json_str or not token_json_str.strip().startswith("{"):
             return {"success": False, "message": "Google Service Account JSON Key missing."}
 

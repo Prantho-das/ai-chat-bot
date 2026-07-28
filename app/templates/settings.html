@@ -399,39 +399,26 @@
                     <span class="text-[11px] text-slate-400">Auto Lead Logging</span>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Google Spreadsheet ID</label>
-                    <input type="text" name="google_sheets_spreadsheet_id" value="{{ creds.google_sheets_spreadsheet_id }}" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Google Spreadsheet URL / ID</label>
+                    <input type="text" name="google_sheets_spreadsheet_id" value="{{ creds.google_sheets_spreadsheet_id }}" placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0.../edit বা সরাসরি ID" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                    <p class="text-[10px] text-slate-400 mt-1">💡 আপনার Google Sheet-এর পুরো Link এখানে পেস্ট করলেও হবে, সিস্টেম অটোমেটিক ID চিনে নেবে।</p>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Google Service Account JSON Key</label>
-                    <textarea name="google_sheets_token_json" rows="3" placeholder="Service account JSON key পেস্ট করুন" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono">{{ creds.google_sheets_token_json }}</textarea>
+                    <textarea name="google_sheets_token_json" rows="3" placeholder="Google Calendar-এর মতো একই JSON key ফাইল পেস্ট করুন" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono">{{ creds.google_sheets_token_json }}</textarea>
                 </div>
             </div>
 
             <!-- Push Notifications Card -->
             <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">🔔 Push Notifications (FCM & Web Push VAPID)</span>
+                    <span class="text-xs font-bold text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">🔔 Push Notifications (1-Click Notification)</span>
+                    <span class="text-[11px] text-emerald-600 font-semibold">Zero Config Ready ✅</span>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">FCM Server Key (Firebase)</label>
-                        <input type="text" name="fcm_server_key" value="{{ creds.fcm_server_key }}" placeholder="AAAA..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">VAPID Claims Email</label>
-                        <input type="email" name="vapid_claims_email" value="{{ creds.vapid_claims_email }}" placeholder="admin@example.com" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">VAPID Public Key</label>
-                        <input type="text" name="vapid_public_key" value="{{ creds.vapid_public_key }}" placeholder="B..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">VAPID Private Key</label>
-                        <input type="password" name="vapid_private_key" value="{{ creds.vapid_private_key }}" placeholder="PrivateKey..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                    </div>
+                <p class="text-xs text-slate-600">ব্রাউজার নোটিফিকেশনের জন্য কোনো কি (Key) দেওয়ার প্রয়োজন নেই! (ডিফল্টভাবে চালু রয়েছে)। শুধুমাত্র Firebase App-এর জন্য থাকলে নিচে Server Key দিন:</p>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">FCM Server Key (Firebase - অপশনাল)</label>
+                    <input type="text" name="fcm_server_key" value="{{ creds.fcm_server_key }}" placeholder="AAAA... (অপশনাল)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
                 </div>
             </div>
 
@@ -539,26 +526,38 @@
                 </div>
             </div>
 
-            <!-- Step 3 Guide -->
-            <div class="p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-3" x-data="{ copiedWa: false, domain: window.location.origin }">
+            <!-- Step 4 Guide: Instagram DM -->
+            <div class="p-5 bg-pink-50/50 border border-pink-100 rounded-2xl space-y-3" x-data="{ copiedIg: false, domain: window.location.origin }">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-2">
-                        <span class="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center">3</span>
-                        <h5 class="text-xs font-bold text-emerald-950">WhatsApp Cloud API ইন্টিগ্রেশন</h5>
+                        <span class="w-6 h-6 rounded-full bg-pink-600 text-white text-xs font-bold flex items-center justify-center">4</span>
+                        <h5 class="text-xs font-bold text-pink-950">Instagram Direct Message (DM) ইন্টিগ্রেশন</h5>
                     </div>
                 </div>
                 <div class="pl-8 text-xs text-slate-600 space-y-2 leading-relaxed">
-                    <p>১. মেটা ডেভেলপার অ্যাপ থেকে <strong>WhatsApp</strong> প্রোডাক্ট সিলেক্ট করুন।</p>
-                    <p>২. <strong>API Setup</strong> থেকে <code>Temporary Access Token</code> এবং <code>Phone Number ID</code> টি কপি করে অ্যাডমিন প্যানেলে বসিয়ে দিন।</p>
-                    <div class="bg-white p-3 rounded-xl border border-emerald-200/80 space-y-1">
-                        <p class="font-bold text-emerald-900">WhatsApp Webhook Callback URL:</p>
+                    <p>১. <a href="https://developers.facebook.com/" target="_blank" class="text-pink-600 underline font-bold">Meta Developer Console</a>-এ আপনার অ্যাপে <strong>Instagram Graph API</strong> যুক্ত করুন।</p>
+                    <p>২. আপনার Facebook Page-এর সাথে Instagram Professional Account কানেক্ট করা থাকলে Facebook Page Token দিয়েই কাজ করবে।</p>
+                    <div class="bg-white p-3 rounded-xl border border-pink-200/80 space-y-1">
+                        <p class="font-bold text-pink-900">Instagram Webhook Callback URL:</p>
                         <div class="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                            <code class="font-mono text-[11px] text-slate-800 select-all" x-text="domain + '/webhook/whatsapp'"></code>
-                            <button type="button" @click="navigator.clipboard.writeText(domain + '/webhook/whatsapp'); copiedWa = true; setTimeout(() => copiedWa = false, 2000)" class="text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-md font-semibold transition-all">
-                                <span x-text="copiedWa ? 'Copied! ✅' : 'Copy URL 📋'"></span>
+                            <code class="font-mono text-[11px] text-slate-800 select-all" x-text="domain + '/webhook/instagram'"></code>
+                            <button type="button" @click="navigator.clipboard.writeText(domain + '/webhook/instagram'); copiedIg = true; setTimeout(() => copiedIg = false, 2000)" class="text-[11px] bg-pink-600 hover:bg-pink-700 text-white px-2.5 py-1 rounded-md font-semibold transition-all">
+                                <span x-text="copiedIg ? 'Copied! ✅' : 'Copy URL 📋'"></span>
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Step 5 Guide: Mailchimp & Google Sheets -->
+            <div class="p-5 bg-amber-50/50 border border-amber-100 rounded-2xl space-y-2">
+                <div class="flex items-center space-x-2">
+                    <span class="w-6 h-6 rounded-full bg-amber-600 text-white text-xs font-bold flex items-center justify-center">5</span>
+                    <h5 class="text-xs font-bold text-amber-950">Mailchimp & Google Sheets Lead Export</h5>
+                </div>
+                <div class="pl-8 text-xs text-slate-600 space-y-2 leading-relaxed">
+                    <p><strong>Mailchimp:</strong> <a href="https://admin.mailchimp.com/account/api/" target="_blank" class="text-amber-700 underline font-bold">Mailchimp API Keys</a> পেজ থেকে API Key তৈরি করুন। Audience List ID পাবেন <code>Audience > Settings > Unique ID</code>-তে।</p>
+                    <p><strong>Google Sheets:</strong> আপনার Google Sheet তৈরি করে তার ব্রাউজার লিংক বা ID দিন। Google Calendar-এ দেওয়া একই Service Account JSON Key এখানে পেস্ট করে Sheet-টি ওই Service Account Email-এর সাথে Share করুন।</p>
                 </div>
             </div>
 
