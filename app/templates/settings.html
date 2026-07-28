@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}Bot Settings - MarketFlow Admin{% endblock %}
+{% block header_title %}Settings & Integrations{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-4xl" x-data="{ activeTab: 'general' }">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900">Bot Settings & Integrations</h3>
+            <p class="text-xs text-slate-500 font-medium">সহজ ৩টি ধাপে আপনার চ্যাটবট ও ইন্টিগ্রেশন কানেক্ট করুন</p>
+        </div>
+        <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1.5 rounded-full border border-indigo-100 flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+            <span>Easy Setup Manager</span>
+        </span>
+    </div>
+
+    {% if message %}
+    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm">
+        <div class="flex items-center space-x-2">
+            <span>✅</span>
+            <span>{{ message }}</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Visual Stepper / Tabs -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <button @click="activeTab = 'general'" :class="activeTab === 'general' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
+            <div class="text-lg mb-1">🤖</div>
+            <div class="text-xs font-bold">Step 1: AI Prompt</div>
+            <div class="text-[10px] opacity-80 font-medium">বটের কথোপকথনের স্টাইল</div>
+        </button>
+
+        <button @click="activeTab = 'credentials'" :class="activeTab === 'credentials' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
+            <div class="text-lg mb-1">🔑</div>
+            <div class="text-xs font-bold">Step 2: Social APIs</div>
+            <div class="text-[10px] opacity-80 font-medium">FB, WA & Gemini Keys</div>
+        </button>
+
+        <button @click="activeTab = 'calendar'" :class="activeTab === 'calendar' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
+            <div class="text-lg mb-1">📅</div>
+            <div class="text-xs font-bold">Step 3: Calendar</div>
+            <div class="text-[10px] opacity-80 font-medium">Auto Booking Setup</div>
+        </button>
+
+        <button @click="activeTab = 'guide'" :class="activeTab === 'guide' ? 'bg-slate-900 text-white shadow-md ring-2 ring-slate-900 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
+            <div class="text-lg mb-1">💡</div>
+            <div class="text-xs font-bold">Setup Guide</div>
+            <div class="text-[10px] opacity-80 font-medium">সাহায্য ও টিউটোরিয়াল</div>
+        </button>
+    </div>
+
+
+
+    <!-- Step 1: AI Prompt -->
+    <div x-show="activeTab === 'general'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900">🤖 AI Bot Persona & Instructions</h4>
+                <p class="text-xs text-slate-500">কাস্টমারের প্রশ্নের উত্তর দেওয়ার সময় এআই কেমন আচরণ করবে তা ঠিক করুন</p>
+            </div>
+        </div>
+        <form action="/admin/settings" method="POST" class="space-y-4">
+            <input type="hidden" name="form_type" value="prompt">
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">System Instruction Prompt</label>
+                <textarea name="system_prompt" rows="5" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed">{{ system_prompt }}</textarea>
+            </div>
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20">
+                Save Prompt Settings
+            </button>
+        </form>
+    </div>
+
+    <!-- Step 2: API Keys Management -->
+    <div x-show="activeTab === 'credentials'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
+        <form action="/admin/settings" method="POST" class="space-y-6">
+            <input type="hidden" name="form_type" value="credentials">
+            
+            <!-- Gemini Key Card -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">✨ Google Gemini AI</span>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[11px] text-indigo-600 hover:underline font-semibold">কীভাবে Key পাবেন? →</a>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Gemini API Key</label>
+                    <input type="password" name="gemini_api_key" value="{{ creds.gemini_api_key }}" placeholder="AIzaSy..." class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                </div>
+            </div>
+
+            <!-- FB Settings Card -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">📘 Facebook Messenger & Comments</span>
+                    <span class="text-[11px] text-slate-400 font-medium">Graph API v19.0</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Page Access Token</label>
+                        <input type="password" name="fb_page_access_token" value="{{ creds.fb_page_access_token }}" placeholder="EAA..." class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Verify Token (পছন্দমতো যেকোনো শব্দ)</label>
+                        <input type="text" name="fb_verify_token" value="{{ creds.fb_verify_token }}" placeholder="my_secret_verify_token_123" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                    </div>
+                </div>
+            </div>
+
+            <!-- WhatsApp Settings Card -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">🟢 WhatsApp Cloud API</span>
+                    <span class="text-[11px] text-slate-400 font-medium">Meta Cloud API</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Access Token</label>
+                        <input type="password" name="wa_access_token" value="{{ creds.wa_access_token }}" placeholder="EAA..." class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number ID</label>
+                        <input type="text" name="wa_phone_number_id" value="{{ creds.wa_phone_number_id }}" placeholder="1029384756..." class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Verify Token</label>
+                    <input type="text" name="wa_verify_token" value="{{ creds.wa_verify_token }}" placeholder="my_wa_verify_token_123" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                </div>
+            </div>
+
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20 w-full sm:w-auto">
+                Save All Credentials
+            </button>
+        </form>
+    </div>
+
+    <!-- Step 3: Google Calendar Setup -->
+    <div x-show="activeTab === 'calendar'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900">📅 Google Calendar Integration</h4>
+                <p class="text-xs text-slate-500">বট স্বয়ংক্রিয়ভাবে অ্যাপয়েন্টমেন্ট শিডিউল করবে</p>
+            </div>
+        </div>
+        
+        <form action="/admin/settings" method="POST" class="space-y-4">
+            <input type="hidden" name="form_type" value="calendar">
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">OAuth 2.0 JSON Token</label>
+                <textarea name="google_calendar_token" rows="5" placeholder='{"token": "...", "refresh_token": "...", "client_id": "..."}' class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 leading-relaxed">{{ creds.google_calendar_token }}</textarea>
+            </div>
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20">
+                Save Calendar Credentials
+            </button>
+        </form>
+    </div>
+
+    <!-- Step 4: Visual Step-by-Step Connection Guide -->
+    <div x-show="activeTab === 'guide'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
+        <div class="border-b border-slate-100 pb-3">
+            <h4 class="text-base font-bold text-slate-900">📖 চ্যাটবট সেটআপ করার বিস্তারিত টিউটোরিয়াল</h4>
+            <p class="text-xs text-slate-500 font-medium">নিচের প্রতিটি ধাপের সহজ নির্দেশিকা পড়ে আপনি নিজে নিজেই বটের সাথে প্ল্যাটফর্ম যুক্ত করতে পারবেন</p>
+        </div>
+
+        <div class="space-y-6">
+            <!-- Step 1 Guide -->
+            <div class="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-2">
+                <div class="flex items-center space-x-2">
+                    <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">1</span>
+                    <h5 class="text-xs font-bold text-indigo-950">Google Gemini API Key নেওয়া (সম্পূর্ণ ফ্রি)</h5>
+                </div>
+                <div class="pl-8 text-xs text-slate-600 space-y-1.5 leading-relaxed">
+                    <p>১. প্রথমে <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 underline font-bold">Google AI Studio (aistudio.google.com)</a> ওয়েবসাইটে যান।</p>
+                    <p>২. আপনার যেকোনো জিমেইল একাউন্ট দিয়ে লগইন করুন।</p>
+                    <p>৩. নীল রঙের <strong>"Create API key"</strong> বাটনে চাপ দিন এবং উৎপন্ন কী ( Key ) টি কপি করে নিন।</p>
+                    <p>৪. এই পেজের <strong>"Step 2: Social APIs"</strong> ট্যাবে গিয়ে <code>Gemini API Key</code> বক্সে পেস্ট করে সেভ করুন।</p>
+                </div>
+            </div>
+
+            <!-- Step 2 Guide -->
+            <div class="p-5 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-3" x-data="{ copiedMsg: false }">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">2</span>
+                        <h5 class="text-xs font-bold text-blue-950">Facebook Messenger & Post Comment ইন্টিগ্রেশন</h5>
+                    </div>
+                </div>
+                <div class="pl-8 text-xs text-slate-600 space-y-2 leading-relaxed">
+                    <p>১. <a href="https://developers.facebook.com/" target="_blank" class="text-blue-600 underline font-bold">Meta for Developers Console</a> এ যান এবং আপনার একাউন্ট দিয়ে একটি <strong>Business App</strong> তৈরি করুন।</p>
+                    <p>২. প্রোডাক্ট লিস্ট থেকে <strong>Messenger</strong> যুক্ত করে আপনার ফেসবুক পেজ যুক্ত করুন এবং <strong>Page Access Token</strong> তৈরি করে কপি করুন।</p>
+                    <div class="bg-white p-3 rounded-xl border border-blue-200/80 space-y-1">
+                        <p class="font-bold text-blue-900">Facebook Webhook Callback URL:</p>
+                        <div class="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                            <code class="font-mono text-[11px] text-slate-800 select-all" id="fb-url">http://127.0.0.1:8000/webhook/messenger</code>
+                            <button type="button" @click="navigator.clipboard.writeText('http://127.0.0.1:8000/webhook/messenger'); copiedMsg = true; setTimeout(() => copiedMsg = false, 2000)" class="text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md font-semibold transition-all">
+                                <span x-text="copiedMsg ? 'Copied! ✅' : 'Copy URL 📋'"></span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-xl border border-blue-200/80 space-y-2">
+                        <p class="font-bold text-blue-950">৪. Subscribed Fields কনফিগারেশন (ধাপ অনুযায়ী নির্দেশিকা):</p>
+                        <ul class="list-disc list-inside space-y-1.5 text-[11px] text-slate-700">
+                            <li><strong>`messages` (ইনবক্স মেসেজের জন্য):</strong> আপনি যখন মেটা ডেভেলপার কনসোলে Messenger Webhook কনফিগার করবেন, তখন অপশনগুলোর মধ্যে <strong>`messages`</strong> ফিল্ডের পাশে থাকা <strong>Subscribe</strong> বাটনে চাপ দিন। এর ফলে কাস্টমার পেজে ইনবক্স মেসেজ পাঠালে আপনার এআই বট সেটি পড়তে পারবে এবং উত্তর পাঠাতে পারবে।</li>
+                            <li><strong>`feed` (পোস্ট কমেন্টের জন্য):</strong> পেজের পোস্টের কমেন্টে অটো-রিপ্লাই দেওয়ার জন্য <strong>Webhooks -> Page (Feed)</strong> সেকশনে গিয়ে <strong>`feed`</strong> ফিল্ডের পাশে থাকা <strong>Subscribe</strong> বাটনে ক্লিক করুন। এর মাধ্যমে কাস্টমার পেজের পোস্টে কমেন্ট করার সাথে সাথেই বট কমেন্টের উত্তর দিবে।</li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Step 3 Guide -->
+            <div class="p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-3" x-data="{ copiedWa: false }">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center">3</span>
+                        <h5 class="text-xs font-bold text-emerald-950">WhatsApp Cloud API ইন্টিগ্রেশন</h5>
+                    </div>
+                </div>
+                <div class="pl-8 text-xs text-slate-600 space-y-2 leading-relaxed">
+                    <p>১. একই মেটা ডেভেলপার অ্যাপ থেকে <strong>WhatsApp</strong> প্রোডাক্ট সিলেক্ট করুন।</p>
+                    <p>২. **API Setup** থেকে <code>Temporary Access Token</code> এবং <code>Phone Number ID</code> টি কপি করে অ্যাডমিন প্যানেলে বসিয়ে দিন।</p>
+                    <div class="bg-white p-3 rounded-xl border border-emerald-200/80 space-y-1">
+                        <p class="font-bold text-emerald-900">WhatsApp Webhook Callback URL:</p>
+                        <div class="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                            <code class="font-mono text-[11px] text-slate-800 select-all" id="wa-url">http://127.0.0.1:8000/webhook/whatsapp</code>
+                            <button type="button" @click="navigator.clipboard.writeText('http://127.0.0.1:8000/webhook/whatsapp'); copiedWa = true; setTimeout(() => copiedWa = false, 2000)" class="text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-md font-semibold transition-all">
+                                <span x-text="copiedWa ? 'Copied! ✅' : 'Copy URL 📋'"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Chat with {{ conversation.sender_name }} - MarketFlow Admin{% endblock %}
+{% block header_title %}Conversation Thread{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-4xl mx-auto">
+    <div class="flex items-center justify-between bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm">
+        <div class="flex items-center space-x-3">
+            <a href="/admin/conversations" class="text-slate-500 hover:text-slate-900 text-xs font-semibold bg-slate-100 px-3 py-1.5 rounded-lg transition-colors">← Back to List</a>
+            <div class="h-4 w-px bg-slate-200"></div>
+            <h3 class="text-sm font-bold text-slate-900">{{ conversation.sender_name or 'User' }}</h3>
+            <span class="text-xs font-mono text-slate-400">({{ conversation.sender_id }})</span>
+            {% if conversation.platform == 'messenger' %}
+            <span class="px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700 font-semibold border border-blue-100">Messenger</span>
+            {% elif conversation.platform == 'whatsapp' %}
+            <span class="px-2 py-0.5 rounded text-xs bg-emerald-50 text-emerald-700 font-semibold border border-emerald-100">WhatsApp</span>
+            {% else %}
+            <span class="px-2 py-0.5 rounded text-xs bg-purple-50 text-purple-700 font-semibold border border-purple-100">FB Comment</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Chat Messages Container -->
+    <div class="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-4 min-h-[420px] shadow-sm flex flex-col justify-end">
+        {% for msg in messages %}
+        {% if msg.role == 'user' %}
+        <!-- User Message -->
+        <div class="flex flex-col items-start space-y-1">
+            <div class="flex items-center space-x-2">
+                <span class="text-[10px] text-slate-500 font-bold ml-1">{{ conversation.sender_name or 'User' }}</span>
+                {% if conversation.platform == 'fb_comment' %}
+                <span class="text-[9px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">💬 Commented on Facebook Post</span>
+                {% endif %}
+            </div>
+            <div class="bg-slate-100 text-slate-800 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-lg text-xs font-medium leading-relaxed border border-slate-200/60">
+                {{ msg.content }}
+            </div>
+            <span class="text-[10px] text-slate-400 ml-1">{{ msg.created_at.strftime('%H:%M') if msg.created_at else '' }}</span>
+        </div>
+        {% else %}
+        <!-- Assistant Message -->
+        <div class="flex flex-col items-end space-y-1">
+            <div class="flex items-center space-x-1.5">
+                {% if msg.is_cached %}
+                <span class="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold border border-emerald-200/60 shadow-sm">⚡ 0 API Token Used (Cached)</span>
+                {% else %}
+                <span class="text-[9px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-semibold">✨ Gemini AI Token</span>
+                {% endif %}
+                <span class="text-[10px] text-indigo-600 font-bold">🤖 AI Bot Auto-Reply</span>
+            </div>
+            <div class="bg-indigo-600 text-white px-4 py-2.5 rounded-2xl rounded-tr-none max-w-lg text-xs font-medium leading-relaxed shadow-sm shadow-indigo-600/20">
+                {{ msg.content }}
+            </div>
+            <span class="text-[10px] text-slate-400 mr-1">{{ msg.created_at.strftime('%H:%M') if msg.created_at else '' }}</span>
+        </div>
+
+        {% endif %}
+        {% else %}
+        <p class="text-center text-slate-400 text-xs py-12 font-medium">No messages available in this thread.</p>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

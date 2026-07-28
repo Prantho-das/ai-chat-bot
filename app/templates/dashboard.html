@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - MarketFlow Admin{% endblock %}
+{% block header_title %}Overview & Analytics{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Users</span>
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg font-bold">💬</div>
+            </div>
+            <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.total_conversations }}</div>
+            <p class="text-xs font-medium text-slate-400 mt-2">All time conversations</p>
+        </div>
+
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Messages</span>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg font-bold">✉️</div>
+            </div>
+            <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.total_messages }}</div>
+            <p class="text-xs font-medium text-slate-400 mt-2">Total sent & received</p>
+        </div>
+
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Knowledge Items</span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold">🧠</div>
+            </div>
+            <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.knowledge_entries }}</div>
+            <p class="text-xs font-medium text-slate-400 mt-2">Active business items</p>
+        </div>
+
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Token Saved (0 Cost)</span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold">⚡</div>
+            </div>
+            <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.cached_messages }}</div>
+            <p class="text-xs font-medium text-emerald-600 mt-2">Zero-cost API replies</p>
+        </div>
+
+    </div>
+
+    <!-- Recent Conversations Table -->
+    <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-base text-slate-900">Recent Conversations</h3>
+            <a href="/admin/conversations" class="text-xs text-indigo-600 hover:text-indigo-700 font-semibold">View All →</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50/60 text-xs uppercase font-semibold text-slate-400 border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-4">Platform</th>
+                        <th class="px-6 py-4">Sender</th>
+                        <th class="px-6 py-4">Sender ID</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for conv in recent_conversations %}
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="px-6 py-4">
+                            {% if conv.platform == 'messenger' %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">Messenger</span>
+                            {% elif conv.platform == 'whatsapp' %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">WhatsApp</span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/60">FB Comment</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-6 py-4 font-semibold text-slate-900">{{ conv.sender_name or 'Unknown User' }}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-slate-400">{{ conv.sender_id }}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ conv.status }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <a href="/admin/conversations/{{ conv.id }}" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-semibold transition-colors">View Chat</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-10 text-center text-slate-400 text-sm">No active conversations found yet. Messages will appear here automatically.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

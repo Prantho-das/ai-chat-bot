@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50 text-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - MarketFlow AI Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Plus Jakarta Sans', sans-serif; } </style>
+</head>
+<body class="h-full bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-100 flex items-center justify-center p-4 antialiased">
+    <div class="w-full max-w-md">
+        
+        <!-- Logo & Header -->
+        <div class="text-center space-y-3 mb-8">
+            <div class="inline-flex w-14 h-14 rounded-2xl bg-indigo-600 items-center justify-center text-white text-2xl font-bold shadow-xl shadow-indigo-600/30 ring-8 ring-indigo-50">
+                ⚡
+            </div>
+            <div>
+                <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">MarketFlow AI</h1>
+                <p class="text-xs font-semibold text-slate-400 mt-1">Enterprise Automation Portal</p>
+            </div>
+        </div>
+
+        <!-- Main Login Card -->
+        <div class="bg-white/90 border border-slate-200/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl shadow-slate-200/60 space-y-6">
+            
+            <div class="border-b border-slate-100 pb-4 text-center">
+                <h2 class="text-base font-bold text-slate-900">Welcome Back</h2>
+                <p class="text-xs text-slate-400 font-medium mt-0.5">অ্যাডমিন ড্যাশবোর্ডে প্রবেশ করতে লগইন করুন</p>
+            </div>
+
+            {% if error %}
+            <div class="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs font-semibold flex items-center justify-center space-x-2">
+                <span>⚠️</span>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <form action="/admin/login" method="POST" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Username</label>
+                    <div class="relative">
+                        <input type="text" name="username" required placeholder="Enter username" class="w-full bg-slate-50/60 border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all">
+                        <span class="absolute left-3.5 top-3.5 text-slate-400 text-sm">👤</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
+                    </div>
+                    <div class="relative">
+                        <input type="password" name="password" required placeholder="Enter password" class="w-full bg-slate-50/60 border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all">
+                        <span class="absolute left-3.5 top-3.5 text-slate-400 text-sm">🔒</span>
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl text-xs transition-all shadow-lg shadow-indigo-600/25 flex items-center justify-center space-x-2">
+                        <span>Sign In to Dashboard</span>
+                        <span>→</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-center text-xs text-slate-400 font-medium mt-6">
+            © 2026 MarketFlow AI Engine • Protected Portal
+        </p>
+
+    </div>
+</body>
+</html>

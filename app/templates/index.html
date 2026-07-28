@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50 text-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarketFlow - AI Customer Support Automation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Plus Jakarta Sans', sans-serif; } </style>
+</head>
+<body class="h-full bg-slate-50 text-slate-800 flex flex-col justify-between antialiased">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white/80 border-b border-slate-200/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-600/30">
+                    ⚡
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg text-slate-900 tracking-tight">MarketFlow AI</h1>
+                    <p class="text-[11px] text-slate-400 font-semibold">Omnichannel Automation Engine</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="/admin/login" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md shadow-indigo-600/20">
+                    Admin Portal Login →
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <main class="flex-1 max-w-7xl mx-auto px-6 py-16 flex flex-col items-center justify-center text-center space-y-8">
+        <span class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-indigo-600 mr-2 animate-pulse"></span> Intelligent Customer Engagement Engine
+        </span>
+
+        <h2 class="text-4xl sm:text-6xl font-extrabold text-slate-900 tracking-tight max-w-3xl leading-tight">
+            Automate <span class="text-indigo-600">Messenger, WhatsApp & Post Comments</span> with Gemini AI
+        </h2>
+
+        <p class="text-sm sm:text-base text-slate-500 font-medium max-w-2xl leading-relaxed">
+            MarketFlow AI স্বয়ংক্রিয়ভাবে আপনার মেসেঞ্জার, হোয়াটসঅ্যাপ এবং ফেসবুক পেজের কমেন্টের উত্তর প্রদান করে। 
+            জিরো-এপিআই টোকেন লস ক্যাশিং এবং গুগল ক্যালেন্ডার বুকিং সম্বলিত একটি অল-ইন-ওয়ান সাপোর্ট ইঞ্জিন।
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-wrap items-center justify-center gap-4 pt-2">
+            <a href="/admin" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3.5 rounded-2xl font-bold text-xs transition-all shadow-lg shadow-indigo-600/25">
+                Go to Admin Dashboard
+            </a>
+            <a href="/docs" target="_blank" class="bg-white hover:bg-slate-100 border border-slate-200/80 text-slate-700 px-8 py-3.5 rounded-2xl font-bold text-xs transition-all shadow-sm">
+                View API Docs
+            </a>
+        </div>
+
+        <!-- Feature Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-5xl w-full pt-12">
+            <div class="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-sm space-y-2">
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg font-bold">📘</div>
+                <h3 class="font-bold text-sm text-slate-900">FB Messenger & Comments</h3>
+                <p class="text-xs text-slate-500 font-medium">ইনবক্সের ইনকামিং মেসেজ এবং ফেসবুক পোস্টের কমেন্টে মুহূর্তের মধ্যে এআই রিপ্লাই প্রদান করে।</p>
+            </div>
+
+            <div class="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-sm space-y-2">
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold">🟢</div>
+                <h3 class="font-bold text-sm text-slate-900">WhatsApp Cloud Integration</h3>
+                <p class="text-xs text-slate-500 font-medium">অফিশিয়াল হোয়াটসঅ্যাপ ক্লাউড এপিআই দিয়ে কাস্টমারদের সাথে স্বয়ংক্রিয় কথোপকথন চালায়।</p>
+            </div>
+
+            <div class="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-sm space-y-2">
+                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg font-bold">📅</div>
+                <h3 class="font-bold text-sm text-slate-900">Google Calendar Booking</h3>
+                <p class="text-xs text-slate-500 font-medium">কথা বলে সময় ঠিক করে সরাসরি আপনার গুগল ক্যালেন্ডারে অ্যাপয়েন্টমেন্ট শিডিউল করে দেয়।</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200/80 py-6 text-center text-xs text-slate-400 font-medium">
+        MarketFlow AI Chatbot System • Powered by FastAPI & Google Gemini 2.0
+    </footer>
+
+</body>
+</html>

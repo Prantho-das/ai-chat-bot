@@ -1,0 +1,70 @@
+from datetime import datetime
+from sqlalchemy import String, Text, DateTime, ForeignKey, Boolean, Integer
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.database import Base
+
+class AdminUser(Base):
+    __tablename__ = "admin_users"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    platform: Mapped[str] = mapped_column(String(20), index=True) # messenger, whatsapp, or fb_comment
+    sender_id: Mapped[str] = mapped_column(String(100), index=True) # platform specific user ID
+    sender_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="active") # active, resolved, escalated
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+    messages: Mapped[list["Message"]] = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    conversation_id: Mapped[int] = mapped_column(ForeignKey("conversations.id", ondelete="CASCADE"), index=True)
+    role: Mapped[str] = mapped_column(String(20)) # user or assistant
+    content: Mapped[str] = mapped_column(Text)
+    is_ai_generated: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_cached: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    conversation: Mapped["Conversation"] = relationship("Conversation", back_populates="messages")
+
+
+class KnowledgeEntry(Base):
+    __tablename__ = "knowledge_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    category: Mapped[str] = mapped_column(String(50), default="general") # product, faq, policy, general
+    title: Mapped[str] = mapped_column(String(200))
+    content: Mapped[str] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class BotSetting(Base):
+    __tablename__ = "bot_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    key: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    value: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class CacheEntry(Base):
+    __tablename__ = "cache_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    prompt_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    user_query: Mapped[str] = mapped_column(Text)
+    ai_response: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
