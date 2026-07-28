@@ -1,10 +1,11 @@
 import hashlib
+import json
 import google.generativeai as genai
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.config import settings
 from app.models import KnowledgeEntry, BotSetting, CacheEntry
-
+from app.services.calendar_service import calendar_service
 
 class AIService:
     async def get_system_prompt(self, db: AsyncSession) -> str:
@@ -18,6 +19,26 @@ class AIService:
             "সুন্দর ও মার্জিত ভাষায় বাংলা অথবা ইংরেজিতে উত্তর দাও।"
         )
         return setting.value if setting else default_prompt
+
+    async def get_response_length(self, db: AsyncSession) -> str:
+        stmt = select(BotSetting).where(BotSetting.key == "response_length")
+        result = await db.execute(stmt)
+        setting = result.scalar_one_or_none()
+        return setting.value if setting else getattr(settings, "RESPONSE_LENGTH", "short")
+
+    async def get_calendar_config(self, db: AsyncSession) -> dict:
+        keys = [
+            "google_calendar_token",
+            "google_client_id",
+            "google_client_secret",
+            "google_refresh_token",
+            "google_calendar_id"
+        ]
+        stmt = select(BotSetting).where(BotSetting.key.in_(keys))
+        result = await db.execute(stmt)
+        records = result.scalars().all()
+        config = {r.key: r.value for r in records}
+        return config
 
     async def get_knowledge_base(self, db: AsyncSession) -> str:
         stmt = select(KnowledgeEntry).where(KnowledgeEntry.is_active == True)
@@ -68,7 +89,8 @@ class AIService:
         ]
 
     async def generate_response(self, user_message: str, history: list, db: AsyncSession) -> tuple[str, bool]:
-        clean_query = user_message.strip().lower()
+        response_length = await self.get_response_length(db)
+        clean_query = f"{response_length}:{user_message.strip().lower()}"
         query_hash = hashlib.sha256(clean_query.encode("utf-8")).hexdigest()
 
         # Check Cache to save API Tokens
@@ -92,6 +114,14 @@ class AIService:
             system_prompt = await self.get_system_prompt(db)
             knowledge_base = await self.get_knowledge_base(db)
 
+            # Response length instructions
+            length_instructions = {
+                "short": "[RESPONSE LENGTH INSTRUCTION: Keep response very SHORT, crisp, and concise (within 2-3 sentences max).]",
+                "medium": "[RESPONSE LENGTH INSTRUCTION: Provide a moderate/medium length response with clear details.]",
+                "long": "[RESPONSE LENGTH INSTRUCTION: Provide a comprehensive and detailed response explaining everything thoroughly.]"
+            }
+            length_guide = length_instructions.get(response_length.lower(), length_instructions["short"])
+
             formatted_history = ""
             for msg in history[-5:]:
                 role = "Customer" if msg.role == "user" else "Support AI"
@@ -99,6 +129,8 @@ class AIService:
 
             full_prompt = f"""
 {system_prompt}
+
+{length_guide}
 
 [BUSINESS KNOWLEDGE BASE]
 {knowledge_base}
@@ -113,6 +145,13 @@ Support AI Reply:
 """
             response = model.generate_content(full_prompt)
             ai_text = response.text.strip()
+
+            # Check if user message or response implies Google Calendar booking attempt
+            calendar_config = await self.get_calendar_config(db)
+            if any(k in user_message.lower() for k in ["meeting", "appointment", "book", "schedule", "মিটিং", "অ্যাপয়েন্টমেন্ট", "বুক"]):
+                # Try auto creating event if user provided date/time
+                # Keep original response, calendar service ready for direct API calls
+                pass
 
             # Save in cache for future identical queries
             new_cache = CacheEntry(
@@ -130,4 +169,3 @@ Support AI Reply:
 
 
 ai_service = AIService()
-

@@ -187,7 +187,12 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
         "wa_access_token": settings_dict.get("wa_access_token", settings.WA_ACCESS_TOKEN),
         "wa_phone_number_id": settings_dict.get("wa_phone_number_id", settings.WA_PHONE_NUMBER_ID),
         "wa_verify_token": settings_dict.get("wa_verify_token", settings.WA_VERIFY_TOKEN),
+        "google_client_id": settings_dict.get("google_client_id", os.getenv("GOOGLE_CLIENT_ID", "")),
+        "google_client_secret": settings_dict.get("google_client_secret", os.getenv("GOOGLE_CLIENT_SECRET", "")),
+        "google_refresh_token": settings_dict.get("google_refresh_token", os.getenv("GOOGLE_REFRESH_TOKEN", "")),
+        "google_calendar_id": settings_dict.get("google_calendar_id", os.getenv("GOOGLE_CALENDAR_ID", "primary")),
         "google_calendar_token": settings_dict.get("google_calendar_token", ""),
+        "response_length": settings_dict.get("response_length", getattr(settings, "RESPONSE_LENGTH", "short")),
     }
 
     available_models = ai_service.get_available_models(creds["gemini_api_key"])
@@ -204,6 +209,7 @@ async def update_settings(
     request: Request,
     form_type: str = Form(...),
     system_prompt: str = Form(None),
+    response_length: str = Form(None),
     gemini_api_key: str = Form(None),
     gemini_model: str = Form(None),
     fb_page_access_token: str = Form(None),
@@ -211,20 +217,35 @@ async def update_settings(
     wa_access_token: str = Form(None),
     wa_phone_number_id: str = Form(None),
     wa_verify_token: str = Form(None),
+    google_client_id: str = Form(None),
+    google_client_secret: str = Form(None),
+    google_refresh_token: str = Form(None),
+    google_calendar_id: str = Form(None),
     google_calendar_token: str = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
-    if form_type == "prompt" and system_prompt:
-        stmt = select(BotSetting).where(BotSetting.key == "system_prompt")
-        res = await db.execute(stmt)
-        setting = res.scalar_one_or_none()
-        if setting:
-            setting.value = system_prompt
-        else:
-            db.add(BotSetting(key="system_prompt", value=system_prompt))
+    if form_type == "prompt":
+        if system_prompt:
+            stmt = select(BotSetting).where(BotSetting.key == "system_prompt")
+            res = await db.execute(stmt)
+            setting = res.scalar_one_or_none()
+            if setting:
+                setting.value = system_prompt
+            else:
+                db.add(BotSetting(key="system_prompt", value=system_prompt))
+
+        if response_length:
+            stmt = select(BotSetting).where(BotSetting.key == "response_length")
+            res = await db.execute(stmt)
+            setting = res.scalar_one_or_none()
+            if setting:
+                setting.value = response_length
+            else:
+                db.add(BotSetting(key="response_length", value=response_length))
+
         await db.commit()
 
     elif form_type == "credentials":
@@ -249,14 +270,22 @@ async def update_settings(
                 setattr(settings, k.upper(), v)
         await db.commit()
 
-    elif form_type == "calendar" and google_calendar_token is not None:
-        stmt = select(BotSetting).where(BotSetting.key == "google_calendar_token")
-        res = await db.execute(stmt)
-        setting = res.scalar_one_or_none()
-        if setting:
-            setting.value = google_calendar_token
-        else:
-            db.add(BotSetting(key="google_calendar_token", value=google_calendar_token))
+    elif form_type == "calendar":
+        cal_settings = {
+            "google_client_id": google_client_id or "",
+            "google_client_secret": google_client_secret or "",
+            "google_refresh_token": google_refresh_token or "",
+            "google_calendar_id": google_calendar_id or "primary",
+            "google_calendar_token": google_calendar_token or "",
+        }
+        for k, v in cal_settings.items():
+            stmt = select(BotSetting).where(BotSetting.key == k)
+            res = await db.execute(stmt)
+            setting = res.scalar_one_or_none()
+            if setting:
+                setting.value = v
+            else:
+                db.add(BotSetting(key=k, value=v))
         await db.commit()
 
     return RedirectResponse(url="/admin/settings", status_code=status.HTTP_302_FOUND)

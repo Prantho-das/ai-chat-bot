@@ -7,7 +7,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h3 class="text-lg font-bold text-slate-900">Bot Settings & Integrations</h3>
-            <p class="text-xs text-slate-500 font-medium">সহজ ৩টি ধাপে আপনার চ্যাটবট ও ইন্টিগ্রেশন কানেক্ট করুন</p>
+            <p class="text-xs text-slate-500 font-medium">সহজ ৩টি ধাপে আপনার চ্যাটবট, রেসপন্স স্টাইল ও গুগল ক্যালেন্ডার ইন্টিগ্রেশন কানেক্ট করুন</p>
         </div>
         <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1.5 rounded-full border border-indigo-100 flex items-center space-x-1.5">
             <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
@@ -28,8 +28,8 @@
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <button @click="activeTab = 'general'" :class="activeTab === 'general' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
             <div class="text-lg mb-1">🤖</div>
-            <div class="text-xs font-bold">Step 1: AI Prompt</div>
-            <div class="text-[10px] opacity-80 font-medium">বটের কথোপকথনের স্টাইল</div>
+            <div class="text-xs font-bold">Step 1: AI Prompt & Response</div>
+            <div class="text-[10px] opacity-80 font-medium">বটের উত্তর ও সংক্ষেপ অপশন</div>
         </button>
 
         <button @click="activeTab = 'credentials'" :class="activeTab === 'credentials' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
@@ -41,7 +41,7 @@
         <button @click="activeTab = 'calendar'" :class="activeTab === 'calendar' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
             <div class="text-lg mb-1">📅</div>
             <div class="text-xs font-bold">Step 3: Calendar</div>
-            <div class="text-[10px] opacity-80 font-medium">Auto Booking Setup</div>
+            <div class="text-[10px] opacity-80 font-medium">Google Calendar Setup</div>
         </button>
 
         <button @click="activeTab = 'guide'" :class="activeTab === 'guide' ? 'bg-slate-900 text-white shadow-md ring-2 ring-slate-900 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
@@ -51,24 +51,54 @@
         </button>
     </div>
 
-
-
-    <!-- Step 1: AI Prompt -->
-    <div x-show="activeTab === 'general'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+    <!-- Step 1: AI Prompt & Response Length Setup Panel -->
+    <div x-show="activeTab === 'general'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-                <h4 class="text-sm font-bold text-slate-900">🤖 AI Bot Persona & Instructions</h4>
-                <p class="text-xs text-slate-500">কাস্টমারের প্রশ্নের উত্তর দেওয়ার সময় এআই কেমন আচরণ করবে তা ঠিক করুন</p>
+                <h4 class="text-sm font-bold text-slate-900">🤖 AI Bot Persona & Response Setup Panel</h4>
+                <p class="text-xs text-slate-500">বটের উত্তরের দৈর্ঘ্য (ছোট/মাঝারি/বড়) এবং কথা বলার স্টাইল নির্বাচন করুন</p>
             </div>
         </div>
-        <form action="/admin/settings" method="POST" class="space-y-4">
+        <form action="/admin/settings" method="POST" class="space-y-5">
             <input type="hidden" name="form_type" value="prompt">
+            
+            <!-- Chatbot Response Length Selection Panel -->
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                <label class="block text-xs font-bold text-slate-800">📏 চ্যাটবট রেসপন্স সাইজ কন্ট্রোল (Bot Response Length Mode)</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <label class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-500 transition-all">
+                        <input type="radio" name="response_length" value="short" {% if creds.response_length == 'short' or not creds.response_length %}checked{% endif %} class="text-indigo-600 focus:ring-indigo-500">
+                        <div>
+                            <div class="text-xs font-bold text-slate-900">⚡ সংক্ষিপ্ত (Short)</div>
+                            <div class="text-[10px] text-slate-500">২-৩ বাক্যের মধ্যে সংক্ষেপে উত্তর দেবে।</div>
+                        </div>
+                    </label>
+
+                    <label class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-500 transition-all">
+                        <input type="radio" name="response_length" value="medium" {% if creds.response_length == 'medium' %}checked{% endif %} class="text-indigo-600 focus:ring-indigo-500">
+                        <div>
+                            <div class="text-xs font-bold text-slate-900">⚖️ পরিমিত (Medium)</div>
+                            <div class="text-[10px] text-slate-500">মাঝারি দৈর্ঘ্যের ব্যালেন্সড উত্তর দেবে।</div>
+                        </div>
+                    </label>
+
+                    <label class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-500 transition-all">
+                        <input type="radio" name="response_length" value="long" {% if creds.response_length == 'long' %}checked{% endif %} class="text-indigo-600 focus:ring-indigo-500">
+                        <div>
+                            <div class="text-xs font-bold text-slate-900">📖 বিস্তারিত (Long)</div>
+                            <div class="text-[10px] text-slate-500">পূর্ণাঙ্গ তথ্যসহ বড় ও বিস্তারিত উত্তর দেবে।</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">System Instruction Prompt</label>
                 <textarea name="system_prompt" rows="5" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed">{{ system_prompt }}</textarea>
             </div>
+
             <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20">
-                Save Prompt Settings
+                Save Prompt & Response Settings
             </button>
         </form>
     </div>
@@ -187,36 +217,108 @@
         </form>
     </div>
 
-    <!-- Step 3: Google Calendar Setup -->
-    <div x-show="activeTab === 'calendar'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+    <!-- Step 3: Google Calendar Integration Panel -->
+    <div x-show="activeTab === 'calendar'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-                <h4 class="text-sm font-bold text-slate-900">📅 Google Calendar Integration</h4>
+                <h4 class="text-sm font-bold text-slate-900">📅 Google Calendar Integration & Appointment Setup</h4>
                 <p class="text-xs text-slate-500">বট স্বয়ংক্রিয়ভাবে কাস্টমারের মিটিং ও অ্যাপয়েন্টমেন্ট গুগল ক্যালেন্ডারে বুক করবে</p>
             </div>
+            <a href="https://console.cloud.google.com/" target="_blank" class="text-xs text-indigo-600 hover:underline font-bold">Google Cloud Console →</a>
         </div>
         
         <form action="/admin/settings" method="POST" class="space-y-4">
             <input type="hidden" name="form_type" value="calendar">
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Google Calendar Authorization Token / Key</label>
-                <textarea name="google_calendar_token" rows="4" placeholder="আপনার Google Cloud Console থেকে প্রাপ্ত সিক্রেট কী কোডটি এখানে পেস্ট করুন" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 leading-relaxed">{{ creds.google_calendar_token }}</textarea>
-                <p class="text-[11px] text-slate-400 mt-1.5">💡 সাধারণ ব্যবহারকারীদের জন্য: Google Cloud Console থেকে সার্ভিস একাউন্টের কী কোড সম্পূর্ণ কপি করে এখানে একবার পেস্ট করে দিন। কোনো ব্র্যাকেট বা ফরম্যাট পরিবর্তনের প্রয়োজন নেই।</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Google Client ID</label>
+                    <input type="text" name="google_client_id" value="{{ creds.google_client_id }}" placeholder="xxxxxx.apps.googleusercontent.com" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Google Client Secret</label>
+                    <div x-data="{ show: false }" class="relative">
+                        <input :type="show ? 'text' : 'password'" name="google_client_secret" value="{{ creds.google_client_secret }}" placeholder="GOCSPX-..." class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                        <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
+                            <span x-show="!show" title="Show Token">👁️</span>
+                            <span x-show="show" title="Hide Token" style="display: none;">🙈</span>
+                        </button>
+                    </div>
+                </div>
             </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Google Refresh Token</label>
+                    <div x-data="{ show: false }" class="relative">
+                        <input :type="show ? 'text' : 'password'" name="google_refresh_token" value="{{ creds.google_refresh_token }}" placeholder="1//04..." class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                        <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
+                            <span x-show="!show" title="Show Token">👁️</span>
+                            <span x-show="show" title="Hide Token" style="display: none;">🙈</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Calendar ID</label>
+                    <input type="text" name="google_calendar_id" value="{{ creds.google_calendar_id }}" placeholder="primary" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">অথবা, Google Service Account Credentials (JSON Format)</label>
+                <textarea name="google_calendar_token" rows="4" placeholder="আপনার Service Account JSON কী ফাইল বা অথারাইজড টোকেন জেসন এখানে পেস্ট করুন" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 leading-relaxed">{{ creds.google_calendar_token }}</textarea>
+                <p class="text-[11px] text-slate-400 mt-1.5">💡 আপনার যদি Service Account JSON থাকে, তবে পুরো JSON ফাইল টেক্সট কপি করে এখানে বসান অথবা উপরে Refresh Token দিন।</p>
+            </div>
+
             <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20">
-                Save Calendar Settings
+                Save Calendar Credentials
             </button>
         </form>
+
+        <!-- Docs guide inline inside Calendar section -->
+        <div class="p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl space-y-2 text-xs text-slate-700">
+            <h5 class="font-bold text-indigo-900">📚 Google Calendar কিভাবে সেটআপ করবেন? (docs guide)</h5>
+            <ol class="list-decimal list-inside space-y-1 text-[11px] leading-relaxed">
+                <li><a href="https://console.cloud.google.com/" target="_blank" class="text-indigo-600 underline font-bold">Google Cloud Console</a>-এ গিয়ে নতুন প্রজেক্ট তৈরি করুন।</li>
+                <li><strong>APIs & Services > Library</strong> থেকে <strong>Google Calendar API</strong> এনাবল করুন।</li>
+                <li><strong>Credentials > Create Credentials</strong> থেকে Service Account অথবা OAuth 2.0 Client ID সিলেক্ট করুন।</li>
+                <li>Service Account তৈরির পর Keys অপশন থেকে JSON Key ডাউনলোড করে টেক্সট কপি করে <strong>"Service Account Credentials"</strong> বক্সে দিন।</li>
+                <li>অথবা OAuth Client ID ও Secret বসিয়ে Refresh Token জেনারেট করে যুক্ত করুন।</li>
+            </ol>
+        </div>
     </div>
 
     <!-- Step 4: Visual Step-by-Step Connection Guide -->
     <div x-show="activeTab === 'guide'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
         <div class="border-b border-slate-100 pb-3">
-            <h4 class="text-base font-bold text-slate-900">📖 চ্যাটবট সেটআপ করার বিস্তারিত টিউটোরিয়াল</h4>
-            <p class="text-xs text-slate-500 font-medium">নিচের প্রতিটি ধাপের সহজ নির্দেশিকা পড়ে আপনি নিজে নিজেই বটের সাথে প্ল্যাটফর্ম যুক্ত করতে পারবেন</p>
+            <h4 class="text-base font-bold text-slate-900">📖 চ্যাটবট সেটআপ ও গুগল ক্যালেন্ডার নির্দেশিকা (Docs)</h4>
+            <p class="text-xs text-slate-500 font-medium">নিচের নির্দেশিকা পড়ে আপনি সহজে চ্যাটবট, সার্ভিস এবং গুগল ক্যালেন্ডার কানেক্ট করতে পারবেন</p>
         </div>
 
         <div class="space-y-6">
+            <!-- Google Calendar Docs Guide -->
+            <div class="p-5 bg-purple-50/50 border border-purple-100 rounded-2xl space-y-3">
+                <div class="flex items-center space-x-2">
+                    <span class="w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center">📅</span>
+                    <h5 class="text-xs font-bold text-purple-950">Google Calendar Integration Setup Documentation (Docs)</h5>
+                </div>
+                <div class="pl-8 text-xs text-slate-600 space-y-2 leading-relaxed">
+                    <p><strong>ধাপ ১: Google Cloud Project তৈরি</strong><br>
+                    <a href="https://console.cloud.google.com/" target="_blank" class="text-purple-600 underline font-bold">Google Cloud Console</a>-এ যান এবং নতুন একটি প্রজেক্ট তৈরি বা সিলেক্ট করুন।</p>
+                    
+                    <p><strong>ধাপ ২: Google Calendar API এনাবল করা</strong><br>
+                    বাম পাশের মেনু থেকে <code>APIs & Services > Library</code> তে যান, <strong>Google Calendar API</strong> টাইপ করে সার্চ করুন এবং <strong>Enable</strong> বাটনে চাপুন।</p>
+
+                    <p><strong>ধাপ ৩: Service Account তৈরি ও JSON কী সংগ্রহ</strong><br>
+                    <code>APIs & Services > Credentials</code> এ ক্লিক করুন -> <code>Create Credentials > Service Account</code> সিলেক্ট করুন। সার্ভিস একাউন্ট তৈরির পর তার বিবরণ পাতায় <code>Keys > Add Key > Create new key > JSON</code> বেছে নিন। একটি JSON ফাইল ডাউনলোড হবে।</p>
+
+                    <p><strong>ধাপ ৪: অ্যাডমিন প্যানেলে কী পেস্ট করা</strong><br>
+                    ডাউনলোড করা JSON ফাইল নোটপ্যাডে ওপেন করে সম্পূর্ণ লেখা কপি করুন এবং অ্যাডমিন প্যানেলের <strong>Step 3: Calendar</strong> ট্যাবে পেস্ট করে সেভ করুন।</p>
+                </div>
+            </div>
+
             <!-- Step 1 Guide -->
             <div class="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-2">
                 <div class="flex items-center space-x-2">
@@ -225,7 +327,7 @@
                 </div>
                 <div class="pl-8 text-xs text-slate-600 space-y-1.5 leading-relaxed">
                     <p>১. প্রথমে <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 underline font-bold">Google AI Studio (aistudio.google.com)</a> ওয়েবসাইটে যান।</p>
-                    <p>২. আপনার যেকোনো জিমেইল একাউন্ট দিয়ে লগইন করুন।</p>
+                    <p>২. আপনার যেকোনো জিমেইল একাউন্ট দিয়ে লগইন করুন।</p>
                     <p>৩. নীল রঙের <strong>"Create API key"</strong> বাটনে চাপ দিন এবং উৎপন্ন কী ( Key ) টি কপি করে নিন।</p>
                     <p>৪. এই পেজের <strong>"Step 2: Social APIs"</strong> ট্যাবে গিয়ে <code>Gemini API Key</code> বক্সে পেস্ট করে সেভ করুন।</p>
                 </div>
@@ -251,14 +353,6 @@
                             </button>
                         </div>
                     </div>
-                    <div class="bg-white p-3.5 rounded-xl border border-blue-200/80 space-y-2">
-                        <p class="font-bold text-blue-950">৪. Subscribed Fields কনফিগারেশন (ধাপ অনুযায়ী নির্দেশিকা):</p>
-                        <ul class="list-disc list-inside space-y-1.5 text-[11px] text-slate-700">
-                            <li><strong>`messages` (ইনবক্স মেসেজের জন্য):</strong> আপনি যখন মেটা ডেভেলপার কনসোলে Messenger Webhook কনফিগার করবেন, তখন অপশনগুলোর মধ্যে <strong>`messages`</strong> ফিল্ডের পাশে থাকা <strong>Subscribe</strong> বাটনে চাপ দিন। এর ফলে কাস্টমার পেজে ইনবক্স মেসেজ পাঠালে আপনার এআই বট সেটি পড়তে পারবে এবং উত্তর পাঠাতে পারবে।</li>
-                            <li><strong>`feed` (পোস্ট কমেন্টের জন্য):</strong> পেজের পোস্টের কমেন্টে অটো-রিপ্লাই দেওয়ার জন্য <strong>Webhooks -> Page (Feed)</strong> সেকশনে গিয়ে <strong>`feed`</strong> ফিল্ডের পাশে থাকা <strong>Subscribe** বাটনে ক্লিক করুন। এর মাধ্যমে কাস্টমার পেজের পোস্টে কমেন্ট করার সাথে সাথেই বট কমেন্টের উত্তর দিবে।</li>
-                        </ul>
-                    </div>
-
                 </div>
             </div>
 
@@ -271,8 +365,8 @@
                     </div>
                 </div>
                 <div class="pl-8 text-xs text-slate-600 space-y-2 leading-relaxed">
-                    <p>১. একই মেটা ডেভেলপার অ্যাপ থেকে <strong>WhatsApp</strong> প্রোডাক্ট সিলেক্ট করুন।</p>
-                    <p>২. **API Setup** থেকে <code>Temporary Access Token</code> এবং <code>Phone Number ID</code> টি কপি করে অ্যাডমিন প্যানেলে বসিয়ে দিন।</p>
+                    <p>১. মেটা ডেভেলপার অ্যাপ থেকে <strong>WhatsApp</strong> প্রোডাক্ট সিলেক্ট করুন।</p>
+                    <p>২. <strong>API Setup</strong> থেকে <code>Temporary Access Token</code> এবং <code>Phone Number ID</code> টি কপি করে অ্যাডমিন প্যানেলে বসিয়ে দিন।</p>
                     <div class="bg-white p-3 rounded-xl border border-emerald-200/80 space-y-1">
                         <p class="font-bold text-emerald-900">WhatsApp Webhook Callback URL:</p>
                         <div class="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
@@ -285,10 +379,8 @@
                 </div>
             </div>
 
-
         </div>
     </div>
 
 </div>
 {% endblock %}
-
