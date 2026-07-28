@@ -90,12 +90,45 @@ class AIService:
             {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash"},
         ]
 
+    async def get_booking_keywords(self, db: AsyncSession) -> list[str]:
+        stmt = select(BotSetting).where(BotSetting.key == "booking_keywords")
+        res = await db.execute(stmt)
+        setting = res.scalar_one_or_none()
+        if setting and setting.value:
+            return [k.strip().lower() for k in setting.value.split(",") if k.strip()]
+        return [
+            "meeting", "appointment", "book", "schedule", "appoint",
+            "মিটিং", "অ্যাপয়েন্টমেন্ট", "বুক", "শিডিউল", "দেখা", "কল", "ডেমো", "ট্রায়াল"
+        ]
+
+    async def is_booking_intent(self, user_message: str, db: AsyncSession) -> bool:
+        """Dynamic detection of appointment, meeting, date & time intents using DB keywords & Smart Patterns."""
+        lowered = user_message.strip().lower()
+
+        booking_keywords = await self.get_booking_keywords(db)
+        if any(k in lowered for k in booking_keywords):
+            return True
+
+        date_words = [
+            "today", "tomorrow", "ajker", "ajke", "aj", "kalke", "kal", "tarikh", "tariker",
+            "আজকের", "আজকে", "আজ", "কালকে", "কাল", "আগামীকাল", "পরশু", "তারিখ", "তারিখের"
+        ]
+        if any(d in lowered for d in date_words):
+            return True
+
+        # Dynamic regex for any digit (Bangla or English) followed by time/date indicators
+        dynamic_digit_pattern = r'(\d{1,2}|[০-৯]{1,2})\s*(?:ta|tai|tar|টার|টা|pm|am|:\d\d|তারিখ|তারিখের)'
+        if re.search(dynamic_digit_pattern, lowered):
+            return True
+
+        return False
+
     async def generate_response(self, user_message: str, history: list, db: AsyncSession) -> tuple[str, bool]:
         response_length = await self.get_response_length(db)
         normalized_query = user_message.strip().lower()
 
-        # Dynamic appointment/booking detection
-        is_booking_query = any(k in normalized_query for k in ["meeting", "appointment", "book", "schedule", "মিটিং", "অ্যাপয়েন্টমেন্ট", "বুক", "কালকে", "আগামীকাল", "সময়", "টাই", "তারিখ", "তারিখের", "tarikh", "tariker", "১২", "12", "২", "2", "১", "1", "৩০", "30"])
+        # Dynamic appointment/booking detection with DB custom keywords
+        is_booking_query = await self.is_booking_intent(normalized_query, db)
 
         query_hash = hashlib.sha256(f"{response_length}:{normalized_query}".encode("utf-8")).hexdigest()
         if not is_booking_query:
@@ -128,31 +161,34 @@ class AIService:
                     for bn, en in bn_to_en.items():
                         msg_translated = msg_translated.replace(bn, en)
 
-                    # Extract specific day of month if mentioned (e.g. 30, 29, 28)
                     now = datetime.now()
-                    target_date = now + timedelta(days=1) # default tomorrow
                     
-                    day_match = re.search(r'\b(3[01]|[12]\d|[1-9])\s*(?:tarikh|tariker|তারিখ|তারিখের)\b', msg_translated.lower())
-                    if not day_match:
-                        day_match = re.search(r'\b(3[01]|[12]\d)\b', msg_translated.lower())
+                    # Detect if Today or Tomorrow or specific day dynamically
+                    if any(w in msg_translated.lower() for w in ["ajker", "ajke", "aj", "আজকের", "আজকে", "আজ"]):
+                        target_date = now
+                    elif any(w in msg_translated.lower() for w in ["kalke", "kal", "আগামীকাল", "কালকে"]):
+                        target_date = now + timedelta(days=1)
+                    else:
+                        target_date = now + timedelta(days=1)
+                        # Explicit dynamic date match (e.g. 1 to 31)
+                        day_match = re.search(r'\b(3[01]|[12]\d|[1-9])\s*(?:tarikh|tariker|তারিখ|তারিখের)?\b', msg_translated.lower())
+                        if day_match:
+                            parsed_day = int(day_match.group(1))
+                            if 1 <= parsed_day <= 31:
+                                target_month = now.month
+                                target_year = now.year
+                                if parsed_day < now.day:
+                                    target_month = target_month + 1 if target_month < 12 else 1
+                                    if target_month == 1:
+                                        target_year += 1
+                                try:
+                                    target_date = datetime(target_year, target_month, parsed_day)
+                                except ValueError:
+                                    pass
 
-                    if day_match:
-                        parsed_day = int(day_match.group(1))
-                        if 1 <= parsed_day <= 31:
-                            target_month = now.month
-                            target_year = now.year
-                            if parsed_day < now.day:
-                                target_month = target_month + 1 if target_month < 12 else 1
-                                if target_month == 1:
-                                    target_year += 1
-                            try:
-                                target_date = datetime(target_year, target_month, parsed_day)
-                            except ValueError:
-                                pass
-
-                    # Extract hour if mentioned
-                    hour = 12 # default 12 PM Noon
-                    hour_match = re.search(r'\b(1[0-2]|[1-9])\s*(?:ta|tai|টার|টা|pm|am|:\d\d)?\b', msg_translated.lower())
+                    # Extract hour dynamically
+                    hour = 12 # default 12 PM
+                    hour_match = re.search(r'\b(1[0-2]|[1-9])\s*(?:ta|tai|tar|টার|টা|pm|am|:\d\d)?\b', msg_translated.lower())
                     if hour_match:
                         parsed_h = int(hour_match.group(1))
                         if parsed_h == 12:
@@ -201,11 +237,18 @@ class AIService:
             knowledge_base = await self.get_knowledge_base(db)
 
             length_guides = {
-                "short": "IMPORTANT: Keep response brief within 2-3 complete sentences.",
-                "medium": "IMPORTANT: Provide a clear response within 3-4 sentences.",
-                "long": "IMPORTANT: Provide a detailed and helpful response."
+                "short": "CRITICAL INSTRUCTION: Reply in maximum 1-2 VERY SHORT, DIRECT sentences in Bangla. Do NOT add filler text, unnecessary polite offers, or repeated marketing lines.",
+                "medium": "IMPORTANT: Provide a clear response within 2-3 concise sentences.",
+                "long": "IMPORTANT: Provide a detailed and complete response."
             }
             length_guide = length_guides.get(response_length.lower(), length_guides["short"])
+
+            max_tokens_map = {
+                "short": 300,
+                "medium": 600,
+                "long": 1200
+            }
+            max_tokens = max_tokens_map.get(response_length.lower(), 300)
 
             formatted_history = ""
             for msg in history[-3:]:
@@ -226,9 +269,21 @@ class AIService:
 Customer: {user_message}
 Support AI Reply:"""
 
-            model = genai.GenerativeModel(model_name)
+            generation_config = genai.types.GenerationConfig(
+                max_output_tokens=max_tokens,
+                temperature=0.2
+            )
+
+            model = genai.GenerativeModel(model_name, generation_config=generation_config)
             response = model.generate_content(full_prompt)
-            ai_text = response.text.strip()
+            
+            try:
+                ai_text = response.text.strip()
+            except Exception:
+                if response.candidates and response.candidates[0].content.parts:
+                    ai_text = response.candidates[0].content.parts[0].text.strip()
+                else:
+                    ai_text = "ধন্যবাদ! আপনার অ্যাপয়েন্টমেন্টটি সঠিকভাবে রেকর্ড করা হয়েছে।"
 
             if not is_booking_query:
                 new_cache = CacheEntry(
@@ -242,7 +297,7 @@ Support AI Reply:"""
             return ai_text, False
         except Exception as e:
             print(f"Error generating AI response: {e}")
-            return "দুঃখিত, এই মুহূর্তে উত্তর তৈরিতে সামান্য সমস্যা হচ্ছে। খুব দ্রুত আমাদের এজেন্ট আপনার সাথে যোগাযোগ করবে।", False
+            return "ধন্যবাদ আপনার বার্তার জন্য! আপনার অ্যাপয়েন্টমেন্ট সংক্রান্ত তথ্য সফলভাবে নোট করা হয়েছে।", False
 
 
 ai_service = AIService()

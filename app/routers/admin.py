@@ -232,6 +232,9 @@ async def update_settings(
         if system_prompt:
             stmt = select(BotSetting).where(BotSetting.key == "system_prompt")
             res = await db.execute(stmt)
+        if system_prompt is not None:
+            stmt = select(BotSetting).where(BotSetting.key == "system_prompt")
+            res = await db.execute(stmt)
             setting = res.scalar_one_or_none()
             if setting:
                 setting.value = system_prompt
@@ -246,6 +249,16 @@ async def update_settings(
                 setting.value = response_length
             else:
                 db.add(BotSetting(key="response_length", value=response_length))
+
+        booking_keywords = form_data.get("booking_keywords")
+        if booking_keywords is not None:
+            stmt = select(BotSetting).where(BotSetting.key == "booking_keywords")
+            res = await db.execute(stmt)
+            setting = res.scalar_one_or_none()
+            if setting:
+                setting.value = booking_keywords.strip()
+            else:
+                db.add(BotSetting(key="booking_keywords", value=booking_keywords.strip()))
 
         await db.commit()
 

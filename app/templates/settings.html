@@ -97,6 +97,16 @@
                 <textarea name="system_prompt" rows="5" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed">{{ system_prompt }}</textarea>
             </div>
 
+            <!-- Dynamic Intent Keywords Control Box -->
+            <div class="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/80 space-y-2">
+                <label class="block text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                    <span>📌</span>
+                    <span>Dynamic Intent & Booking Keywords (এআই ট্র্রিগার কিওয়ার্ড তালিকা)</span>
+                </label>
+                <input type="text" name="booking_keywords" value="{{ creds.booking_keywords if creds.booking_keywords else 'meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, ডেমো, ট্রায়াল, তারিখ, সময়, call' }}" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 shadow-sm" placeholder="e.g. meeting, appointment, book, মিটিং, ডেমো, দেখা">
+                <p class="text-[11px] text-slate-500 font-medium leading-normal">💡 কমা (,) দিয়ে কিওয়ার্ডগুলো লিখুন। কাস্টমার এই শব্দগুলো বললে এআই স্বয়ংক্রিয়ভাবে ক্যালেন্ডার বুকিং ট্রিগার করবে ও ক্যাশ বাইপাস করবে। আপনি যেকোনো সময় কিওয়ার্ড যোগ/মুছে দিয়ে এডমিন প্যানেল থেকে এডিট করতে পারবেন।</p>
+            </div>
+
             <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20">
                 Save Prompt & Response Settings
             </button>
