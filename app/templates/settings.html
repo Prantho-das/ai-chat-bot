@@ -190,11 +190,11 @@
                 <div class="pl-8 text-xs text-slate-600 space-y-2 leading-relaxed">
                     <p>১. <a href="https://developers.facebook.com/" target="_blank" class="text-blue-600 underline font-bold">Meta for Developers Console</a> এ যান এবং আপনার একাউন্ট দিয়ে একটি <strong>Business App</strong> তৈরি করুন।</p>
                     <p>২. প্রোডাক্ট লিস্ট থেকে <strong>Messenger</strong> যুক্ত করে আপনার ফেসবুক পেজ যুক্ত করুন এবং <strong>Page Access Token</strong> তৈরি করে কপি করুন।</p>
-                    <div class="bg-white p-3 rounded-xl border border-blue-200/80 space-y-1">
+                    <div class="bg-white p-3 rounded-xl border border-blue-200/80 space-y-1" x-data="{ domain: window.location.origin }">
                         <p class="font-bold text-blue-900">Facebook Webhook Callback URL:</p>
                         <div class="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                            <code class="font-mono text-[11px] text-slate-800 select-all" id="fb-url">http://127.0.0.1:8000/webhook/messenger</code>
-                            <button type="button" @click="navigator.clipboard.writeText('http://127.0.0.1:8000/webhook/messenger'); copiedMsg = true; setTimeout(() => copiedMsg = false, 2000)" class="text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md font-semibold transition-all">
+                            <code class="font-mono text-[11px] text-slate-800 select-all" x-text="domain + '/webhook/messenger'"></code>
+                            <button type="button" @click="navigator.clipboard.writeText(domain + '/webhook/messenger'); copiedMsg = true; setTimeout(() => copiedMsg = false, 2000)" class="text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md font-semibold transition-all">
                                 <span x-text="copiedMsg ? 'Copied! ✅' : 'Copy URL 📋'"></span>
                             </button>
                         </div>
@@ -203,7 +203,7 @@
                         <p class="font-bold text-blue-950">৪. Subscribed Fields কনফিগারেশন (ধাপ অনুযায়ী নির্দেশিকা):</p>
                         <ul class="list-disc list-inside space-y-1.5 text-[11px] text-slate-700">
                             <li><strong>`messages` (ইনবক্স মেসেজের জন্য):</strong> আপনি যখন মেটা ডেভেলপার কনসোলে Messenger Webhook কনফিগার করবেন, তখন অপশনগুলোর মধ্যে <strong>`messages`</strong> ফিল্ডের পাশে থাকা <strong>Subscribe</strong> বাটনে চাপ দিন। এর ফলে কাস্টমার পেজে ইনবক্স মেসেজ পাঠালে আপনার এআই বট সেটি পড়তে পারবে এবং উত্তর পাঠাতে পারবে।</li>
-                            <li><strong>`feed` (পোস্ট কমেন্টের জন্য):</strong> পেজের পোস্টের কমেন্টে অটো-রিপ্লাই দেওয়ার জন্য <strong>Webhooks -> Page (Feed)</strong> সেকশনে গিয়ে <strong>`feed`</strong> ফিল্ডের পাশে থাকা <strong>Subscribe</strong> বাটনে ক্লিক করুন। এর মাধ্যমে কাস্টমার পেজের পোস্টে কমেন্ট করার সাথে সাথেই বট কমেন্টের উত্তর দিবে।</li>
+                            <li><strong>`feed` (পোস্ট কমেন্টের জন্য):</strong> পেজের পোস্টের কমেন্টে অটো-রিপ্লাই দেওয়ার জন্য <strong>Webhooks -> Page (Feed)</strong> সেকশনে গিয়ে <strong>`feed`</strong> ফিল্ডের পাশে থাকা <strong>Subscribe** বাটনে ক্লিক করুন। এর মাধ্যমে কাস্টমার পেজের পোস্টে কমেন্ট করার সাথে সাথেই বট কমেন্টের উত্তর দিবে।</li>
                         </ul>
                     </div>
 
@@ -211,7 +211,7 @@
             </div>
 
             <!-- Step 3 Guide -->
-            <div class="p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-3" x-data="{ copiedWa: false }">
+            <div class="p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-3" x-data="{ copiedWa: false, domain: window.location.origin }">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-2">
                         <span class="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center">3</span>
@@ -224,14 +224,15 @@
                     <div class="bg-white p-3 rounded-xl border border-emerald-200/80 space-y-1">
                         <p class="font-bold text-emerald-900">WhatsApp Webhook Callback URL:</p>
                         <div class="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                            <code class="font-mono text-[11px] text-slate-800 select-all" id="wa-url">http://127.0.0.1:8000/webhook/whatsapp</code>
-                            <button type="button" @click="navigator.clipboard.writeText('http://127.0.0.1:8000/webhook/whatsapp'); copiedWa = true; setTimeout(() => copiedWa = false, 2000)" class="text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-md font-semibold transition-all">
+                            <code class="font-mono text-[11px] text-slate-800 select-all" x-text="domain + '/webhook/whatsapp'"></code>
+                            <button type="button" @click="navigator.clipboard.writeText(domain + '/webhook/whatsapp'); copiedWa = true; setTimeout(() => copiedWa = false, 2000)" class="text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-md font-semibold transition-all">
                                 <span x-text="copiedWa ? 'Copied! ✅' : 'Copy URL 📋'"></span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+
 
         </div>
     </div>
