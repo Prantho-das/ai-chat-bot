@@ -27,7 +27,7 @@ class CalendarService:
                 except Exception as json_e:
                     print(f"Error parsing Service Account JSON token: {json_e}")
 
-            # Fallback to OAuth Refresh Token if valid (and not dummy placeholder)
+            # Fallback to OAuth Refresh Token if valid
             if not creds and refresh_token and client_id and client_secret:
                 if not client_id.startswith("your_"):
                     creds = Credentials(
@@ -108,25 +108,19 @@ class CalendarService:
                 },
             }
 
-            attendees = []
-            if attendee_email:
-                attendees.append({'email': attendee_email})
-            if user_email and user_email != attendee_email:
-                attendees.append({'email': user_email})
-
-            if attendees:
-                event_body['attendees'] = attendees
-
-            # 1. Try target_calendar_id
-            # 2. Fallback to primary Service Account calendar
             event = None
-            try:
-                event = service.events().insert(
-                    calendarId=target_calendar_id,
-                    body=event_body
-                ).execute()
-            except Exception as inner_e:
-                print(f"Direct calendar insert into {target_calendar_id} failed ({inner_e}), inserting into primary calendar...")
+            # 1. Try inserting to user_email/target_calendar_id if configured
+            if user_email:
+                try:
+                    event = service.events().insert(
+                        calendarId=user_email,
+                        body=event_body
+                    ).execute()
+                except Exception as target_err:
+                    print(f"Target calendar insert ({user_email}) failed: {target_err}. Falling back to Service Account primary calendar.")
+
+            # 2. Fallback guaranteed insertion into Service Account primary calendar
+            if not event:
                 event = service.events().insert(
                     calendarId="primary",
                     body=event_body
