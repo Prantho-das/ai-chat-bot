@@ -93,16 +93,19 @@ class AIService:
     async def generate_response(self, user_message: str, history: list, db: AsyncSession) -> tuple[str, bool]:
         response_length = await self.get_response_length(db)
         normalized_query = user_message.strip().lower()
+
+        # Dynamic appointment/booking detection
+        is_booking_query = any(k in normalized_query for k in ["meeting", "appointment", "book", "schedule", "মিটিং", "অ্যাপয়েন্টমেন্ট", "বুক", "কালকে", "আগামীকাল", "সময়", "টাই", "১২", "12", "২", "2", "১", "1"])
+
         query_hash = hashlib.sha256(f"{response_length}:{normalized_query}".encode("utf-8")).hexdigest()
+        if not is_booking_query:
+            stmt_cache = select(CacheEntry).where(CacheEntry.prompt_hash == query_hash)
+            cache_res = await db.execute(stmt_cache)
+            cached_entry = cache_res.scalar_one_or_none()
 
-        # Check Cache first to save API Tokens
-        stmt_cache = select(CacheEntry).where(CacheEntry.prompt_hash == query_hash)
-        cache_res = await db.execute(stmt_cache)
-        cached_entry = cache_res.scalar_one_or_none()
-
-        if cached_entry:
-            print(f"[CACHE HIT] Returning cached response for query: {user_message}")
-            return cached_entry.ai_response, True
+            if cached_entry:
+                print(f"[CACHE HIT] Returning cached response for query: {user_message}")
+                return cached_entry.ai_response, True
 
         api_key, model_name = await self.get_gemini_config(db)
 
@@ -112,17 +115,14 @@ class AIService:
         try:
             genai.configure(api_key=api_key)
 
-            # Check and process Calendar Appointment Booking BEFORE generating prompt response
             calendar_booking_info = ""
             calendar_config = await self.get_calendar_config(db)
             if calendar_config.get("google_calendar_token") or calendar_config.get("google_refresh_token"):
-                if any(k in normalized_query for k in ["meeting", "appointment", "book", "schedule", "মিটিং", "অ্যাপয়েন্টমেন্ট", "বুক", "কালকে", "আগামীকাল", "সময়", "টাই", "১২", "12", "২", "2"]):
-                    # Extract phone number if present
+                if is_booking_query:
                     phone_match = re.search(r'01[3-9]\d{8}', user_message)
                     cust_phone = phone_match.group(0) if phone_match else ""
 
-                    # Extract hour if mentioned
-                    hour = 14 # default 2 PM
+                    hour = 12 # default 12 PM
                     bn_to_en = {'১': '1', '২': '2', '৩': '3', '৪': '4', '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9', '০': '0'}
                     msg_translated = user_message
                     for bn, en in bn_to_en.items():
@@ -132,9 +132,9 @@ class AIService:
                     if hour_match:
                         parsed_h = int(hour_match.group(1))
                         if parsed_h == 12:
-                            hour = 12 # 12:00 PM Noon
+                            hour = 12
                         elif parsed_h in [1, 2, 3, 4, 5, 6, 7]:
-                            hour = parsed_h + 12 # Convert PM hours (1-7 PM)
+                            hour = parsed_h + 12
                         else:
                             hour = parsed_h
 
@@ -142,7 +142,7 @@ class AIService:
                     start_iso = booking_dt.isoformat()
                     formatted_time = booking_dt.strftime('%I:%M %p')
                     booking_time_str = booking_dt.strftime('%Y-%m-%d %H:%M')
-                    
+
                     cal_res = await calendar_service.create_event(
                         calendar_config=calendar_config,
                         summary=f"Meeting with {cust_phone or 'Customer'}",
@@ -151,72 +151,71 @@ class AIService:
                         duration_minutes=30
                     )
 
+                    final_time = cal_res.get("formatted_time", formatted_time)
+                    is_rescheduled = cal_res.get("is_rescheduled", False)
+
                     from app.models import Appointment
                     new_appointment = Appointment(
                         customer_name="Customer",
                         customer_phone=cust_phone,
-                        summary=f"Meeting ({formatted_time}): {user_message[:40]}",
-                        booking_time=booking_time_str,
+                        summary=f"Meeting ({final_time}): {user_message[:40]}",
+                        booking_time=cal_res.get("start_time", booking_time_str),
                         google_event_link=cal_res.get('html_link', ''),
                         status="confirmed" if cal_res.get("success") else "pending"
                     )
                     db.add(new_appointment)
                     await db.commit()
 
-                    calendar_booking_info = f"[SYSTEM ACTION: Google Calendar appointment successfully booked for {formatted_time} tomorrow. Confirm this exact time ({formatted_time}) clearly to the customer.]"
-
-            max_tokens_map = {
-                "short": 150,
-                "medium": 350,
-                "long": 800
-            }
-            max_tokens = max_tokens_map.get(response_length.lower(), 150)
-
-            generation_config = genai.types.GenerationConfig(
-                max_output_tokens=max_tokens,
-                temperature=0.3
-            )
-
-            model = genai.GenerativeModel(model_name, generation_config=generation_config)
+                    if is_rescheduled:
+                        calendar_booking_info = f"[NOTE: The requested time ({formatted_time}) was occupied, so appointment has been booked for {final_time} tomorrow.]"
+                    else:
+                        calendar_booking_info = f"[NOTE: Google Calendar appointment successfully booked for {final_time} tomorrow.]"
 
             system_prompt = await self.get_system_prompt(db)
             knowledge_base = await self.get_knowledge_base(db)
 
-            length_instructions = {
-                "short": "[RESPONSE LENGTH INSTRUCTION: Keep response very SHORT, crisp, and concise (within 2-3 sentences max).]",
-                "medium": "[RESPONSE LENGTH INSTRUCTION: Provide a moderate/medium length response with clear details.]",
-                "long": "[RESPONSE LENGTH INSTRUCTION: Provide a comprehensive and detailed response explaining everything thoroughly.]"
+            length_guides = {
+                "short": "IMPORTANT: Keep response concise within 2 complete sentences.",
+                "medium": "IMPORTANT: Provide a clear response within 3-4 sentences.",
+                "long": "IMPORTANT: Provide a detailed and helpful response."
             }
-            length_guide = length_instructions.get(response_length.lower(), length_instructions["short"])
+            length_guide = length_guides.get(response_length.lower(), length_guides["short"])
+
+            system_instruction = f"""{system_prompt}
+{length_guide}
+
+[KNOWLEDGE BASE]
+{knowledge_base}"""
+
+            # Native Gemini System Instruction setup for complete sentence generation
+            generation_config = genai.types.GenerationConfig(
+                temperature=0.3
+            )
+
+            model = genai.GenerativeModel(
+                model_name=model_name,
+                system_instruction=system_instruction,
+                generation_config=generation_config
+            )
 
             formatted_history = ""
             for msg in history[-3:]:
                 role = "Customer" if msg.role == "user" else "Support AI"
                 formatted_history += f"{role}: {msg.content}\n"
 
-            full_prompt = f"""{system_prompt}
-{length_guide}
-{calendar_booking_info}
+            prompt_content = f"{calendar_booking_info}\n[HISTORY]\n{formatted_history}\nCustomer: {user_message}\nSupport AI Reply:"
 
-[KNOWLEDGE BASE]
-{knowledge_base}
-
-[HISTORY]
-{formatted_history}
-Customer: {user_message}
-Support AI Reply:"""
-
-            response = model.generate_content(full_prompt)
+            response = model.generate_content(prompt_content)
             ai_text = response.text.strip()
 
-            # Save in cache for future identical queries
-            new_cache = CacheEntry(
-                prompt_hash=query_hash,
-                user_query=normalized_query,
-                ai_response=ai_text
-            )
-            db.add(new_cache)
-            await db.commit()
+            if not is_booking_query:
+                new_cache = CacheEntry(
+                    prompt_hash=query_hash,
+                    user_query=normalized_query,
+                    ai_response=ai_text
+                )
+                db.add(new_cache)
+                await db.commit()
 
             return ai_text, False
         except Exception as e:

@@ -38,6 +38,21 @@ class CalendarService:
             print(f"Error initializing Google Calendar client: {e}")
         return None
 
+    def is_slot_available(self, service, calendar_id: str, start_dt: datetime, end_dt: datetime) -> bool:
+        try:
+            target_id = calendar_id if ("@" in calendar_id and not calendar_id.endswith(".gserviceaccount.com")) else "primary"
+            events_result = service.events().list(
+                calendarId=target_id,
+                timeMin=start_dt.isoformat() + "+06:00",
+                timeMax=end_dt.isoformat() + "+06:00",
+                singleEvents=True
+            ).execute()
+            items = events_result.get('items', [])
+            return len(items) == 0
+        except Exception as e:
+            print(f"Error checking slot availability: {e}")
+            return True
+
     async def create_event(
         self,
         calendar_config: dict,
@@ -52,36 +67,71 @@ class CalendarService:
             return {"success": False, "message": "Google Calendar connection failed or missing credentials."}
 
         try:
-            # Parse start time ISO
             if start_time_iso.endswith('Z'):
                 start_time_iso = start_time_iso[:-1]
             start_dt = datetime.fromisoformat(start_time_iso)
             end_dt = start_dt + timedelta(minutes=duration_minutes)
+            
+            configured_id = calendar_config.get("google_calendar_id", "").strip()
+            user_email = configured_id if ("@" in configured_id and not configured_id.endswith(".gserviceaccount.com")) else None
 
-            calendar_id = calendar_config.get("google_calendar_id") or "primary"
+            target_calendar_id = user_email if user_email else "primary"
+
+            # Check if requested slot is available
+            slot_free = self.is_slot_available(service, target_calendar_id, start_dt, end_dt)
+            is_rescheduled = False
+
+            if not slot_free:
+                is_rescheduled = True
+                while not slot_free and start_dt.hour < 20:
+                    start_dt = start_dt + timedelta(hours=1)
+                    end_dt = start_dt + timedelta(minutes=duration_minutes)
+                    slot_free = self.is_slot_available(service, target_calendar_id, start_dt, end_dt)
 
             event_body = {
                 'summary': summary,
                 'description': description,
                 'start': {
-                    'dateTime': start_dt.isoformat(),
+                    'dateTime': start_dt.strftime('%Y-%m-%dT%H:%M:%S+06:00'),
                     'timeZone': 'Asia/Dhaka',
                 },
                 'end': {
-                    'dateTime': end_dt.isoformat(),
+                    'dateTime': end_dt.strftime('%Y-%m-%dT%H:%M:%S+06:00'),
                     'timeZone': 'Asia/Dhaka',
                 },
             }
 
+            attendees = []
             if attendee_email:
-                event_body['attendees'] = [{'email': attendee_email}]
+                attendees.append({'email': attendee_email})
+            if user_email and user_email != attendee_email:
+                attendees.append({'email': user_email})
 
-            event = service.events().insert(calendarId=calendar_id, body=event_body).execute()
+            if attendees:
+                event_body['attendees'] = attendees
+
+            # Try inserting directly to target_calendar_id, fallback to primary with attendees if 404/403
+            try:
+                event = service.events().insert(
+                    calendarId=target_calendar_id,
+                    body=event_body,
+                    sendUpdates="all" if attendees else "none"
+                ).execute()
+            except Exception as inner_e:
+                print(f"Direct calendar insert into {target_calendar_id} failed ({inner_e}), trying primary fallback with attendees...")
+                event = service.events().insert(
+                    calendarId="primary",
+                    body=event_body,
+                    sendUpdates="all" if attendees else "none"
+                ).execute()
+
             return {
                 "success": True,
                 "event_id": event.get('id'),
                 "html_link": event.get('htmlLink'),
-                "start_time": start_dt.strftime('%Y-%m-%d %H:%M')
+                "start_time": start_dt.strftime('%Y-%m-%d %H:%M'),
+                "formatted_time": start_dt.strftime('%I:%M %p'),
+                "is_rescheduled": is_rescheduled
             }
         except Exception as e:
             print(f"Error creating calendar event: {e}")
