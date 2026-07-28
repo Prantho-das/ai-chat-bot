@@ -7,13 +7,6 @@ from app.models import KnowledgeEntry, BotSetting, CacheEntry
 
 
 class AIService:
-    def __init__(self):
-        if settings.GEMINI_API_KEY:
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel("gemini-2.0-flash")
-        else:
-            self.model = None
-
     async def get_system_prompt(self, db: AsyncSession) -> str:
         stmt = select(BotSetting).where(BotSetting.key == "system_prompt")
         result = await db.execute(stmt)
@@ -39,6 +32,41 @@ class AIService:
             kb_text += f"\n- [{entry.category.upper()}] {entry.title}: {entry.content}"
         return kb_text
 
+    async def get_gemini_config(self, db: AsyncSession) -> tuple[str, str]:
+        stmt = select(BotSetting).where(BotSetting.key.in_(["gemini_api_key", "gemini_model"]))
+        result = await db.execute(stmt)
+        records = result.scalars().all()
+        settings_dict = {r.key: r.value for r in records}
+
+        api_key = settings_dict.get("gemini_api_key") or settings.GEMINI_API_KEY
+        model_name = settings_dict.get("gemini_model") or getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash")
+        return api_key, model_name
+
+    def get_available_models(self, api_key: str = None) -> list[dict]:
+        try:
+            key = api_key or settings.GEMINI_API_KEY
+            if key and not key.startswith("your_"):
+                genai.configure(api_key=key)
+                models = []
+                for m in genai.list_models():
+                    if "generateContent" in m.supported_generation_methods:
+                        model_id = m.name.replace("models/", "")
+                        models.append({
+                            "id": model_id,
+                            "name": m.display_name or model_id
+                        })
+                if models:
+                    return models
+        except Exception as e:
+            print(f"Error fetching models from Gemini API: {e}")
+
+        return [
+            {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash"},
+            {"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash"},
+            {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro"},
+            {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash"},
+        ]
+
     async def generate_response(self, user_message: str, history: list, db: AsyncSession) -> tuple[str, bool]:
         clean_query = user_message.strip().lower()
         query_hash = hashlib.sha256(clean_query.encode("utf-8")).hexdigest()
@@ -52,10 +80,15 @@ class AIService:
             print(f"[CACHE HIT] Returning cached response for query: {user_message}")
             return cached_entry.ai_response, True
 
-        if not self.model:
-            return "ধন্যবাদ আপনার বার্তার জন্য! আমাদের এআই সার্ভিসটি বর্তমানে সেটআপ প্রক্রিয়াধীন রয়েছে।", False
+        api_key, model_name = await self.get_gemini_config(db)
+
+        if not api_key or api_key.startswith("your_") or api_key == "":
+            return "ধন্যবাদ আপনার বার্তার জন্য! আমাদের এআই সার্ভিসটির Gemini API Key সেটআপ করা হয়নি। দয়া করে এডমিন প্যানেল থেকে Gemini API Key যুক্ত করুন।", False
 
         try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(model_name)
+
             system_prompt = await self.get_system_prompt(db)
             knowledge_base = await self.get_knowledge_base(db)
 
@@ -78,7 +111,7 @@ Customer: {user_message}
 
 Support AI Reply:
 """
-            response = self.model.generate_content(full_prompt)
+            response = model.generate_content(full_prompt)
             ai_text = response.text.strip()
 
             # Save in cache for future identical queries

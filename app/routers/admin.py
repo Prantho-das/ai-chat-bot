@@ -160,6 +160,8 @@ async def conversation_detail(conv_id: int, request: Request, db: AsyncSession =
         "messages": messages
     })
 
+from app.services.ai_service import ai_service
+
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
     if not is_authenticated(request):
@@ -179,6 +181,7 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
 
     creds = {
         "gemini_api_key": settings_dict.get("gemini_api_key", settings.GEMINI_API_KEY),
+        "gemini_model": settings_dict.get("gemini_model", settings.GEMINI_MODEL),
         "fb_page_access_token": settings_dict.get("fb_page_access_token", settings.FB_PAGE_ACCESS_TOKEN),
         "fb_verify_token": settings_dict.get("fb_verify_token", settings.FB_VERIFY_TOKEN),
         "wa_access_token": settings_dict.get("wa_access_token", settings.WA_ACCESS_TOKEN),
@@ -187,10 +190,13 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
         "google_calendar_token": settings_dict.get("google_calendar_token", ""),
     }
 
+    available_models = ai_service.get_available_models(creds["gemini_api_key"])
+
     return templates.TemplateResponse("settings.html", {
         "request": request,
         "system_prompt": settings_dict.get("system_prompt", default_prompt),
-        "creds": creds
+        "creds": creds,
+        "available_models": available_models
     })
 
 @router.post("/settings")
@@ -199,6 +205,7 @@ async def update_settings(
     form_type: str = Form(...),
     system_prompt: str = Form(None),
     gemini_api_key: str = Form(None),
+    gemini_model: str = Form(None),
     fb_page_access_token: str = Form(None),
     fb_verify_token: str = Form(None),
     wa_access_token: str = Form(None),
@@ -223,6 +230,7 @@ async def update_settings(
     elif form_type == "credentials":
         creds_to_update = {
             "gemini_api_key": gemini_api_key or "",
+            "gemini_model": gemini_model or "gemini-2.0-flash",
             "fb_page_access_token": fb_page_access_token or "",
             "fb_verify_token": fb_verify_token or "",
             "wa_access_token": wa_access_token or "",

@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     
     # AI Settings
     GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.0-flash"
     
     # Facebook Settings
     FB_PAGE_ACCESS_TOKEN: str = ""
