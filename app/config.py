@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     VAPID_PRIVATE_KEY: str = ""
     VAPID_CLAIMS_EMAIL: str = "admin@example.com"
 
+    # Gmail Settings
+    GMAIL_SENDER_EMAIL: str = ""
+    GMAIL_APP_PASSWORD: str = ""
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

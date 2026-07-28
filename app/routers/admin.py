@@ -269,7 +269,9 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
         "fcm_server_key": settings_dict.get("fcm_server_key", getattr(settings, "FCM_SERVER_KEY", "")),
         "vapid_public_key": settings_dict.get("vapid_public_key", getattr(settings, "VAPID_PUBLIC_KEY", "")),
         "vapid_private_key": settings_dict.get("vapid_private_key", getattr(settings, "VAPID_PRIVATE_KEY", "")),
-        "vapid_claims_email": settings_dict.get("vapid_claims_email", getattr(settings, "VAPID_CLAIMS_EMAIL", "admin@example.com"))
+        "vapid_claims_email": settings_dict.get("vapid_claims_email", getattr(settings, "VAPID_CLAIMS_EMAIL", "admin@example.com")),
+        "gmail_sender_email": settings_dict.get("gmail_sender_email", getattr(settings, "GMAIL_SENDER_EMAIL", "")),
+        "gmail_app_password": settings_dict.get("gmail_app_password", getattr(settings, "GMAIL_APP_PASSWORD", ""))
     }
 
     available_models = ai_service.get_available_models(creds["gemini_api_key"])
@@ -314,6 +316,8 @@ async def update_settings(
     vapid_public_key: str = Form(None),
     vapid_private_key: str = Form(None),
     vapid_claims_email: str = Form(None),
+    gmail_sender_email: str = Form(None),
+    gmail_app_password: str = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
     if not is_authenticated(request):
@@ -376,7 +380,9 @@ async def update_settings(
             "fcm_server_key": fcm_server_key,
             "vapid_public_key": vapid_public_key,
             "vapid_private_key": vapid_private_key,
-            "vapid_claims_email": vapid_claims_email
+            "vapid_claims_email": vapid_claims_email,
+            "gmail_sender_email": gmail_sender_email,
+            "gmail_app_password": gmail_app_password
         }
         for k, v in mkt_settings.items():
             if v is not None and v.strip() != "":

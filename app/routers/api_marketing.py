@@ -10,6 +10,7 @@ from app.services.mailchimp_service import mailchimp_service
 from app.services.sheets_service import sheets_service
 from app.services.fcm_service import fcm_service
 from app.services.webpush_service import webpush_service
+from app.services.email_service import email_service
 from app.routers.admin import is_authenticated
 
 router = APIRouter(prefix="/admin/api", tags=["Marketing APIs"])
@@ -151,3 +152,26 @@ async def send_push_notification(
         results["webpush"] = {"success": True, "sent_count": webpush_sent, "total_subscribers": len(subs)}
 
     return results
+
+@router.post("/gmail/send")
+async def send_gmail_notification(
+    request: Request,
+    to_email: str = Form(...),
+    subject: str = Form(...),
+    body: str = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    sender_email = await get_bot_setting(db, "gmail_sender_email")
+    app_password = await get_bot_setting(db, "gmail_app_password")
+
+    res = await email_service.send_email(
+        to_email=to_email,
+        subject=subject,
+        body=body,
+        smtp_email=sender_email,
+        smtp_password=app_password
+    )
+    return res
