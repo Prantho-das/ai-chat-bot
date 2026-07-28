@@ -3,13 +3,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.config import settings
 from app.database import get_db
-from app.models import Conversation, Message
+from app.models import Conversation, Message, BotSetting
 from app.services.ai_service import ai_service
 from app.services.whatsapp_service import whatsapp_service
 
-from app.models import Conversation, Message, BotSetting
-
 router = APIRouter(prefix="/webhook/whatsapp", tags=["WhatsApp Webhook"])
+
+async def get_wa_tokens(db: AsyncSession) -> tuple[str, str, str]:
+    stmt = select(BotSetting).where(BotSetting.key.in_(["wa_verify_token", "wa_access_token", "wa_phone_number_id"]))
+    res = await db.execute(stmt)
+    records = res.scalars().all()
+    setting_dict = {r.key: r.value for r in records}
+
+    verify_token = setting_dict.get("wa_verify_token") or settings.WA_VERIFY_TOKEN
+    access_token = setting_dict.get("wa_access_token") or settings.WA_ACCESS_TOKEN
+    phone_id = setting_dict.get("wa_phone_number_id") or settings.WA_PHONE_NUMBER_ID
+    return verify_token, access_token, phone_id
+
 
 @router.get("")
 async def verify_webhook(
@@ -18,14 +28,9 @@ async def verify_webhook(
     hub_challenge: str = Query(None, alias="hub.challenge"),
     db: AsyncSession = Depends(get_db)
 ):
-    # Fetch dynamically from database
-    stmt = select(BotSetting).where(BotSetting.key == "wa_verify_token")
-    result = await db.execute(stmt)
-    setting = result.scalar_one_or_none()
+    expected_verify_token, _, _ = await get_wa_tokens(db)
 
-    expected_token = setting.value if (setting and setting.value) else settings.WA_VERIFY_TOKEN
-
-    if hub_mode == "subscribe" and hub_token == expected_token:
+    if hub_mode == "subscribe" and hub_token == expected_verify_token:
         return Response(content=hub_challenge, media_type="text/plain")
     return Response(content="Verification failed", status_code=403)
 
@@ -33,6 +38,7 @@ async def verify_webhook(
 @router.post("")
 async def handle_whatsapp_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     data = await request.json()
+    _, access_token, phone_id = await get_wa_tokens(db)
     
     try:
         entries = data.get("entry", [])
@@ -96,9 +102,8 @@ async def handle_whatsapp_webhook(request: Request, db: AsyncSession = Depends(g
                         db.add(ai_msg)
                         await db.commit()
 
-
-                        # Reply on WhatsApp
-                        await whatsapp_service.send_text_message(sender_id, ai_reply)
+                        # Reply on WhatsApp using dynamic credentials
+                        await whatsapp_service.send_text_message(sender_id, ai_reply, access_token, phone_id)
 
     except Exception as e:
         print(f"Error handling WA Webhook: {e}")

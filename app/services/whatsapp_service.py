@@ -2,17 +2,17 @@ import httpx
 from app.config import settings
 
 class WhatsAppService:
-    def __init__(self):
-        pass
+    async def send_text_message(self, recipient_id: str, text: str, access_token: str = None, phone_number_id: str = None) -> bool:
+        token = access_token or settings.WA_ACCESS_TOKEN
+        phone_id = phone_number_id or settings.WA_PHONE_NUMBER_ID
 
-    async def send_text_message(self, recipient_id: str, text: str) -> bool:
-        if not settings.WA_ACCESS_TOKEN or not settings.WA_PHONE_NUMBER_ID:
+        if not token or not phone_id or token.startswith("your_"):
             print("WhatsApp API credentials missing!")
             return False
 
-        url = f"https://graph.facebook.com/v19.0/{settings.WA_PHONE_NUMBER_ID}/messages"
+        url = f"https://graph.facebook.com/v19.0/{phone_id}/messages"
         headers = {
-            "Authorization": f"Bearer {settings.WA_ACCESS_TOKEN}",
+            "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
         payload = {
