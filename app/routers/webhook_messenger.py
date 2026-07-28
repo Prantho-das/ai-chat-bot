@@ -7,17 +7,28 @@ from app.models import Conversation, Message
 from app.services.ai_service import ai_service
 from app.services.messenger_service import messenger_service
 
+from app.models import Conversation, Message, BotSetting
+
 router = APIRouter(prefix="/webhook/messenger", tags=["Messenger Webhook"])
 
 @router.get("")
 async def verify_webhook(
     hub_mode: str = Query(None, alias="hub.mode"),
     hub_token: str = Query(None, alias="hub.verify_token"),
-    hub_challenge: str = Query(None, alias="hub.challenge")
+    hub_challenge: str = Query(None, alias="hub.challenge"),
+    db: AsyncSession = Depends(get_db)
 ):
-    if hub_mode == "subscribe" and hub_token == settings.FB_VERIFY_TOKEN:
+    # Fetch dynamically from database
+    stmt = select(BotSetting).where(BotSetting.key == "fb_verify_token")
+    result = await db.execute(stmt)
+    setting = result.scalar_one_or_none()
+    
+    expected_token = setting.value if (setting and setting.value) else settings.FB_VERIFY_TOKEN
+
+    if hub_mode == "subscribe" and hub_token == expected_token:
         return Response(content=hub_challenge, media_type="text/plain")
     return Response(content="Verification failed", status_code=403)
+
 
 @router.post("")
 async def handle_messenger_webhook(request: Request, db: AsyncSession = Depends(get_db)):
