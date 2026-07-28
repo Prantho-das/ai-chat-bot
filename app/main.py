@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+import os
 
 from app.config import settings
 from app.database import engine, Base
-from app.routers import webhook_messenger, webhook_whatsapp, admin
+from app.routers import webhook_messenger, webhook_whatsapp, webhook_instagram, api_marketing, admin
 
 from contextlib import asynccontextmanager
 
@@ -23,7 +24,12 @@ app = FastAPI(
 # Include Routers
 app.include_router(webhook_messenger.router)
 app.include_router(webhook_whatsapp.router)
+app.include_router(webhook_instagram.router)
+app.include_router(api_marketing.router)
 app.include_router(admin.router)
+
+if os.path.exists("app/static"):
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 from fastapi.responses import HTMLResponse

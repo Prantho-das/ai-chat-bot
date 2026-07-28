@@ -35,6 +35,24 @@ class Settings(BaseSettings):
     # Database Settings (MySQL with aiomysql driver)
     DATABASE_URL: str = "mysql+aiomysql://root:password@localhost:3306/chatbot_db"
 
+    # Mailchimp Settings
+    MAILCHIMP_API_KEY: str = ""
+    MAILCHIMP_LIST_ID: str = ""
+    MAILCHIMP_SERVER_PREFIX: str = ""
+
+    # Instagram Settings
+    IG_ACCESS_TOKEN: str = ""
+    IG_VERIFY_TOKEN: str = ""
+
+    # Google Sheets Settings
+    GOOGLE_SHEETS_SPREADSHEET_ID: str = ""
+
+    # Push Notification Settings
+    FCM_SERVER_KEY: str = ""
+    VAPID_PUBLIC_KEY: str = ""
+    VAPID_PRIVATE_KEY: str = ""
+    VAPID_CLAIMS_EMAIL: str = "admin@example.com"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

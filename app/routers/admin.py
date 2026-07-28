@@ -258,7 +258,18 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
         "google_calendar_token": settings_dict.get("google_calendar_token", ""),
         "response_length": settings_dict.get("response_length", getattr(settings, "RESPONSE_LENGTH", "short")),
         "booking_keywords": settings_dict.get("booking_keywords", ""),
-        "fallback_message": settings_dict.get("fallback_message", DEFAULT_FALLBACK_MESSAGE)
+        "fallback_message": settings_dict.get("fallback_message", DEFAULT_FALLBACK_MESSAGE),
+        "mailchimp_api_key": settings_dict.get("mailchimp_api_key", getattr(settings, "MAILCHIMP_API_KEY", "")),
+        "mailchimp_list_id": settings_dict.get("mailchimp_list_id", getattr(settings, "MAILCHIMP_LIST_ID", "")),
+        "mailchimp_server_prefix": settings_dict.get("mailchimp_server_prefix", getattr(settings, "MAILCHIMP_SERVER_PREFIX", "")),
+        "ig_access_token": settings_dict.get("ig_access_token", getattr(settings, "IG_ACCESS_TOKEN", "")),
+        "ig_verify_token": settings_dict.get("ig_verify_token", getattr(settings, "IG_VERIFY_TOKEN", "")),
+        "google_sheets_spreadsheet_id": settings_dict.get("google_sheets_spreadsheet_id", getattr(settings, "GOOGLE_SHEETS_SPREADSHEET_ID", "")),
+        "google_sheets_token_json": settings_dict.get("google_sheets_token_json", ""),
+        "fcm_server_key": settings_dict.get("fcm_server_key", getattr(settings, "FCM_SERVER_KEY", "")),
+        "vapid_public_key": settings_dict.get("vapid_public_key", getattr(settings, "VAPID_PUBLIC_KEY", "")),
+        "vapid_private_key": settings_dict.get("vapid_private_key", getattr(settings, "VAPID_PRIVATE_KEY", "")),
+        "vapid_claims_email": settings_dict.get("vapid_claims_email", getattr(settings, "VAPID_CLAIMS_EMAIL", "admin@example.com"))
     }
 
     available_models = ai_service.get_available_models(creds["gemini_api_key"])
@@ -292,6 +303,17 @@ async def update_settings(
     google_refresh_token: str = Form(None),
     google_calendar_id: str = Form(None),
     google_calendar_token: str = Form(None),
+    mailchimp_api_key: str = Form(None),
+    mailchimp_list_id: str = Form(None),
+    mailchimp_server_prefix: str = Form(None),
+    ig_access_token: str = Form(None),
+    ig_verify_token: str = Form(None),
+    google_sheets_spreadsheet_id: str = Form(None),
+    google_sheets_token_json: str = Form(None),
+    fcm_server_key: str = Form(None),
+    vapid_public_key: str = Form(None),
+    vapid_private_key: str = Form(None),
+    vapid_claims_email: str = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
     if not is_authenticated(request):
@@ -341,6 +363,25 @@ async def update_settings(
         if booking_keywords is not None:
             await upsert_bot_setting(db, "booking_keywords", booking_keywords.strip())
             await db.commit()
+
+    elif form_type == "marketing":
+        mkt_settings = {
+            "mailchimp_api_key": mailchimp_api_key,
+            "mailchimp_list_id": mailchimp_list_id,
+            "mailchimp_server_prefix": mailchimp_server_prefix,
+            "ig_access_token": ig_access_token,
+            "ig_verify_token": ig_verify_token,
+            "google_sheets_spreadsheet_id": google_sheets_spreadsheet_id,
+            "google_sheets_token_json": google_sheets_token_json,
+            "fcm_server_key": fcm_server_key,
+            "vapid_public_key": vapid_public_key,
+            "vapid_private_key": vapid_private_key,
+            "vapid_claims_email": vapid_claims_email
+        }
+        for k, v in mkt_settings.items():
+            if v is not None and v.strip() != "":
+                await upsert_bot_setting(db, k, v.strip())
+        await db.commit()
 
     return RedirectResponse(url="/admin/settings?saved=1", status_code=status.HTTP_302_FOUND)
 

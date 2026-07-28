@@ -3,11 +3,11 @@
 {% block header_title %}Settings & Integrations{% endblock %}
 
 {% block content %}
-<div class="space-y-6 max-w-4xl" x-data="{ activeTab: 'general' }">
+<div class="space-y-6 max-w-4xl" x-data="{ activeTab: new URLSearchParams(window.location.search).get('tab') || 'general' }">
     <div class="flex items-center justify-between">
         <div>
             <h3 class="text-lg font-bold text-slate-900">Bot Settings & Integrations</h3>
-            <p class="text-xs text-slate-500 font-medium">সহজ ৩টি ধাপে আপনার চ্যাটবট, রেসপন্স স্টাইল ও গুগল ক্যালেন্ডার ইন্টিগ্রেশন কানেক্ট করুন</p>
+            <p class="text-xs text-slate-500 font-medium">সহজ চ্যাটবট, সোশ্যাল ও মার্কেটিং টুলস সেটআপ করুন</p>
         </div>
         <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1.5 rounded-full border border-indigo-100 flex items-center space-x-1.5">
             <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
@@ -25,7 +25,7 @@
     {% endif %}
 
     <!-- Visual Stepper / Tabs -->
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-6 gap-3">
         <button @click="activeTab = 'general'" :class="activeTab === 'general' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
             <div class="text-lg mb-1">🤖</div>
             <div class="text-xs font-bold">Step 1: AI Persona</div>
@@ -44,9 +44,15 @@
             <div class="text-[10px] opacity-80 font-medium">Google Calendar Setup</div>
         </button>
 
+        <button @click="activeTab = 'marketing'" :class="activeTab === 'marketing' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
+            <div class="text-lg mb-1">🚀</div>
+            <div class="text-xs font-bold">Step 4: Marketing</div>
+            <div class="text-[10px] opacity-80 font-medium">Mailchimp, Push, Sheets</div>
+        </button>
+
         <button @click="activeTab = 'keywords'" :class="activeTab === 'keywords' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
             <div class="text-lg mb-1">📌</div>
-            <div class="text-xs font-bold">Step 4: Keywords</div>
+            <div class="text-xs font-bold">Step 5: Keywords</div>
             <div class="text-[10px] opacity-80 font-medium">স্পেশাল ট্র্রিগার ম্যানেজার</div>
         </button>
 
@@ -329,6 +335,110 @@
                 <li>অথবা OAuth Client ID ও Secret বসিয়ে Refresh Token জেনারেট করে যুক্ত করুন।</li>
             </ol>
         </div>
+    </div>
+
+    <!-- Step 4: Marketing Integrations Panel -->
+    <div x-show="activeTab === 'marketing'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900">🚀 Marketing & Automation Hub</h4>
+                <p class="text-xs text-slate-500">Mailchimp, Google Sheets, Instagram DM, FCM, এবং Web Push Notifications ইন্টিগ্রেশন</p>
+            </div>
+            <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1.5 rounded-full border border-indigo-100">
+                5 Active Integrations
+            </span>
+        </div>
+
+        <form action="/admin/settings" method="POST" class="space-y-6">
+            <input type="hidden" name="form_type" value="marketing">
+
+            <!-- Mailchimp API Card -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">📧 Mailchimp API (Email Campaigns)</span>
+                    <a href="https://admin.mailchimp.com/account/api/" target="_blank" class="text-[11px] text-amber-700 hover:underline font-semibold">API Key তৈরি করুন →</a>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Mailchimp API Key</label>
+                        <input type="text" name="mailchimp_api_key" value="{{ creds.mailchimp_api_key }}" placeholder="xxxxxx-us21" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Audience List ID</label>
+                        <input type="text" name="mailchimp_list_id" value="{{ creds.mailchimp_list_id }}" placeholder="a1b2c3d4" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Server Prefix (e.g. us21)</label>
+                        <input type="text" name="mailchimp_server_prefix" value="{{ creds.mailchimp_server_prefix }}" placeholder="us21" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instagram DM Card -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-pink-700 bg-pink-50 px-2.5 py-1 rounded-lg border border-pink-200">📸 Instagram Direct Message (DM)</span>
+                    <span class="text-[11px] text-slate-400">FB Graph API Extension</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Instagram Page Access Token</label>
+                        <input type="text" name="ig_access_token" value="{{ creds.ig_access_token }}" placeholder="FB Page Token দিয়ে কাজ করবে" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Instagram Verify Token</label>
+                        <input type="text" name="ig_verify_token" value="{{ creds.ig_verify_token }}" placeholder="verify_token_123" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Google Sheets Card -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">📊 Google Sheets Lead Database</span>
+                    <span class="text-[11px] text-slate-400">Auto Lead Logging</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Google Spreadsheet ID</label>
+                    <input type="text" name="google_sheets_spreadsheet_id" value="{{ creds.google_sheets_spreadsheet_id }}" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Google Service Account JSON Key</label>
+                    <textarea name="google_sheets_token_json" rows="3" placeholder="Service account JSON key পেস্ট করুন" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono">{{ creds.google_sheets_token_json }}</textarea>
+                </div>
+            </div>
+
+            <!-- Push Notifications Card -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">🔔 Push Notifications (FCM & Web Push VAPID)</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">FCM Server Key (Firebase)</label>
+                        <input type="text" name="fcm_server_key" value="{{ creds.fcm_server_key }}" placeholder="AAAA..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">VAPID Claims Email</label>
+                        <input type="email" name="vapid_claims_email" value="{{ creds.vapid_claims_email }}" placeholder="admin@example.com" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">VAPID Public Key</label>
+                        <input type="text" name="vapid_public_key" value="{{ creds.vapid_public_key }}" placeholder="B..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">VAPID Private Key</label>
+                        <input type="password" name="vapid_private_key" value="{{ creds.vapid_private_key }}" placeholder="PrivateKey..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md">
+                Save All Marketing Credentials
+            </button>
+        </form>
     </div>
 
     <!-- Step 4: Special Intent & Booking Keywords Manager Panel -->
