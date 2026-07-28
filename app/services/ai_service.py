@@ -175,37 +175,33 @@ class AIService:
             knowledge_base = await self.get_knowledge_base(db)
 
             length_guides = {
-                "short": "IMPORTANT: Keep response concise within 2 complete sentences.",
+                "short": "IMPORTANT: Keep response brief within 2-3 complete sentences.",
                 "medium": "IMPORTANT: Provide a clear response within 3-4 sentences.",
                 "long": "IMPORTANT: Provide a detailed and helpful response."
             }
             length_guide = length_guides.get(response_length.lower(), length_guides["short"])
-
-            system_instruction = f"""{system_prompt}
-{length_guide}
-
-[KNOWLEDGE BASE]
-{knowledge_base}"""
-
-            # Native Gemini System Instruction setup for complete sentence generation
-            generation_config = genai.types.GenerationConfig(
-                temperature=0.3
-            )
-
-            model = genai.GenerativeModel(
-                model_name=model_name,
-                system_instruction=system_instruction,
-                generation_config=generation_config
-            )
 
             formatted_history = ""
             for msg in history[-3:]:
                 role = "Customer" if msg.role == "user" else "Support AI"
                 formatted_history += f"{role}: {msg.content}\n"
 
-            prompt_content = f"{calendar_booking_info}\n[HISTORY]\n{formatted_history}\nCustomer: {user_message}\nSupport AI Reply:"
+            full_prompt = f"""{system_prompt}
+{length_guide}
 
-            response = model.generate_content(prompt_content)
+[KNOWLEDGE BASE]
+{knowledge_base}
+
+{calendar_booking_info}
+
+[RECENT HISTORY]
+{formatted_history}
+
+Customer: {user_message}
+Support AI Reply:"""
+
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(full_prompt)
             ai_text = response.text.strip()
 
             if not is_booking_query:
