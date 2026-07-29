@@ -82,18 +82,56 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     })
 
 @router.get("/knowledge", response_class=HTMLResponse)
-async def knowledge_base_page(request: Request, db: AsyncSession = Depends(get_db)):
+async def knowledge_base_page(
+    request: Request,
+    q: str = None,
+    category: str = None,
+    status_filter: str = None,
+    db: AsyncSession = Depends(get_db)
+):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
-    stmt = select(KnowledgeEntry).order_by(KnowledgeEntry.created_at.desc())
+    # Base query
+    stmt = select(KnowledgeEntry)
+
+    if q and q.strip():
+        search_term = f"%{q.strip()}%"
+        stmt = stmt.where(
+            (KnowledgeEntry.title.ilike(search_term)) |
+            (KnowledgeEntry.content.ilike(search_term))
+        )
+
+    if category and category.strip() and category != "all":
+        stmt = stmt.where(KnowledgeEntry.category == category.strip())
+
+    if status_filter == "active":
+        stmt = stmt.where(KnowledgeEntry.is_active == True)
+    elif status_filter == "inactive":
+        stmt = stmt.where(KnowledgeEntry.is_active == False)
+
+    stmt = stmt.order_by(KnowledgeEntry.created_at.desc())
     result = await db.execute(stmt)
     entries = result.scalars().all()
+
+    # Stats calculation
+    all_result = await db.execute(select(KnowledgeEntry))
+    all_entries = all_result.scalars().all()
+    total_count = len(all_entries)
+    active_count = sum(1 for e in all_entries if e.is_active)
+    categories_set = set(e.category for e in all_entries if e.category)
 
     return templates.TemplateResponse("knowledge_base.html", {
         "request": request,
         "entries": entries,
-        "saved": request.query_params.get("saved")
+        "total_count": total_count,
+        "active_count": active_count,
+        "categories_count": len(categories_set),
+        "q": q or "",
+        "category_filter": category or "all",
+        "status_filter": status_filter or "all",
+        "saved": request.query_params.get("saved"),
+        "error": request.query_params.get("error")
     })
 
 @router.post("/knowledge/add")
@@ -102,12 +140,13 @@ async def add_knowledge(
     category: str = Form(...),
     title: str = Form(...),
     content: str = Form(...),
+    is_active: bool = Form(False),
     db: AsyncSession = Depends(get_db)
 ):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
-    entry = KnowledgeEntry(category=category, title=title, content=content)
+    entry = KnowledgeEntry(category=category.strip(), title=title.strip(), content=content.strip(), is_active=is_active)
     db.add(entry)
     await db.commit()
 
@@ -120,6 +159,7 @@ async def edit_knowledge(
     category: str = Form(...),
     title: str = Form(...),
     content: str = Form(...),
+    is_active: bool = Form(False),
     db: AsyncSession = Depends(get_db)
 ):
     if not is_authenticated(request):
@@ -129,12 +169,27 @@ async def edit_knowledge(
     res = await db.execute(stmt)
     entry = res.scalar_one_or_none()
     if entry:
-        entry.category = category
-        entry.title = title
-        entry.content = content
+        entry.category = category.strip()
+        entry.title = title.strip()
+        entry.content = content.strip()
+        entry.is_active = is_active
         await db.commit()
 
     return RedirectResponse(url="/admin/knowledge?saved=1", status_code=status.HTTP_302_FOUND)
+
+@router.post("/knowledge/toggle/{entry_id}")
+async def toggle_knowledge_status(entry_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    stmt = select(KnowledgeEntry).where(KnowledgeEntry.id == entry_id)
+    result = await db.execute(stmt)
+    entry = result.scalar_one_or_none()
+    if entry:
+        entry.is_active = not entry.is_active
+        await db.commit()
+
+    return RedirectResponse(url="/admin/knowledge", status_code=status.HTTP_302_FOUND)
 
 @router.post("/knowledge/upload")
 async def upload_knowledge_file(
@@ -148,20 +203,30 @@ async def upload_knowledge_file(
 
     try:
         content_bytes = await file.read()
-        content_str = content_bytes.decode("utf-8")
+        content_str = None
+        for encoding in ["utf-8", "utf-8-sig", "latin-1", "cp1252"]:
+            try:
+                content_str = content_bytes.decode(encoding)
+                break
+            except Exception:
+                continue
+
+        if not content_str:
+            content_str = content_bytes.decode("utf-8", errors="ignore")
+
         filename = file.filename or "Uploaded Document"
 
         entry = KnowledgeEntry(
-            category=category,
+            category=category.strip(),
             title=f"File: {filename}",
-            content=content_str
+            content=content_str.strip()
         )
         db.add(entry)
         await db.commit()
+        return RedirectResponse(url="/admin/knowledge?saved=1", status_code=status.HTTP_302_FOUND)
     except Exception as e:
         print(f"Error reading file upload: {e}")
-
-    return RedirectResponse(url="/admin/knowledge?saved=1", status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url="/admin/knowledge?error=upload_failed", status_code=status.HTTP_302_FOUND)
 
 @router.post("/knowledge/delete/{entry_id}")
 async def delete_knowledge(entry_id: int, request: Request, db: AsyncSession = Depends(get_db)):
