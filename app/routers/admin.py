@@ -54,6 +54,29 @@ async def logout():
     response.delete_cookie("admin_session")
     return response
 
+@router.get("/guide", response_class=HTMLResponse)
+async def guide_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    stmt = select(BotSetting)
+    result = await db.execute(stmt)
+    settings_records = result.scalars().all()
+    settings_dict = {s.key: s.value for s in settings_records}
+
+    has_gemini = bool(settings_dict.get("gemini_api_key", settings.GEMINI_API_KEY))
+    has_fb = bool(settings_dict.get("fb_page_access_token", settings.FB_PAGE_ACCESS_TOKEN))
+    has_wa = bool(settings_dict.get("wa_access_token", settings.WA_ACCESS_TOKEN))
+    has_calendar = bool(settings_dict.get("google_calendar_token") or settings_dict.get("google_refresh_token") or os.getenv("GOOGLE_REFRESH_TOKEN"))
+
+    return templates.TemplateResponse("guide.html", {
+        "request": request,
+        "has_gemini": has_gemini,
+        "has_fb": has_fb,
+        "has_wa": has_wa,
+        "has_calendar": has_calendar
+    })
+
 @router.get("", response_class=HTMLResponse)
 async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     if not is_authenticated(request):

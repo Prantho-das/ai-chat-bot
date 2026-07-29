@@ -5,52 +5,51 @@
 {% block content %}
 <div class="space-y-8">
     <!-- Stat Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
             <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Users</span>
-                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg font-bold">💬</div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Total Users</span>
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base font-bold shadow-sm">💬</div>
             </div>
             <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.total_conversations }}</div>
-            <p class="text-xs font-medium text-slate-400 mt-2">All time conversations</p>
+            <p class="text-[11px] font-medium text-slate-400 mt-2">All time conversations</p>
         </div>
 
-        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
             <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Messages</span>
-                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg font-bold">✉️</div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Messages</span>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base font-bold shadow-sm">✉️</div>
             </div>
             <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.total_messages }}</div>
-            <p class="text-xs font-medium text-slate-400 mt-2">Total sent & received</p>
+            <p class="text-[11px] font-medium text-slate-400 mt-2">Total sent & received</p>
         </div>
 
-        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
             <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Knowledge Items</span>
-                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold">🧠</div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Knowledge Items</span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-base font-bold shadow-sm">🧠</div>
             </div>
             <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.knowledge_entries }}</div>
-            <p class="text-xs font-medium text-slate-400 mt-2">Active business items</p>
+            <p class="text-[11px] font-medium text-slate-400 mt-2">Active business items</p>
         </div>
 
-        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
             <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Tokens Used</span>
-                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg font-bold">📊</div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Total Tokens</span>
+                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-base font-bold shadow-sm">📊</div>
             </div>
             <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.total_tokens_used }}</div>
-            <p class="text-xs font-medium text-slate-400 mt-2">Total Gemini tokens consumed</p>
+            <p class="text-[11px] font-medium text-slate-400 mt-2">Total Gemini tokens</p>
         </div>
 
-        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
             <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Token Saved (0 Cost)</span>
-                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold">⚡</div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Token Saved (0 Cost)</span>
+                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-base font-bold shadow-sm">⚡</div>
             </div>
             <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.cached_messages }}</div>
-            <p class="text-xs font-medium text-emerald-600 mt-2">Zero-cost API replies</p>
+            <p class="text-[11px] font-medium text-emerald-600 mt-2">Zero-cost API replies</p>
         </div>
-
     </div>
 
     <!-- Recent Conversations Table -->

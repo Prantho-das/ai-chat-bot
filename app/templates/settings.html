@@ -25,7 +25,7 @@
     {% endif %}
 
     <!-- Visual Stepper / Tabs -->
-    <div class="grid grid-cols-2 sm:grid-cols-6 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <button @click="activeTab = 'general'" :class="activeTab === 'general' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
             <div class="text-lg mb-1">🤖</div>
             <div class="text-xs font-bold">Step 1: AI Persona</div>
@@ -54,12 +54,6 @@
             <div class="text-lg mb-1">📌</div>
             <div class="text-xs font-bold">Step 5: Keywords</div>
             <div class="text-[10px] opacity-80 font-medium">স্পেশাল ট্র্রিগার ম্যানেজার</div>
-        </button>
-
-        <button @click="activeTab = 'guide'" :class="activeTab === 'guide' ? 'bg-slate-900 text-white shadow-md ring-2 ring-slate-900 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
-            <div class="text-lg mb-1">💡</div>
-            <div class="text-xs font-bold">Setup Guide</div>
-            <div class="text-[10px] opacity-80 font-medium">সাহায্য ও টিউটোরিয়াল</div>
         </button>
     </div>
 
@@ -491,111 +485,5 @@
                 Save Intent Keywords
             </button>
         </form>
-    </div>
-
-    <!-- Step 4: Visual Step-by-Step Connection Guide -->
-    <div x-show="activeTab === 'guide'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
-        <div class="border-b border-slate-100 pb-3">
-            <h4 class="text-base font-bold text-slate-900">📖 চ্যাটবট সেটআপ ও গুগল ক্যালেন্ডার নির্দেশিকা (Docs)</h4>
-            <p class="text-xs text-slate-500 font-medium">নিচের নির্দেশিকা পড়ে আপনি সহজে চ্যাটবট, সার্ভিস এবং গুগল ক্যালেন্ডার কানেক্ট করতে পারবেন</p>
-        </div>
-
-        <div class="space-y-6">
-            <!-- Google Calendar Docs Guide -->
-            <div class="p-5 bg-purple-50/50 border border-purple-100 rounded-2xl space-y-3">
-                <div class="flex items-center space-x-2">
-                    <span class="w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center">📅</span>
-                    <h5 class="text-xs font-bold text-purple-950">Google Calendar Integration Setup Documentation (Docs)</h5>
-                </div>
-                <div class="pl-8 text-xs text-slate-600 space-y-2 leading-relaxed">
-                    <p><strong>ধাপ ১: Google Cloud Project তৈরি</strong><br>
-                    <a href="https://console.cloud.google.com/" target="_blank" class="text-purple-600 underline font-bold">Google Cloud Console</a>-এ যান এবং নতুন একটি প্রজেক্ট তৈরি বা সিলেক্ট করুন।</p>
-                    
-                    <p><strong>ধাপ ২: Google Calendar API এনাবল করা</strong><br>
-                    বাম পাশের মেনু থেকে <code>APIs & Services > Library</code> তে যান, <strong>Google Calendar API</strong> টাইপ করে সার্চ করুন এবং <strong>Enable</strong> বাটনে চাপুন।</p>
-
-                    <p><strong>ধাপ ৩: Service Account তৈরি ও JSON কী সংগ্রহ</strong><br>
-                    <code>APIs & Services > Credentials</code> এ ক্লিক করুন -> <code>Create Credentials > Service Account</code> সিলেক্ট করুন। সার্ভিস একাউন্ট তৈরির পর তার বিবরণ পাতায় <code>Keys > Add Key > Create new key > JSON</code> বেছে নিন। একটি JSON ফাইল ডাউনলোড হবে।</p>
-
-                    <p><strong>ধাপ ৪: অ্যাডমিন প্যানেলে কী পেস্ট করা</strong><br>
-                    ডাউনলোড করা JSON ফাইল নোটপ্যাডে ওপেন করে সম্পূর্ণ লেখা কপি করুন এবং অ্যাডমিন প্যানেলের <strong>Step 3: Calendar</strong> ট্যাবে পেস্ট করে সেভ করুন।</p>
-                </div>
-            </div>
-
-            <!-- Step 1 Guide -->
-            <div class="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-2">
-                <div class="flex items-center space-x-2">
-                    <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">1</span>
-                    <h5 class="text-xs font-bold text-indigo-950">Google Gemini API Key নেওয়া (সম্পূর্ণ ফ্রি)</h5>
-                </div>
-                <div class="pl-8 text-xs text-slate-600 space-y-1.5 leading-relaxed">
-                    <p>১. প্রথমে <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 underline font-bold">Google AI Studio (aistudio.google.com)</a> ওয়েবসাইটে যান।</p>
-                    <p>২. আপনার যেকোনো জিমেইল একাউন্ট দিয়ে লগইন করুন।</p>
-                    <p>৩. নীল রঙের <strong>"Create API key"</strong> বাটনে চাপ দিন এবং উৎপন্ন কী ( Key ) টি কপি করে নিন।</p>
-                    <p>৪. এই পেজের <strong>"Step 2: Social APIs"</strong> ট্যাবে গিয়ে <code>Gemini API Key</code> বক্সে পেস্ট করে সেভ করুন।</p>
-                </div>
-            </div>
-
-            <!-- Step 2 Guide -->
-            <div class="p-5 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-3" x-data="{ copiedMsg: false }">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
-                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">2</span>
-                        <h5 class="text-xs font-bold text-blue-950">Facebook Messenger & Post Comment ইন্টিগ্রেশন</h5>
-                    </div>
-                </div>
-                <div class="pl-8 text-xs text-slate-600 space-y-2 leading-relaxed">
-                    <p>১. <a href="https://developers.facebook.com/" target="_blank" class="text-blue-600 underline font-bold">Meta for Developers Console</a> এ যান এবং আপনার একাউন্ট দিয়ে একটি <strong>Business App</strong> তৈরি করুন।</p>
-                    <p>২. প্রোডাক্ট লিস্ট থেকে <strong>Messenger</strong> যুক্ত করে আপনার ফেসবুক পেজ যুক্ত করুন এবং <strong>Page Access Token</strong> তৈরি করে কপি করুন।</p>
-                    <div class="bg-white p-3 rounded-xl border border-blue-200/80 space-y-1" x-data="{ domain: window.location.origin }">
-                        <p class="font-bold text-blue-900">Facebook Webhook Callback URL:</p>
-                        <div class="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                            <code class="font-mono text-[11px] text-slate-800 select-all" x-text="domain + '/webhook/messenger'"></code>
-                            <button type="button" @click="navigator.clipboard.writeText(domain + '/webhook/messenger'); copiedMsg = true; setTimeout(() => copiedMsg = false, 2000)" class="text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md font-semibold transition-all">
-                                <span x-text="copiedMsg ? 'Copied! ✅' : 'Copy URL 📋'"></span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Step 4 Guide: Instagram DM -->
-            <div class="p-5 bg-pink-50/50 border border-pink-100 rounded-2xl space-y-3" x-data="{ copiedIg: false, domain: window.location.origin }">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
-                        <span class="w-6 h-6 rounded-full bg-pink-600 text-white text-xs font-bold flex items-center justify-center">4</span>
-                        <h5 class="text-xs font-bold text-pink-950">Instagram Direct Message (DM) ইন্টিগ্রেশন</h5>
-                    </div>
-                </div>
-                <div class="pl-8 text-xs text-slate-600 space-y-2 leading-relaxed">
-                    <p>১. <a href="https://developers.facebook.com/" target="_blank" class="text-pink-600 underline font-bold">Meta Developer Console</a>-এ আপনার অ্যাপে <strong>Instagram Graph API</strong> যুক্ত করুন।</p>
-                    <p>২. আপনার Facebook Page-এর সাথে Instagram Professional Account কানেক্ট করা থাকলে Facebook Page Token দিয়েই কাজ করবে।</p>
-                    <div class="bg-white p-3 rounded-xl border border-pink-200/80 space-y-1">
-                        <p class="font-bold text-pink-900">Instagram Webhook Callback URL:</p>
-                        <div class="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                            <code class="font-mono text-[11px] text-slate-800 select-all" x-text="domain + '/webhook/instagram'"></code>
-                            <button type="button" @click="navigator.clipboard.writeText(domain + '/webhook/instagram'); copiedIg = true; setTimeout(() => copiedIg = false, 2000)" class="text-[11px] bg-pink-600 hover:bg-pink-700 text-white px-2.5 py-1 rounded-md font-semibold transition-all">
-                                <span x-text="copiedIg ? 'Copied! ✅' : 'Copy URL 📋'"></span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Step 5 Guide: Mailchimp & Google Sheets -->
-            <div class="p-5 bg-amber-50/50 border border-amber-100 rounded-2xl space-y-2">
-                <div class="flex items-center space-x-2">
-                    <span class="w-6 h-6 rounded-full bg-amber-600 text-white text-xs font-bold flex items-center justify-center">5</span>
-                    <h5 class="text-xs font-bold text-amber-950">Mailchimp & Google Sheets Lead Export</h5>
-                </div>
-                <div class="pl-8 text-xs text-slate-600 space-y-2 leading-relaxed">
-                    <p><strong>Mailchimp:</strong> <a href="https://admin.mailchimp.com/account/api/" target="_blank" class="text-amber-700 underline font-bold">Mailchimp API Keys</a> পেজ থেকে API Key তৈরি করুন। Audience List ID পাবেন <code>Audience > Settings > Unique ID</code>-তে।</p>
-                    <p><strong>Google Sheets:</strong> আপনার Google Sheet তৈরি করে তার ব্রাউজার লিংক বা ID দিন। Google Calendar-এ দেওয়া একই Service Account JSON Key এখানে পেস্ট করে Sheet-টি ওই Service Account Email-এর সাথে Share করুন।</p>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
 </div>
 {% endblock %}
