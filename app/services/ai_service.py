@@ -246,13 +246,13 @@ class AIService:
             system_prompt = await self.get_system_prompt(db)
 
             length_guides = {
-                "short": "CRITICAL INSTRUCTION: Reply in maximum 1-2 VERY SHORT, DIRECT sentences in Bangla. Do NOT add filler text, unnecessary polite offers, or repeated marketing lines.",
-                "medium": "IMPORTANT: Provide a clear response within 2-3 concise sentences.",
+                "short": "CRITICAL INSTRUCTION: Reply in maximum 1-2 VERY SHORT, DIRECT, and COMPLETE sentences in Bangla. Ensure your response is grammatically complete and does not cut off.",
+                "medium": "IMPORTANT: Provide a clear and complete response within 2-3 concise sentences.",
                 "long": "IMPORTANT: Provide a detailed and complete response."
             }
             length_guide = length_guides.get(response_length.lower(), length_guides["short"])
-            max_tokens_map = {"short": 300, "medium": 600, "long": 1200}
-            max_tokens = max_tokens_map.get(response_length.lower(), 300)
+            max_tokens_map = {"short": 400, "medium": 800, "long": 1500}
+            max_tokens = max_tokens_map.get(response_length.lower(), 400)
 
             formatted_history = ""
             for msg in history[-3:]:

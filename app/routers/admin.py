@@ -474,6 +474,28 @@ async def live_logs_page(request: Request, db: AsyncSession = Depends(get_db)):
         "logs": db_logs
     })
 
+@router.post("/clear-cache")
+async def clear_cache(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    from app.models import CacheEntry
+    from sqlalchemy import delete
+    try:
+        await db.execute(delete(CacheEntry))
+        await db.commit()
+        await log_service.log("SUCCESS", "System", "AI Response Cache was manually cleared by administrator.")
+    except Exception as e:
+        await log_service.log("ERROR", "System", f"Failed to clear AI Cache: {e}")
+
+    referer = request.headers.get("referer", "/admin/settings")
+    # Redirect back to the settings page (or referer) with a success parameter
+    redirect_url = referer
+    if "saved=" not in redirect_url:
+        separator = "&" if "?" in redirect_url else "?"
+        redirect_url = f"{redirect_url}{separator}saved=1"
+    return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+
 @router.get("/api/logs")
 async def get_live_logs_api(request: Request, db: AsyncSession = Depends(get_db)):
     if not is_authenticated(request):
