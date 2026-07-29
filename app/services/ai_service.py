@@ -276,14 +276,18 @@ class AIService:
 
             model = genai.GenerativeModel(model_name)
             
-            # Execute Gemini call with 8.0s timeout to prevent hanging
             import asyncio
             try:
-                response = await asyncio.wait_for(model.generate_content_async(full_prompt), timeout=8.0)
+                response = await asyncio.to_thread(model.generate_content, full_prompt)
                 ai_text = response.text.strip() if response and hasattr(response, 'text') else fallback_msg
-            except asyncio.TimeoutError:
-                print("[AI SERVICE TIMEOUT] Gemini API call timed out. Returning fallback message.")
-                return fallback_msg, False, token_stats
+            except Exception as gem_err:
+                print(f"[GEMINI API CALL ERROR] {gem_err}")
+                try:
+                    response = await model.generate_content_async(full_prompt)
+                    ai_text = response.text.strip() if response and hasattr(response, 'text') else fallback_msg
+                except Exception as inner_err:
+                    print(f"[GEMINI ASYNC FALLBACK ERROR] {inner_err}")
+                    return fallback_msg, False, token_stats
 
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
                 token_stats["prompt_tokens"] = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
