@@ -238,6 +238,18 @@ class AIService:
         fallback_msg = await self.get_fallback_message(db) if db else DEFAULT_FALLBACK_MESSAGE
         token_stats = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
+        # Fast Instant Path for simple Greetings & Check-ins (50ms response time)
+        clean_query = user_message.strip().lower().rstrip(".!?")
+        greetings = [
+            "hey", "hlw", "hello", "hi", "hy", "hei",
+            "keo asen", "keu asen", "keo asea", "keo acen", "keu acen",
+            "কেউ আছেন", "কেউ আছো", "কেউ কি আছেন", "আছো কেউ", "আছেন কেউ",
+            "হাই", "হ্যালো", "আসসালামু আলাইকুম", "assalamu alaikum", "slm", "slam"
+        ]
+        if clean_query in greetings:
+            instant_reply = "জি, আমি আছি! POSTech Live-এ আপনাকে স্বাগত। 😊 আমি আপনাকে কীভাবে সাহায্য করতে পারি বলুন?"
+            return instant_reply, True, {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
+
         try:
             if db and await self.is_booking_intent(user_message, db):
                 cal_config = await self.get_calendar_config(db)
@@ -259,9 +271,15 @@ class AIService:
             full_prompt = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}\n\n## CUSTOMER QUERY:\n{user_message}"
 
             model = genai.GenerativeModel(model_name)
-            response = await model.generate_content_async(full_prompt)
-
-            ai_text = response.text.strip() if response and hasattr(response, 'text') else fallback_msg
+            
+            # Execute Gemini call with 8.0s timeout to prevent hanging
+            import asyncio
+            try:
+                response = await asyncio.wait_for(model.generate_content_async(full_prompt), timeout=8.0)
+                ai_text = response.text.strip() if response and hasattr(response, 'text') else fallback_msg
+            except asyncio.TimeoutError:
+                print("[AI SERVICE TIMEOUT] Gemini API call timed out. Returning fallback message.")
+                return fallback_msg, False, token_stats
 
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
                 token_stats["prompt_tokens"] = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0

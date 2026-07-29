@@ -243,6 +243,26 @@ async def _process_comment(entry_page_id: str, change: dict, access_token: str, 
         await log_service.log("ERROR", "FB Comment", f"Error processing comment {comment_id}: {e}")
 
 
+import asyncio
+from typing import Dict, List
+
+# In-memory Message Debouncing Buffers
+_MESSAGE_BUFFERS: Dict[str, List[str]] = {}
+_MESSAGE_TIMERS: Dict[str, asyncio.Task] = {}
+
+async def _debounced_process_dm(sender_id: str, access_token: str):
+    await asyncio.sleep(2.0) # Wait 2.0s for follow-up messages
+    messages = _MESSAGE_BUFFERS.pop(sender_id, [])
+    _MESSAGE_TIMERS.pop(sender_id, None)
+
+    if not messages:
+        return
+
+    combined_text = " ".join(messages).strip()
+    async with AsyncSessionLocal() as db:
+        await _process_dm(sender_id, combined_text, access_token, db)
+
+
 async def process_messenger_event(data: dict):
     try:
         await log_service.log("INFO", "Messenger Webhook", "Received webhook payload from Meta", json.dumps(data))
@@ -252,7 +272,7 @@ async def process_messenger_event(data: dict):
             for entry in data.get("entry", []):
                 page_id = str(entry.get("id", ""))
 
-                # 1. Handle Messenger Direct Messages (text, attachment, postback, quick reply)
+                # 1. Handle Messenger Direct Messages with Debouncing
                 for messaging_event in entry.get("messaging", []):
                     sender_id = str(messaging_event.get("sender", {}).get("id", ""))
                     if not sender_id or sender_id == page_id:
@@ -260,7 +280,15 @@ async def process_messenger_event(data: dict):
 
                     user_text = _extract_user_text(messaging_event)
                     if user_text:
-                        await _process_dm(sender_id, user_text, access_token, db)
+                        _MESSAGE_BUFFERS.setdefault(sender_id, []).append(user_text)
+
+                        # Cancel existing timer if follow-up arrived within window
+                        if sender_id in _MESSAGE_TIMERS:
+                            _MESSAGE_TIMERS[sender_id].cancel()
+
+                        # Schedule debounced processing task
+                        task = asyncio.create_task(_debounced_process_dm(sender_id, access_token))
+                        _MESSAGE_TIMERS[sender_id] = task
                     else:
                         await log_service.log("DEBUG", "Messenger DM", f"Unhandled event from {sender_id}", json.dumps(messaging_event))
 
