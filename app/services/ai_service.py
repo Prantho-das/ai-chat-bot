@@ -231,7 +231,7 @@ class AIService:
         api_key, model_name = await self.get_gemini_config(db)
 
         if not api_key or api_key.startswith("your_") or api_key == "":
-            print("[AI SERVICE WARNING] Gemini API key not configured.")
+            print("[AI SERVICE WARNING] Gemini API key not configured. Using fallback message.")
             return fallback_msg, False
 
         try:
@@ -281,13 +281,15 @@ Support AI Reply:"""
             model = genai.GenerativeModel(model_name, generation_config=generation_config)
             response = model.generate_content(full_prompt)
 
+            ai_text = ""
             try:
                 ai_text = response.text.strip()
             except Exception:
                 if response.candidates and response.candidates[0].content.parts:
                     ai_text = response.candidates[0].content.parts[0].text.strip()
-                else:
-                    return fallback_msg, False
+
+            if not ai_text:
+                ai_text = fallback_msg
 
             if not is_booking_query and ai_text:
                 new_cache = CacheEntry(
