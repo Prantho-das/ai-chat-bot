@@ -8,6 +8,7 @@ from app.models import Conversation, Message, BotSetting
 from app.services.ai_service import ai_service
 from app.services.messenger_service import messenger_service
 from app.services.log_service import log_service
+from app.services.lead_extractor_service import lead_extractor_service
 
 router = APIRouter(prefix="/webhook/messenger", tags=["Messenger Webhook"])
 
@@ -131,6 +132,14 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
         )
         db.add(user_msg)
         await db.commit()
+
+        await lead_extractor_service.process_chat_lead(
+            db=db,
+            sender_id=sender_id,
+            platform="messenger",
+            user_text=user_text,
+            sender_name=conversation.sender_name
+        )
 
         stmt_msg = select(Message).where(
             Message.conversation_id == conversation.id

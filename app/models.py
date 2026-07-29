@@ -105,3 +105,21 @@ class SystemLog(Base):
     details: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
+
+class Lead(Base):
+    __tablename__ = "leads"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    customer_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    sender_id: Mapped[str] = mapped_column(String(100), index=True)
+    platform: Mapped[str] = mapped_column(String(20), default="messenger") # messenger, whatsapp, instagram
+    email: Mapped[str] = mapped_column(String(150), nullable=True)
+    phone: Mapped[str] = mapped_column(String(50), nullable=True)
+    intent: Mapped[str] = mapped_column(String(100), default="General Query", index=True) # Price Inquiry, High Interest, Booking, etc.
+    status: Mapped[str] = mapped_column(String(30), default="Hot Lead", index=True) # Hot Lead, Contacted, Converted
+    notes: Mapped[str] = mapped_column(Text, nullable=True)
+    last_message: Mapped[str] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+

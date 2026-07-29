@@ -1,6 +1,9 @@
 import json
 import asyncio
-import gspread
+try:
+    import gspread
+except ImportError:
+    gspread = None
 from app.config import settings
 
 class SheetsService:

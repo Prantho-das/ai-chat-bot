@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Hot Leads - MarketFlow AI{% endblock %}
+{% block header_title %}🔥 Auto-Captured Hot Leads{% endblock %}
+
+{% block content %}
+<div x-data="{ filterIntent: 'all', searchQ: '' }" class="space-y-6">
+
+    <!-- Top Summary Banner -->
+    <div class="bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="space-y-1">
+            <h1 class="text-2xl font-black tracking-tight flex items-center gap-2">
+                <span>🔥</span> Auto-Captured Chat Leads
+            </h1>
+            <p class="text-amber-100 text-xs font-medium">
+                AI automatically detects customer intent (Price Inquiry, High Interest, Booking) and extracts Phone Numbers & Email addresses directly from chat messages.
+            </p>
+        </div>
+        <div class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/20">
+            <div class="text-center px-3 border-r border-white/20">
+                <div class="text-xl font-black text-white">{{ leads | length }}</div>
+                <div class="text-[9px] uppercase font-bold text-amber-200">Total Leads</div>
+            </div>
+            <div class="text-center px-3">
+                <div class="text-xl font-black text-amber-200">
+                    {{ leads | selectattr('status', 'equalto', 'Hot Lead') | list | length }}
+                </div>
+                <div class="text-[9px] uppercase font-bold text-amber-200">Hot Leads</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-2 overflow-x-auto">
+            <button @click="filterIntent = 'all'" :class="filterIntent === 'all' ? 'bg-amber-500 text-white shadow-sm font-bold' : 'bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all">All Leads</button>
+            <button @click="filterIntent = 'High Interest'" :class="filterIntent === 'High Interest' ? 'bg-rose-500 text-white shadow-sm font-bold' : 'bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all">🔥 High Interest</button>
+            <button @click="filterIntent = 'Price Inquiry'" :class="filterIntent === 'Price Inquiry' ? 'bg-amber-500 text-white shadow-sm font-bold' : 'bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all">💰 Price Inquiry</button>
+            <button @click="filterIntent = 'Booking Request'" :class="filterIntent === 'Booking Request' ? 'bg-indigo-600 text-white shadow-sm font-bold' : 'bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all">📅 Booking Request</button>
+        </div>
+
+        <input type="text" x-model="searchQ" placeholder="Search by name, phone, email..." class="px-3.5 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20">
+    </div>
+
+    <!-- Leads Table -->
+    <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-100 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                        <th class="py-4 px-6">Customer / Sender</th>
+                        <th class="py-4 px-6">Platform</th>
+                        <th class="py-4 px-6">Extracted Contact</th>
+                        <th class="py-4 px-6">AI Detected Intent</th>
+                        <th class="py-4 px-6">Status</th>
+                        <th class="py-4 px-6">Last Message</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    {% for lead in leads %}
+                    <tr class="hover:bg-slate-50/70 transition-colors"
+                        x-show="(filterIntent === 'all' || filterIntent === '{{ lead.intent }}') && ('{{ lead.customer_name }} {{ lead.phone }} {{ lead.email }}'.toLowerCase().includes(searchQ.toLowerCase()))">
+                        
+                        <td class="py-4 px-6 font-bold text-slate-800">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 text-white font-extrabold flex items-center justify-center text-sm shadow-md shadow-amber-500/20">
+                                    {{ (lead.customer_name or 'C')[0] | upper }}
+                                </div>
+                                <div>
+                                    <div class="font-black text-slate-900">{{ lead.customer_name or 'Anonymous User' }}</div>
+                                    <div class="text-[10px] text-slate-400 font-medium">ID: {{ lead.sender_id }}</div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td class="py-4 px-6">
+                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider border
+                                {% if lead.platform == 'messenger' %}bg-blue-50 text-blue-600 border-blue-200{% elif lead.platform == 'whatsapp' %}bg-emerald-50 text-emerald-600 border-emerald-200{% else %}bg-purple-50 text-purple-600 border-purple-200{% endif %}">
+                                {{ lead.platform }}
+                            </span>
+                        </td>
+
+                        <td class="py-4 px-6 space-y-1">
+                            {% if lead.phone %}
+                            <div class="flex items-center gap-1.5 font-extrabold text-slate-800">
+                                <span>📞</span> <a href="tel:{{ lead.phone }}" class="text-amber-600 hover:underline">{{ lead.phone }}</a>
+                            </div>
+                            {% endif %}
+                            {% if lead.email %}
+                            <div class="flex items-center gap-1.5 font-semibold text-slate-600 text-[11px]">
+                                <span>✉️</span> <a href="mailto:{{ lead.email }}" class="text-indigo-600 hover:underline">{{ lead.email }}</a>
+                            </div>
+                            {% endif %}
+                            {% if not lead.phone and not lead.email %}
+                            <span class="text-slate-400 text-[11px] font-medium">Inferred from Chat Intent</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="py-4 px-6">
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold border shadow-2xs
+                                {% if lead.intent == 'High Interest' %}bg-rose-50 text-rose-600 border-rose-200
+                                {% elif lead.intent == 'Price Inquiry' %}bg-amber-50 text-amber-700 border-amber-200
+                                {% elif lead.intent == 'Booking Request' %}bg-indigo-50 text-indigo-700 border-indigo-200
+                                {% else %}bg-slate-100 text-slate-600 border-slate-200{% endif %}">
+                                {{ lead.intent }}
+                            </span>
+                        </td>
+
+                        <td class="py-4 px-6">
+                            <span class="px-2.5 py-1 rounded-full bg-amber-500 text-white font-black text-[10px] uppercase tracking-wider shadow-sm flex items-center gap-1 w-max">
+                                <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span> {{ lead.status }}
+                            </span>
+                        </td>
+
+                        <td class="py-4 px-6 text-slate-600 max-w-xs truncate font-medium text-[11px]" title="{{ lead.last_message }}">
+                            "{{ lead.last_message or 'No message text' }}"
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+
+                    {% if leads | length == 0 %}
+                    <tr>
+                        <td colspan="6" class="py-12 text-center text-slate-400 font-medium">
+                            No chat leads captured yet. Incoming high-intent messages will automatically populate here.
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

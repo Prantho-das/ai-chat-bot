@@ -2,7 +2,10 @@ import hashlib
 import json
 import re
 from datetime import datetime, timedelta
-import google.generativeai as genai
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.config import settings
@@ -231,44 +234,43 @@ class AIService:
             return f"[SYSTEM ACTION: Requested slot on {final_date} at {formatted_time} was busy. Google Calendar booked next available slot for {final_date} at {final_time}. Clearly confirm this date ({final_date}) and time ({final_time}) to customer.]"
         return f"[SYSTEM ACTION: Google Calendar appointment successfully booked for {final_date} at {final_time}. Clearly confirm this exact date ({final_date}) and time ({final_time}) to customer.]"
 
-            ai_text = ""
-            prompt_tokens = 0
-            completion_tokens = 0
-            total_tokens = 0
+    async def generate_response(self, user_message: str, history: list = None, db: AsyncSession = None) -> tuple[str, bool, dict]:
+        fallback_msg = await self.get_fallback_message(db) if db else DEFAULT_FALLBACK_MESSAGE
+        token_stats = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
-            try:
-                ai_text = response.text.strip()
-            except Exception:
-                if response.candidates and response.candidates[0].content.parts:
-                    ai_text = response.candidates[0].content.parts[0].text.strip()
+        try:
+            if db and await self.is_booking_intent(user_message, db):
+                cal_config = await self.get_calendar_config(db)
+                booking_msg = await self._handle_calendar_booking(user_message, cal_config, db)
+                return booking_msg, False, token_stats
+
+            api_key, model_name = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
+            if not api_key:
+                api_key = settings.GEMINI_API_KEY
+
+            if not api_key or api_key.startswith("your_") or not genai:
+                return fallback_msg, False, token_stats
+
+            self._ensure_genai_configured(api_key)
+
+            sys_prompt = await self.get_system_prompt(db) if db else DEFAULT_SYSTEM_PROMPT
+            kb_text, _ = await self.get_knowledge_base_data(db) if db else ("Empty", "empty")
+
+            full_prompt = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}\n\n## CUSTOMER QUERY:\n{user_message}"
+
+            model = genai.GenerativeModel(model_name)
+            response = await model.generate_content_async(full_prompt)
+
+            ai_text = response.text.strip() if response and hasattr(response, 'text') else fallback_msg
 
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
-                prompt_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
-                completion_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
-                total_tokens = getattr(response.usage_metadata, 'total_token_count', 0) or (prompt_tokens + completion_tokens)
-
-            token_stats = {
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-                "total_tokens": total_tokens
-            }
-
-            if not ai_text:
-                ai_text = fallback_msg
-
-            if not is_booking_query and ai_text:
-                new_cache = CacheEntry(
-                    prompt_hash=query_hash,
-                    user_query=normalized_query,
-                    ai_response=ai_text,
-                    expires_at=datetime.utcnow() + timedelta(hours=24) # 24 Hours TTL
-                )
-                db.add(new_cache)
-                await db.commit()
+                token_stats["prompt_tokens"] = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+                token_stats["completion_tokens"] = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
+                token_stats["total_tokens"] = getattr(response.usage_metadata, 'total_token_count', 0) or (token_stats["prompt_tokens"] + token_stats["completion_tokens"])
 
             return ai_text, False, token_stats
         except Exception as e:
-            print(f"[AI SERVICE ERROR] Failed to generate response: {e}")
-            return fallback_msg, False, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+            print(f"[AI SERVICE ERROR] {e}")
+            return fallback_msg, False, token_stats
 
 ai_service = AIService()

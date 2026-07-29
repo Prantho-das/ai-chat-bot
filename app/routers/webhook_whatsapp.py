@@ -72,6 +72,15 @@ async def process_whatsapp_event(data: dict):
                                 await db.commit()
                                 await db.refresh(conversation)
 
+                            from app.services.lead_extractor_service import lead_extractor_service
+                            await lead_extractor_service.process_chat_lead(
+                                db=db,
+                                sender_id=sender_id,
+                                platform="whatsapp",
+                                user_text=user_text,
+                                sender_name=sender_name
+                            )
+
                             user_msg = Message(
                                 conversation_id=conversation.id,
                                 role="user",
