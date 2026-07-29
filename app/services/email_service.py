@@ -1,9 +1,23 @@
 import smtplib
+import asyncio
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from app.config import settings
 
 class EmailService:
+    def _send_email_sync(self, to_email: str, subject: str, body: str, sender_email: str, sender_password: str, smtp_server: str, smtp_port: int):
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'html'))
+
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+
     async def send_email(
         self,
         to_email: str,
@@ -21,18 +35,18 @@ class EmailService:
             return {"success": False, "message": "Gmail App Password or Sender Email missing."}
 
         try:
-            msg = MIMEMultipart()
-            msg['From'] = sender_email
-            msg['To'] = to_email
-            msg['Subject'] = subject
-            msg.attach(MIMEText(body, 'html'))
-
-            server = smtplib.SMTP(smtp_server, smtp_port)
-            server.starttls()
-            server.login(sender_email, sender_password)
-            server.send_message(msg)
-            server.quit()
-
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(
+                None,
+                self._send_email_sync,
+                to_email,
+                subject,
+                body,
+                sender_email,
+                sender_password,
+                smtp_server,
+                smtp_port
+            )
             return {"success": True, "message": f"Email successfully sent to {to_email}"}
         except Exception as e:
             print(f"Gmail SMTP Error: {e}")
