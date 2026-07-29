@@ -15,8 +15,8 @@ async def get_ig_tokens(db: AsyncSession) -> tuple[str, str]:
     records = res.scalars().all()
     setting_dict = {r.key: r.value for r in records}
 
-    verify_token = setting_dict.get("ig_verify_token") or setting_dict.get("fb_verify_token") or settings.FB_VERIFY_TOKEN
-    access_token = setting_dict.get("ig_access_token") or setting_dict.get("fb_page_access_token") or settings.FB_PAGE_ACCESS_TOKEN
+    verify_token = setting_dict.get("ig_verify_token") or setting_dict.get("fb_verify_token", "")
+    access_token = setting_dict.get("ig_access_token") or setting_dict.get("fb_page_access_token", "")
     return verify_token, access_token
 
 

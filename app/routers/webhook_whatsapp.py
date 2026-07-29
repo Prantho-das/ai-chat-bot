@@ -15,9 +15,9 @@ async def get_wa_tokens(db: AsyncSession) -> tuple[str, str, str]:
     records = res.scalars().all()
     setting_dict = {r.key: r.value for r in records}
 
-    verify_token = setting_dict.get("wa_verify_token") or settings.WA_VERIFY_TOKEN
-    access_token = setting_dict.get("wa_access_token") or settings.WA_ACCESS_TOKEN
-    phone_id = setting_dict.get("wa_phone_number_id") or settings.WA_PHONE_NUMBER_ID
+    verify_token = setting_dict.get("wa_verify_token", "")
+    access_token = setting_dict.get("wa_access_token", "")
+    phone_id = setting_dict.get("wa_phone_number_id", "")
     return verify_token, access_token, phone_id
 
 

@@ -76,8 +76,8 @@ class AIService:
         records = result.scalars().all()
         settings_dict = {r.key: r.value for r in records}
 
-        api_key = settings_dict.get("gemini_api_key") or settings.GEMINI_API_KEY
-        model_name = settings_dict.get("gemini_model") or getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash")
+        api_key = settings_dict.get("gemini_api_key", "")
+        model_name = settings_dict.get("gemini_model", "gemini-2.0-flash")
         return api_key, model_name
 
     def get_available_models(self, api_key: str = None) -> list[dict]:
