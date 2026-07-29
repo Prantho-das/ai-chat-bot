@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from app.database import get_db
 from app.config import settings
-from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog
+from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog, Lead
 from app.services.ai_service import ai_service, DEFAULT_FALLBACK_MESSAGE, DEFAULT_SYSTEM_PROMPT
 from app.services.log_service import log_service
 from app.helpers import get_bot_setting, upsert_bot_setting
@@ -23,7 +23,6 @@ except ImportError:
         def loads(self, token, max_age=None): return {"user": settings.ADMIN_USERNAME}
     serializer = DummySerializer()
     BadSignature = Exception
-    SignatureExpired = Exception
 COOKIE_NAME = "admin_token"
 TOKEN_MAX_AGE = 8 * 3600 # 8 Hours
 
@@ -644,3 +643,18 @@ async def get_live_logs_api(request: Request, db: AsyncSession = Depends(get_db)
         for log in db_logs
     ]
     return {"logs": formatted_logs}
+
+@router.get("/leads", response_class=HTMLResponse)
+async def captured_leads_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    stmt = select(Lead).order_by(Lead.updated_at.desc())
+    res = await db.execute(stmt)
+    leads = res.scalars().all()
+
+    return templates.TemplateResponse("leads.html", {
+        "request": request,
+        "leads": leads
+    })
+

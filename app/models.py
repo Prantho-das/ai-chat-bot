@@ -110,19 +110,26 @@ class Lead(Base):
     __tablename__ = "leads"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    business_name: Mapped[str] = mapped_column(String(200), index=True)
-    niche: Mapped[str] = mapped_column(String(100), index=True)
-    area: Mapped[str] = mapped_column(String(100), index=True)
+    customer_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    business_name: Mapped[str] = mapped_column(String(200), nullable=True, index=True)
+    niche: Mapped[str] = mapped_column(String(100), nullable=True, index=True)
+    area: Mapped[str] = mapped_column(String(100), nullable=True, index=True)
+    sender_id: Mapped[str] = mapped_column(String(100), nullable=True, index=True)
+    platform: Mapped[str] = mapped_column(String(20), default="messenger") # messenger, whatsapp, instagram
     email: Mapped[str] = mapped_column(String(150), nullable=True)
     phone: Mapped[str] = mapped_column(String(50), nullable=True)
     website: Mapped[str] = mapped_column(String(255), nullable=True)
     instagram: Mapped[str] = mapped_column(String(100), nullable=True)
     facebook: Mapped[str] = mapped_column(String(255), nullable=True)
     rating: Mapped[str] = mapped_column(String(20), nullable=True)
-    status: Mapped[str] = mapped_column(String(30), default="New Lead") # New Lead, Contacted, Converted, Ignored
+    intent: Mapped[str] = mapped_column(String(100), default="General Query", index=True) # Price Inquiry, High Interest, Booking, etc.
+    status: Mapped[str] = mapped_column(String(30), default="Hot Lead", index=True) # Hot Lead, Contacted, Converted, Ignored
     cold_pitch: Mapped[str] = mapped_column(Text, nullable=True)
+    notes: Mapped[str] = mapped_column(Text, nullable=True)
+    last_message: Mapped[str] = mapped_column(Text, nullable=True)
     last_contacted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class OutreachCampaign(Base):
     __tablename__ = "outreach_campaigns"

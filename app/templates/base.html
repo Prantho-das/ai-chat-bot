@@ -55,9 +55,12 @@
                     <span>Conversations</span>
                 </a>
 
-                <a href="/admin/appointments" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/appointments' in request.url.path %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}">
-                    <span class="text-base">📅</span>
-                    <span>Appointments</span>
+                <a href="/admin/leads" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/leads' in request.url.path %}bg-amber-500/90 text-white shadow-md shadow-amber-500/25 ring-1 ring-amber-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}">
+                    <span class="text-base">🔥</span>
+                    <span class="flex items-center gap-1.5">
+                        Captured Leads
+                        <span class="text-[9px] bg-amber-500/20 text-amber-300 font-extrabold px-1.5 py-0.5 rounded border border-amber-500/30">HOT</span>
+                    </span>
                 </a>
             </div>
 
