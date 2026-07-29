@@ -246,8 +246,8 @@ class AIService:
             system_prompt = await self.get_system_prompt(db)
 
             length_guides = {
-                "short": "CRITICAL INSTRUCTION: Reply in maximum 1-2 VERY SHORT, DIRECT, and COMPLETE sentences in Bangla. Ensure your response is grammatically complete and does not cut off.",
-                "medium": "IMPORTANT: Provide a clear and complete response within 2-3 concise sentences.",
+                "short": "CRITICAL INSTRUCTION: Reply in maximum 1-2 VERY SHORT, DIRECT, and COMPLETE sentences in Bangla. Do NOT explain your rules, do NOT output word counts, do NOT output formatting thoughts, and do NOT include parentheses or meta-text. Just output the direct reply to the customer.",
+                "medium": "IMPORTANT: Provide a clear and complete response within 2-3 concise sentences. Do NOT output word/sentence counts or meta-commentary. Just output the direct reply.",
                 "long": "IMPORTANT: Provide a detailed and complete response."
             }
             length_guide = length_guides.get(response_length.lower(), length_guides["short"])
