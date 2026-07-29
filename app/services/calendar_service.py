@@ -1,8 +1,13 @@
 from datetime import datetime, timedelta
 import json
-from google.oauth2.credentials import Credentials
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
+try:
+    from google.oauth2.credentials import Credentials
+    from google.oauth2 import service_account
+    from googleapiclient.discovery import build
+except ImportError:
+    Credentials = None
+    service_account = None
+    build = None
 from app.config import settings
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']

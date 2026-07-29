@@ -1,6 +1,10 @@
 import json
 import asyncio
-from pywebpush import webpush, WebPushException
+try:
+    from pywebpush import webpush, WebPushException
+except ImportError:
+    webpush = None
+    WebPushException = Exception
 from app.config import settings
 
 class WebPushService:

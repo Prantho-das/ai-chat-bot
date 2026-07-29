@@ -105,3 +105,35 @@ class SystemLog(Base):
     details: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
+
+class Lead(Base):
+    __tablename__ = "leads"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    business_name: Mapped[str] = mapped_column(String(200), index=True)
+    niche: Mapped[str] = mapped_column(String(100), index=True)
+    area: Mapped[str] = mapped_column(String(100), index=True)
+    email: Mapped[str] = mapped_column(String(150), nullable=True)
+    phone: Mapped[str] = mapped_column(String(50), nullable=True)
+    website: Mapped[str] = mapped_column(String(255), nullable=True)
+    instagram: Mapped[str] = mapped_column(String(100), nullable=True)
+    facebook: Mapped[str] = mapped_column(String(255), nullable=True)
+    rating: Mapped[str] = mapped_column(String(20), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="New Lead") # New Lead, Contacted, Converted, Ignored
+    cold_pitch: Mapped[str] = mapped_column(Text, nullable=True)
+    last_contacted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class OutreachCampaign(Base):
+    __tablename__ = "outreach_campaigns"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    niche: Mapped[str] = mapped_column(String(100))
+    target_area: Mapped[str] = mapped_column(String(100))
+    pitch_template: Mapped[str] = mapped_column(Text, nullable=True)
+    leads_found: Mapped[int] = mapped_column(Integer, default=0)
+    messages_sent: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+

@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Lead Finder & Cold DM Outreach - MarketFlow AI{% endblock %}
+{% block header_title %}🎯 Lead Finder & AI Cold DM Outreach{% endblock %}
+
+{% block content %}
+<div x-data="leadOutreachApp()" class="space-y-8">
+
+    <!-- Hero Header Banner -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 p-6 sm:p-8 text-white shadow-2xl">
+        <div class="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="space-y-2 max-w-2xl">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span> Smart Lead Discovery Engine
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                    Find Target Businesses & Auto Cold DM
+                </h1>
+                <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    Enter your business offer or idea and target location. The AI engine searches prospect businesses, extracts contact details (Email, Socials, Phone), and writes personalized high-converting cold pitches.
+                </p>
+            </div>
+            <div class="flex items-center gap-4 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
+                <div class="text-center px-3 border-r border-slate-800">
+                    <div class="text-xl font-extrabold text-indigo-400" x-text="leads.length"></div>
+                    <div class="text-[10px] uppercase font-bold text-slate-400">Total Leads</div>
+                </div>
+                <div class="text-center px-3">
+                    <div class="text-xl font-extrabold text-emerald-400" x-text="contactedCount"></div>
+                    <div class="text-[10px] uppercase font-bold text-slate-400">Contacted</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Lead Form Card -->
+    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80">
+        <h3 class="text-base font-extrabold text-slate-900 mb-4 flex items-center gap-2">
+            <span>🔎</span> Find Prospects & Generate Pitches
+        </h3>
+
+        <form @submit.prevent="searchLeads()" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div class="md:col-span-3">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">My Business Idea / Service Offer</label>
+                <textarea x-model="searchForm.idea" rows="2" placeholder="e.g. I provide automated AI Chatbot integration that increases customer sales for restaurants..." 
+                    class="w-full px-4 py-3 text-sm rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 font-medium"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Business Niche / Category <span class="text-rose-500">*</span></label>
+                <input type="text" x-model="searchForm.niche" required placeholder="e.g. Restaurant, Agency, Boutique" 
+                    class="w-full px-4 py-3 text-sm rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 font-medium">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Target Area / Location <span class="text-rose-500">*</span></label>
+                <input type="text" x-model="searchForm.area" required placeholder="e.g. Dhaka, Gulshan, Uttara" 
+                    class="w-full px-4 py-3 text-sm rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 font-medium">
+            </div>
+
+            <div class="flex items-end">
+                <button type="submit" :disabled="searching" class="w-full py-3.5 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-sm transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2">
+                    <template x-if="!searching">
+                        <span class="flex items-center gap-2">⚡ Search Leads & Generate Pitches</span>
+                    </template>
+                    <template x-if="searching">
+                        <span class="flex items-center gap-2 animate-pulse">⏳ Searching Leads...</span>
+                    </template>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Leads Table Section -->
+    <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <span>📑</span> Discovered Prospects & Lead Details
+                </h2>
+                <p class="text-xs text-slate-500 font-medium">Manage target businesses, view extracted contact info, and dispatch Cold DMs.</p>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <input type="text" x-model="filterQuery" placeholder="Filter prospects..." class="px-3.5 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-100 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                        <th class="py-3.5 px-6">Business Name</th>
+                        <th class="py-3.5 px-6">Niche & Area</th>
+                        <th class="py-3.5 px-6">Contact Info</th>
+                        <th class="py-3.5 px-6">Status</th>
+                        <th class="py-3.5 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    <template x-for="lead in filteredLeads" :key="lead.id">
+                        <tr class="hover:bg-slate-50/60 transition-colors">
+                            <td class="py-4 px-6 font-bold text-slate-800">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center border border-indigo-100" x-text="lead.business_name.charAt(0)"></div>
+                                    <div>
+                                        <div class="font-extrabold text-slate-900" x-text="lead.business_name"></div>
+                                        <div class="text-[10px] text-amber-500 font-bold" x-text="lead.rating || '4.5 ★'"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-semibold text-[11px]" x-text="lead.niche"></span>
+                                <span class="text-slate-400 font-medium ml-1 text-[11px]" x-text="lead.area"></span>
+                            </td>
+                            <td class="py-4 px-6 space-y-1">
+                                <div class="flex items-center gap-1.5 text-slate-600 font-medium">
+                                    <span>✉️</span> <a :href="'mailto:' + lead.email" class="text-indigo-600 hover:underline" x-text="lead.email"></a>
+                                </div>
+                                <div class="flex items-center gap-1.5 text-slate-500 text-[11px]">
+                                    <span>📞</span> <span x-text="lead.phone"></span>
+                                </div>
+                                <div class="flex items-center gap-2 pt-0.5">
+                                    <template x-if="lead.website">
+                                        <a :href="lead.website" target="_blank" class="text-[10px] text-slate-400 hover:text-indigo-600 font-semibold">🌐 Website</a>
+                                    </template>
+                                    <template x-if="lead.instagram">
+                                        <span class="text-[10px] text-pink-600 font-semibold" x-text="lead.instagram"></span>
+                                    </template>
+                                </div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide"
+                                    :class="{
+                                        'bg-slate-100 text-slate-600': lead.status === 'New Lead',
+                                        'bg-emerald-50 text-emerald-600 border border-emerald-200': lead.status === 'Contacted',
+                                        'bg-amber-50 text-amber-600 border border-amber-200': lead.status === 'Converted'
+                                    }"
+                                    x-text="lead.status">
+                                </span>
+                            </td>
+                            <td class="py-4 px-6 text-right space-x-2">
+                                <button @click="openPitchModal(lead)" class="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold transition-all border border-indigo-200/60">
+                                    💬 View / Edit Cold DM
+                                </button>
+                                <button @click="sendColdDM(lead)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-sm">
+                                    🚀 Send DM
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                    <template x-if="filteredLeads.length === 0">
+                        <tr>
+                            <td colspan="5" class="py-12 text-center text-slate-400 font-medium">
+                                No prospects found. Use the form above to search for businesses in your area.
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pitch Preview & Edit Modal -->
+    <div x-show="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm" style="display: none;" x-cloak>
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5" @click.away="modalOpen = false">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                    <h3 class="font-extrabold text-slate-900 text-base" x-text="'Cold DM Pitch for ' + selectedLead?.business_name"></h3>
+                    <p class="text-xs text-slate-500 font-medium" x-text="selectedLead?.email + ' • ' + selectedLead?.instagram"></p>
+                </div>
+                <button @click="modalOpen = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">AI Generated Message Pitch</label>
+                    <button @click="regeneratePitch()" :disabled="generatingPitch" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1">
+                        <span>✨ Regenerate Pitch</span>
+                    </button>
+                </div>
+                <textarea x-model="pitchText" rows="6" class="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+                <button @click="modalOpen = false" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all">Cancel</button>
+                <button @click="sendColdDM(selectedLead, pitchText)" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all shadow-md shadow-emerald-600/20">
+                    🚀 Dispatch Cold DM
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function leadOutreachApp() {
+    return {
+        leads: {{ leads | tojson | safe if leads else '[]' }},
+        searchForm: {
+            idea: 'Automated AI Chatbot Integration for customer service and lead capture',
+            niche: 'Restaurant',
+            area: 'Dhaka'
+        },
+        searching: false,
+        filterQuery: '',
+        modalOpen: false,
+        selectedLead: null,
+        pitchText: '',
+        generatingPitch: false,
+
+        get contactedCount() {
+            return this.leads.filter(l => l.status === 'Contacted' || l.status === 'Converted').length;
+        },
+
+        get filteredLeads() {
+            if (!this.filterQuery) return this.leads;
+            const q = this.filterQuery.toLowerCase();
+            return this.leads.filter(l => 
+                l.business_name.toLowerCase().includes(q) || 
+                l.niche.toLowerCase().includes(q) || 
+                l.area.toLowerCase().includes(q) ||
+                (l.email && l.email.toLowerCase().includes(q))
+            );
+        },
+
+        async searchLeads() {
+            this.searching = true;
+            try {
+                const res = await fetch('/admin/outreach/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.searchForm)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.detail || 'Search failed');
+                }
+            } catch (err) {
+                alert('Network error occurred');
+            } finally {
+                this.searching = false;
+            }
+        },
+
+        openPitchModal(lead) {
+            this.selectedLead = lead;
+            this.pitchText = lead.cold_pitch || '';
+            this.modalOpen = true;
+        },
+
+        async regeneratePitch() {
+            if (!this.selectedLead) return;
+            this.generatingPitch = true;
+            try {
+                const res = await fetch('/admin/outreach/api/generate-pitch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        idea: this.searchForm.idea,
+                        lead_name: this.selectedLead.business_name,
+                        niche: this.selectedLead.niche,
+                        area: this.selectedLead.area
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.pitchText = data.pitch;
+                }
+            } catch (err) {
+                alert('Failed to regenerate pitch');
+            } finally {
+                this.generatingPitch = false;
+            }
+        },
+
+        async sendColdDM(lead, customPitch = null) {
+            const targetLead = lead || this.selectedLead;
+            if (!targetLead) return;
+
+            try {
+                const res = await fetch('/admin/outreach/api/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lead_id: targetLead.id,
+                        message: customPitch || this.pitchText || targetLead.cold_pitch,
+                        channel: targetLead.email ? 'Email/Instagram' : 'Direct Message'
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    targetLead.status = 'Contacted';
+                    this.modalOpen = false;
+                    alert('✅ Cold DM dispatched successfully!');
+                }
+            } catch (err) {
+                alert('Failed to send DM');
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

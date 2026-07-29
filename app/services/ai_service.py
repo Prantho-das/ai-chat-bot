@@ -2,7 +2,10 @@ import hashlib
 import json
 import re
 from datetime import datetime, timedelta
-import google.generativeai as genai
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.config import settings
@@ -231,44 +234,32 @@ class AIService:
             return f"[SYSTEM ACTION: Requested slot on {final_date} at {formatted_time} was busy. Google Calendar booked next available slot for {final_date} at {final_time}. Clearly confirm this date ({final_date}) and time ({final_time}) to customer.]"
         return f"[SYSTEM ACTION: Google Calendar appointment successfully booked for {final_date} at {final_time}. Clearly confirm this exact date ({final_date}) and time ({final_time}) to customer.]"
 
-            ai_text = ""
-            prompt_tokens = 0
-            completion_tokens = 0
-            total_tokens = 0
+    async def _post_process_ai_response(self, response, fallback_msg, is_booking_query, query_hash, normalized_query, db):
+        ai_text = ""
+        prompt_tokens = 0
+        completion_tokens = 0
+        total_tokens = 0
 
-            try:
-                ai_text = response.text.strip()
-            except Exception:
-                if response.candidates and response.candidates[0].content.parts:
-                    ai_text = response.candidates[0].content.parts[0].text.strip()
+        try:
+            ai_text = response.text.strip()
+        except Exception:
+            if hasattr(response, 'candidates') and response.candidates and response.candidates[0].content.parts:
+                ai_text = response.candidates[0].content.parts[0].text.strip()
 
-            if hasattr(response, 'usage_metadata') and response.usage_metadata:
-                prompt_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
-                completion_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
-                total_tokens = getattr(response.usage_metadata, 'total_token_count', 0) or (prompt_tokens + completion_tokens)
+        if hasattr(response, 'usage_metadata') and response.usage_metadata:
+            prompt_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+            completion_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
+            total_tokens = getattr(response.usage_metadata, 'total_token_count', 0) or (prompt_tokens + completion_tokens)
 
-            token_stats = {
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-                "total_tokens": total_tokens
-            }
+        token_stats = {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens
+        }
 
-            if not ai_text:
-                ai_text = fallback_msg
+        if not ai_text:
+            ai_text = fallback_msg
 
-            if not is_booking_query and ai_text:
-                new_cache = CacheEntry(
-                    prompt_hash=query_hash,
-                    user_query=normalized_query,
-                    ai_response=ai_text,
-                    expires_at=datetime.utcnow() + timedelta(hours=24) # 24 Hours TTL
-                )
-                db.add(new_cache)
-                await db.commit()
-
-            return ai_text, False, token_stats
-        except Exception as e:
-            print(f"[AI SERVICE ERROR] Failed to generate response: {e}")
-            return fallback_msg, False, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        return ai_text, False, token_stats
 
 ai_service = AIService()
