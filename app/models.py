@@ -91,3 +91,14 @@ class PushSubscription(Base):
     user_agent: Mapped[str] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+
+class SystemLog(Base):
+    __tablename__ = "system_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    level: Mapped[str] = mapped_column(String(20), default="INFO", index=True) # INFO, SUCCESS, WARNING, ERROR
+    source: Mapped[str] = mapped_column(String(50), index=True) # Messenger, WhatsApp, Instagram, AI, System
+    message: Mapped[str] = mapped_column(Text)
+    details: Mapped[str] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+

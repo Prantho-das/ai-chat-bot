@@ -8,8 +8,9 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from app.database import get_db
 from app.config import settings
-from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment
+from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog
 from app.services.ai_service import ai_service, DEFAULT_FALLBACK_MESSAGE, DEFAULT_SYSTEM_PROMPT
+from app.services.log_service import log_service
 from app.helpers import get_bot_setting, upsert_bot_setting
 
 router = APIRouter(prefix="/admin", tags=["Admin Panel"])
@@ -458,3 +459,42 @@ async def upload_calendar_json(
         print(f"Error uploading Google Calendar JSON key: {e}")
 
     return RedirectResponse(url="/admin/settings?saved=1", status_code=status.HTTP_302_FOUND)
+
+@router.get("/logs", response_class=HTMLResponse)
+async def live_logs_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    stmt = select(SystemLog).order_by(SystemLog.created_at.desc()).limit(100)
+    res = await db.execute(stmt)
+    db_logs = res.scalars().all()
+
+    return templates.TemplateResponse("logs.html", {
+        "request": request,
+        "logs": db_logs
+    })
+
+@router.get("/api/logs")
+async def get_live_logs_api(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return {"error": "Unauthorized"}
+
+    mem_logs = log_service.get_recent_memory_logs(limit=50)
+    if mem_logs:
+        return {"logs": mem_logs}
+
+    stmt = select(SystemLog).order_by(SystemLog.created_at.desc()).limit(50)
+    res = await db.execute(stmt)
+    db_logs = res.scalars().all()
+
+    formatted_logs = [
+        {
+            "timestamp": log.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "level": log.level,
+            "source": log.source,
+            "message": log.message,
+            "details": log.details or ""
+        }
+        for log in db_logs
+    ]
+    return {"logs": formatted_logs}
