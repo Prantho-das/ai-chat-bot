@@ -35,80 +35,23 @@ async def verify_webhook(
 
 
 async def process_messenger_event(data: dict):
-    async with AsyncSessionLocal() as db:
-        _, access_token = await get_fb_tokens(db)
+    try:
+        async with AsyncSessionLocal() as db:
+            _, access_token = await get_fb_tokens(db)
 
-        for entry in data.get("entry", []):
-            page_id = str(entry.get("id", ""))
+            for entry in data.get("entry", []):
+                page_id = str(entry.get("id", ""))
 
-            # 1. Handle Messenger Direct Inbox Messages
-            for messaging_event in entry.get("messaging", []):
-                sender_id = str(messaging_event.get("sender", {}).get("id", ""))
-                message_data = messaging_event.get("message", {})
+                # 1. Handle Messenger Direct Inbox Messages
+                for messaging_event in entry.get("messaging", []):
+                    sender_id = str(messaging_event.get("sender", {}).get("id", ""))
+                    message_data = messaging_event.get("message", {})
 
-                if sender_id and "text" in message_data and not message_data.get("is_echo"):
-                    user_text = message_data["text"]
-
-                    stmt = select(Conversation).where(
-                        Conversation.platform == "messenger",
-                        Conversation.sender_id == sender_id
-                    )
-                    result = await db.execute(stmt)
-                    conversation = result.scalar_one_or_none()
-
-                    if not conversation:
-                        conversation = Conversation(
-                            platform="messenger",
-                            sender_id=sender_id,
-                            sender_name=f"FB User {sender_id[-4:]}"
-                        )
-                        db.add(conversation)
-                        await db.commit()
-                        await db.refresh(conversation)
-
-                    user_msg = Message(
-                        conversation_id=conversation.id,
-                        role="user",
-                        content=user_text,
-                        is_ai_generated=False
-                    )
-                    db.add(user_msg)
-                    await db.commit()
-
-                    stmt_msg = select(Message).where(Message.conversation_id == conversation.id).order_by(Message.created_at.asc())
-                    history_res = await db.execute(stmt_msg)
-                    history = history_res.scalars().all()
-
-                    ai_reply, is_cached = await ai_service.generate_response(user_text, history, db)
-
-                    ai_msg = Message(
-                        conversation_id=conversation.id,
-                        role="assistant",
-                        content=ai_reply,
-                        is_ai_generated=True,
-                        is_cached=is_cached
-                    )
-                    db.add(ai_msg)
-                    await db.commit()
-
-                    await messenger_service.send_text_message(sender_id, ai_reply, access_token)
-
-            # 2. Handle Facebook Post Comments Auto-Reply (feed changes field)
-            for change in entry.get("changes", []):
-                field_name = change.get("field")
-                if field_name in ["feed", "comments", "mention"]:
-                    val = change.get("value", {})
-                    verb = val.get("verb", "add")
-                    comment_id = str(val.get("comment_id") or val.get("id") or "")
-                    sender_id = str(val.get("from", {}).get("id", ""))
-                    comment_text = val.get("message") or val.get("comment_text") or val.get("text") or ""
-
-                    # Ensure comment_id, message exist and not created by the Page itself
-                    if comment_id and comment_text and sender_id and sender_id != page_id:
-                        sender_name = val.get("from", {}).get("name", "FB Commenter")
+                    if sender_id and "text" in message_data and not message_data.get("is_echo"):
+                        user_text = message_data["text"]
 
                         stmt = select(Conversation).where(
-                            Conversation.platform == "fb_comment",
+                            Conversation.platform == "messenger",
                             Conversation.sender_id == sender_id
                         )
                         result = await db.execute(stmt)
@@ -116,21 +59,18 @@ async def process_messenger_event(data: dict):
 
                         if not conversation:
                             conversation = Conversation(
-                                platform="fb_comment",
+                                platform="messenger",
                                 sender_id=sender_id,
-                                sender_name=sender_name
+                                sender_name=f"FB User {sender_id[-4:]}"
                             )
                             db.add(conversation)
                             await db.commit()
                             await db.refresh(conversation)
 
-                        post_id = val.get("post_id", "")
-                        formatted_comment = f"[FB Comment] {comment_text}"
-
                         user_msg = Message(
                             conversation_id=conversation.id,
                             role="user",
-                            content=formatted_comment,
+                            content=user_text,
                             is_ai_generated=False
                         )
                         db.add(user_msg)
@@ -140,7 +80,7 @@ async def process_messenger_event(data: dict):
                         history_res = await db.execute(stmt_msg)
                         history = history_res.scalars().all()
 
-                        ai_reply, is_cached = await ai_service.generate_response(comment_text, history, db)
+                        ai_reply, is_cached = await ai_service.generate_response(user_text, history, db)
 
                         ai_msg = Message(
                             conversation_id=conversation.id,
@@ -152,8 +92,71 @@ async def process_messenger_event(data: dict):
                         db.add(ai_msg)
                         await db.commit()
 
-                        # Send reply to comment via FB Graph API
-                        await messenger_service.reply_to_comment(comment_id, ai_reply, access_token)
+                        await messenger_service.send_text_message(sender_id, ai_reply, access_token)
+
+                # 2. Handle Facebook Post Comments Auto-Reply (feed changes field)
+                for change in entry.get("changes", []):
+                    field_name = change.get("field")
+                    if field_name in ["feed", "comments", "mention"]:
+                        val = change.get("value", {})
+                        verb = val.get("verb", "add")
+                        comment_id = str(val.get("comment_id") or val.get("id") or "")
+                        sender_id = str(val.get("from", {}).get("id", ""))
+                        comment_text = val.get("message") or val.get("comment_text") or val.get("text") or ""
+
+                        # Ensure comment_id, message exist and not created by the Page itself
+                        if comment_id and comment_text and sender_id and sender_id != page_id:
+                            sender_name = val.get("from", {}).get("name", "FB Commenter")
+
+                            stmt = select(Conversation).where(
+                                Conversation.platform == "fb_comment",
+                                Conversation.sender_id == sender_id
+                            )
+                            result = await db.execute(stmt)
+                            conversation = result.scalar_one_or_none()
+
+                            if not conversation:
+                                conversation = Conversation(
+                                    platform="fb_comment",
+                                    sender_id=sender_id,
+                                    sender_name=sender_name
+                                )
+                                db.add(conversation)
+                                await db.commit()
+                                await db.refresh(conversation)
+
+                            post_id = val.get("post_id", "")
+                            formatted_comment = f"[FB Comment] {comment_text}"
+
+                            user_msg = Message(
+                                conversation_id=conversation.id,
+                                role="user",
+                                content=formatted_comment,
+                                is_ai_generated=False
+                            )
+                            db.add(user_msg)
+                            await db.commit()
+
+                            stmt_msg = select(Message).where(Message.conversation_id == conversation.id).order_by(Message.created_at.asc())
+                            history_res = await db.execute(stmt_msg)
+                            history = history_res.scalars().all()
+
+                            ai_reply, is_cached = await ai_service.generate_response(comment_text, history, db)
+
+                            ai_msg = Message(
+                                conversation_id=conversation.id,
+                                role="assistant",
+                                content=ai_reply,
+                                is_ai_generated=True,
+                                is_cached=is_cached
+                            )
+                            db.add(ai_msg)
+                            await db.commit()
+
+                            # Send reply to comment via FB Graph API
+                            await messenger_service.reply_to_comment(comment_id, ai_reply, access_token)
+    except Exception as e:
+        print(f"[MESSENGER WEBHOOK ERROR] Error processing event: {e}")
 
 
 @router.post("")

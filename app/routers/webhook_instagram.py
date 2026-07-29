@@ -35,60 +35,63 @@ async def verify_webhook(
 
 
 async def process_instagram_event(data: dict):
-    async with AsyncSessionLocal() as db:
-        _, access_token = await get_ig_tokens(db)
+    try:
+        async with AsyncSessionLocal() as db:
+            _, access_token = await get_ig_tokens(db)
 
-        for entry in data.get("entry", []):
-            for messaging_event in entry.get("messaging", []):
-                sender_id = str(messaging_event.get("sender", {}).get("id", ""))
-                message_data = messaging_event.get("message", {})
+            for entry in data.get("entry", []):
+                for messaging_event in entry.get("messaging", []):
+                    sender_id = str(messaging_event.get("sender", {}).get("id", ""))
+                    message_data = messaging_event.get("message", {})
 
-                if sender_id and "text" in message_data and not message_data.get("is_echo"):
-                    user_text = message_data["text"]
+                    if sender_id and "text" in message_data and not message_data.get("is_echo"):
+                        user_text = message_data["text"]
 
-                    stmt = select(Conversation).where(
-                        Conversation.platform == "instagram",
-                        Conversation.sender_id == sender_id
-                    )
-                    result = await db.execute(stmt)
-                    conversation = result.scalar_one_or_none()
-
-                    if not conversation:
-                        conversation = Conversation(
-                            platform="instagram",
-                            sender_id=sender_id,
-                            sender_name=f"IG User {sender_id[-4:]}"
+                        stmt = select(Conversation).where(
+                            Conversation.platform == "instagram",
+                            Conversation.sender_id == sender_id
                         )
-                        db.add(conversation)
+                        result = await db.execute(stmt)
+                        conversation = result.scalar_one_or_none()
+
+                        if not conversation:
+                            conversation = Conversation(
+                                platform="instagram",
+                                sender_id=sender_id,
+                                sender_name=f"IG User {sender_id[-4:]}"
+                            )
+                            db.add(conversation)
+                            await db.commit()
+                            await db.refresh(conversation)
+
+                        user_msg = Message(
+                            conversation_id=conversation.id,
+                            role="user",
+                            content=user_text,
+                            is_ai_generated=False
+                        )
+                        db.add(user_msg)
                         await db.commit()
-                        await db.refresh(conversation)
 
-                    user_msg = Message(
-                        conversation_id=conversation.id,
-                        role="user",
-                        content=user_text,
-                        is_ai_generated=False
-                    )
-                    db.add(user_msg)
-                    await db.commit()
+                        stmt_msg = select(Message).where(Message.conversation_id == conversation.id).order_by(Message.created_at.asc())
+                        history_res = await db.execute(stmt_msg)
+                        history = history_res.scalars().all()
 
-                    stmt_msg = select(Message).where(Message.conversation_id == conversation.id).order_by(Message.created_at.asc())
-                    history_res = await db.execute(stmt_msg)
-                    history = history_res.scalars().all()
+                        ai_reply, is_cached = await ai_service.generate_response(user_text, history, db)
 
-                    ai_reply, is_cached = await ai_service.generate_response(user_text, history, db)
+                        ai_msg = Message(
+                            conversation_id=conversation.id,
+                            role="assistant",
+                            content=ai_reply,
+                            is_ai_generated=True,
+                            is_cached=is_cached
+                        )
+                        db.add(ai_msg)
+                        await db.commit()
 
-                    ai_msg = Message(
-                        conversation_id=conversation.id,
-                        role="assistant",
-                        content=ai_reply,
-                        is_ai_generated=True,
-                        is_cached=is_cached
-                    )
-                    db.add(ai_msg)
-                    await db.commit()
-
-                    await instagram_service.send_dm(sender_id, ai_reply, access_token)
+                        await instagram_service.send_dm(sender_id, ai_reply, access_token)
+    except Exception as e:
+        print(f"[INSTAGRAM WEBHOOK ERROR] Error processing event: {e}")
 
 
 @router.post("")
