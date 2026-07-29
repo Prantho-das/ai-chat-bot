@@ -85,7 +85,7 @@ class PushSubscription(Base):
     __tablename__ = "push_subscriptions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    endpoint: Mapped[str] = mapped_column(Text, unique=True)
+    endpoint: Mapped[str] = mapped_column(String(500), unique=True)
     p256dh: Mapped[str] = mapped_column(Text)
     auth: Mapped[str] = mapped_column(Text)
     user_agent: Mapped[str] = mapped_column(String(255), nullable=True)

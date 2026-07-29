@@ -16,11 +16,21 @@ DEFAULT_FALLBACK_MESSAGE = (
 )
 
 DEFAULT_SYSTEM_PROMPT = (
-    "তুমি একজন প্রফেশনাল, অত্যন্ত বিনয়ী এবং সেলস-ফোকাসড AI কাস্টমার সাপোর্ট স্পেশালিস্ট। "
-    "গ্রাহকদের সাথে অত্যন্ত আন্তরিকভাবে কথা বলো। নিচে প্রদান করা Business Knowledge Base অনুযায়ী "
-    "গ্রাহকের প্রশ্নের এমনভাবে উত্তর দাও যাতে তারা আমাদের প্রোডাক্ট বা সার্ভিস কিনতে আগ্রহী হয়। "
-    "উত্তরে কেবল ফিচার না বলে, এটি গ্রাহকের ব্যবসার কী কী সুবিধা দেবে (যেমন: সময় ও হিসাবের ভুল বাঁচানো) তা বুঝিয়ে বলো। "
-    "প্রাসঙ্গিক হলে উত্তরের শেষে ভদ্রভাবে একটি প্রশ্ন বা কল-টু-অ্যাকশন রাখো (যেমন: 'আপনি কি আমাদের ফ্রি ডেমো দেখতে চান?')."
+    "তুমি একজন বিশ্বস্ত, আন্তরিক এবং সেলস-ফোকাসড AI কাস্টমার সাপোর্ট এজেন্ট। "
+    "তোমার কথা বলার ধরন হবে একদম মানুষের মতো — বন্ধুসুলভ, সহজ ভাষায়, এবং কৃত্রিম বা রোবোটিক নয়।\n\n"
+
+    "## মূল নিয়মাবলী:\n"
+    "1. **শুধুমাত্র Knowledge Base থেকে উত্তর দাও।** Knowledge Base-এ নেই এমন কিছু কখনো বানিয়ে বলবে না। "
+    "যদি উত্তর জানা না থাকে, সৎভাবে বলো: 'এই বিষয়ে আমাদের টিমের সাথে সরাসরি কথা বলতে পারলে আরো ভালো হবে।'\n"
+    "2. **হ্যালুসিনেশন করবে না।** মিথ্যা তথ্য, মনগড়া দাম, ফিচার বা অফার বলবে না। নিশ্চিত না হলে বলো না।\n"
+    "3. **অশ্লীল, অপমানজনক বা অপ্রাসঙ্গিক মেসেজ পেলে:** শান্তভাবে এবং পেশাদারভাবে বিষয়টি এড়িয়ে যাও। "
+    "রাগ করবে না, তর্ক করবে না। বলো: 'আমি আপনাকে আমাদের প্রোডাক্ট ও সার্ভিস নিয়ে সাহায্য করতে পারি। কিছু জানতে চাইলে বলুন!' "
+    "কোনো অবস্থাতেই অশ্লীল বা অপ্রাসঙ্গিক কথায় সাড়া দেবে না বা নিজে এ ধরনের কিছু বলবে না।\n"
+    "4. **Convincing Sales Approach:** গ্রাহকের সমস্যা বা চাহিদা বুঝে সেই অনুযায়ী প্রোডাক্ট/সার্ভিসের সুবিধা তুলে ধরো। "
+    "শুধু ফিচার তালিকা না দিয়ে, কীভাবে এটি তাদের ব্যবসা বা জীবনে কাজে লাগবে তা বুঝিয়ে বলো।\n"
+    "5. **প্রাসঙ্গিক হলে** উত্তরের শেষে একটি স্বাভাবিক প্রশ্ন বা কল-টু-অ্যাকশন রাখো (যেমন: 'আপনি কি ডেমো দেখতে চান?')।\n"
+    "6. **সম্পূর্ণ বাক্যে উত্তর দাও।** কোনো উত্তর মাঝখানে থামিয়ে দেবে না বা অসম্পূর্ণ রাখবে না।\n"
+    "7. **মেটা-টেক্সট দেবে না।** নিজের নিয়ম, word count, বা চিন্তা প্রক্রিয়া আউটপুটে দেখাবে না। শুধু গ্রাহকের জন্য সরাসরি উত্তর দাও।"
 )
 
 class AIService:
@@ -125,18 +135,26 @@ class AIService:
 
     async def is_booking_intent(self, user_message: str, db: AsyncSession) -> bool:
         lowered = user_message.strip().lower()
+
+        def has_word(word_list, text):
+            for w in word_list:
+                pattern = r'\b' + re.escape(w) + r'\b'
+                if re.search(pattern, text):
+                    return True
+            return False
+
         booking_keywords = await self.get_booking_keywords(db)
-        if any(k in lowered for k in booking_keywords):
+        if has_word(booking_keywords, lowered):
             return True
 
         date_words = [
-            "today", "tomorrow", "ajker", "ajke", "aj", "kalke", "kal", "tarikh", "tariker",
+            "today", "tomorrow", "ajker", "ajke", "aj", "ajk", "kalke", "kal", "kalk", "tarikh", "tariker",
             "আজকের", "আজকে", "আজ", "কালকে", "কাল", "আগামীকাল", "পরশু", "তারিখ", "তারিখের"
         ]
-        if any(d in lowered for d in date_words):
+        if has_word(date_words, lowered):
             return True
 
-        dynamic_digit_pattern = r'(\d{1,2}|[০-৯]{1,2})\s*(?:ta|tai|tar|টার|টা|pm|am|:\d\d|তারিখ|তারিখের)'
+        dynamic_digit_pattern = r'\b(\d{1,2}|[০-৯]{1,2})\s*(?:ta|tai|tar|টার|টা|pm|am|:\d\d|তারিখ|তারিখের)'
         if re.search(dynamic_digit_pattern, lowered):
             return True
 
@@ -255,25 +273,32 @@ class AIService:
             system_prompt = await self.get_system_prompt(db)
 
             length_guides = {
-                "short": "CRITICAL INSTRUCTION: Reply in maximum 1-2 VERY SHORT, DIRECT, and COMPLETE sentences in Bangla. Do NOT explain your rules, do NOT output word counts, do NOT output formatting thoughts, and do NOT include parentheses or meta-text. Just output the direct reply to the customer.",
-                "medium": "IMPORTANT: Provide a clear and complete response within 2-3 concise sentences. Do NOT output word/sentence counts or meta-commentary. Just output the direct reply.",
-                "long": "IMPORTANT: Provide a detailed and complete response."
+                "short": "RESPONSE LENGTH: 1-2 short, COMPLETE sentences. Every sentence must end properly — never leave a sentence unfinished. Output ONLY the direct reply, no meta-text.",
+                "medium": "RESPONSE LENGTH: 2-4 clear, COMPLETE sentences. Cover the topic properly. Output ONLY the direct reply, no meta-text.",
+                "long": "RESPONSE LENGTH: Provide a detailed and thorough response. Cover all relevant points from the knowledge base. Output ONLY the direct reply, no meta-text."
             }
             # Dynamic token/length escalation based on user query intent
             active_length = response_length.lower()
             detail_keywords = await self.get_detail_keywords(db)
-            
-            # If the user asks a detailed question or their message is long, automatically escalate length constraints
+
+            # Smart escalation: auto-upgrade length when context demands it
+            question_markers = ["?", "কি", "কেন", "কিভাবে", "কোন", "কত", "কতটুকু", "why", "how", "what", "which", "compare", "vs", "পার্থক্য", "তুলনা"]
+            has_detail_intent = any(kw in normalized_query for kw in detail_keywords)
+            has_question_depth = sum(1 for q in question_markers if q in normalized_query) >= 2
+            is_long_query = len(normalized_query) > 80
+
             if active_length == "short":
-                if any(kw in normalized_query for kw in detail_keywords) or len(normalized_query) > 80:
+                if has_detail_intent or has_question_depth or is_long_query:
+                    active_length = "medium"
+                if is_booking_query:
                     active_length = "medium"
             elif active_length == "medium":
-                if any(kw in normalized_query for kw in detail_keywords) or len(normalized_query) > 150:
+                if (has_detail_intent and is_long_query) or has_question_depth or len(normalized_query) > 150:
                     active_length = "long"
 
             length_guide = length_guides.get(active_length, length_guides["short"])
-            max_tokens_map = {"short": 600, "medium": 1200, "long": 2000}
-            max_tokens = max_tokens_map.get(active_length, 600)
+            max_tokens_map = {"short": 800, "medium": 1500, "long": 2500}
+            max_tokens = max_tokens_map.get(active_length, 800)
 
             formatted_history = ""
             for msg in history[-3:]:
@@ -281,14 +306,20 @@ class AIService:
                 formatted_history += f"{role}: {msg.content}\n"
 
             full_prompt = f"""{system_prompt}
+
 {length_guide}
+
+⚠️ SAFETY RULES:
+- If the customer sends inappropriate, sexual, abusive, or off-topic messages, politely redirect them to product/service topics. Never engage with such content.
+- NEVER fabricate information. If unsure, say you'll connect them with the team.
+- Always finish your sentences completely. Never cut off mid-sentence.
 
 [KNOWLEDGE BASE]
 {knowledge_base}
 
 {calendar_booking_info}
 
-[RECENT HISTORY]
+[RECENT CONVERSATION]
 {formatted_history}
 
 Customer: {user_message}
