@@ -260,7 +260,11 @@ class AIService:
             if not api_key:
                 api_key = settings.GEMINI_API_KEY
 
+            if api_key:
+                api_key = api_key.strip().strip('"').strip("'")
+
             if not api_key or api_key.startswith("your_") or not genai:
+                print(f"[AI SERVICE WARNING] Missing or invalid Gemini API Key ('{api_key[:10] if api_key else 'None'}')! Returning fallback message.")
                 return fallback_msg, False, token_stats
 
             self._ensure_genai_configured(api_key)
