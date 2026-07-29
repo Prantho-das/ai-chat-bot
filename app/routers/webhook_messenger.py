@@ -36,6 +36,7 @@ async def verify_webhook(
 
 async def process_messenger_event(data: dict):
     try:
+        print(f"[WEBHOOK EVENT RECEIVED] Processing payload: {data}")
         async with AsyncSessionLocal() as db:
             _, access_token = await get_fb_tokens(db)
 
@@ -46,9 +47,11 @@ async def process_messenger_event(data: dict):
                 for messaging_event in entry.get("messaging", []):
                     sender_id = str(messaging_event.get("sender", {}).get("id", ""))
                     message_data = messaging_event.get("message", {})
+                    print(f"[MESSENGER EVENT] Sender ID: {sender_id}, Message Data: {message_data}")
 
                     if sender_id and "text" in message_data and not message_data.get("is_echo"):
                         user_text = message_data["text"]
+                        print(f"[MESSENGER INBOX] Text received from {sender_id}: {user_text}")
 
                         stmt = select(Conversation).where(
                             Conversation.platform == "messenger",
@@ -81,6 +84,7 @@ async def process_messenger_event(data: dict):
                         history = history_res.scalars().all()
 
                         ai_reply, is_cached = await ai_service.generate_response(user_text, history, db)
+                        print(f"[AI GENERATED REPLY]: {ai_reply}")
 
                         ai_msg = Message(
                             conversation_id=conversation.id,
@@ -92,11 +96,13 @@ async def process_messenger_event(data: dict):
                         db.add(ai_msg)
                         await db.commit()
 
-                        await messenger_service.send_text_message(sender_id, ai_reply, access_token)
+                        send_status = await messenger_service.send_text_message(sender_id, ai_reply, access_token)
+                        print(f"[FB SEND STATUS]: {send_status}")
 
                 # 2. Handle Facebook Post Comments Auto-Reply (feed changes field)
                 for change in entry.get("changes", []):
                     field_name = change.get("field")
+                    print(f"[FB CHANGE FIELD]: {field_name}, Data: {change}")
                     if field_name in ["feed", "comments", "mention"]:
                         val = change.get("value", {})
                         verb = val.get("verb", "add")
@@ -104,9 +110,9 @@ async def process_messenger_event(data: dict):
                         sender_id = str(val.get("from", {}).get("id", ""))
                         comment_text = val.get("message") or val.get("comment_text") or val.get("text") or ""
 
-                        # Ensure comment_id, message exist and not created by the Page itself
                         if comment_id and comment_text and sender_id and sender_id != page_id:
                             sender_name = val.get("from", {}).get("name", "FB Commenter")
+                            print(f"[FB COMMENT RECEIVED] From: {sender_name} ({sender_id}): {comment_text}")
 
                             stmt = select(Conversation).where(
                                 Conversation.platform == "fb_comment",
@@ -142,6 +148,7 @@ async def process_messenger_event(data: dict):
                             history = history_res.scalars().all()
 
                             ai_reply, is_cached = await ai_service.generate_response(comment_text, history, db)
+                            print(f"[AI COMMENT REPLY]: {ai_reply}")
 
                             ai_msg = Message(
                                 conversation_id=conversation.id,
@@ -153,8 +160,8 @@ async def process_messenger_event(data: dict):
                             db.add(ai_msg)
                             await db.commit()
 
-                            # Send reply to comment via FB Graph API
-                            await messenger_service.reply_to_comment(comment_id, ai_reply, access_token)
+                            comment_send_status = await messenger_service.reply_to_comment(comment_id, ai_reply, access_token)
+                            print(f"[FB COMMENT SEND STATUS]: {comment_send_status}")
     except Exception as e:
         print(f"[MESSENGER WEBHOOK ERROR] Error processing event: {e}")
 
@@ -162,6 +169,9 @@ async def process_messenger_event(data: dict):
 @router.post("")
 async def handle_messenger_webhook(request: Request, background_tasks: BackgroundTasks):
     data = await request.json()
+    print(f"[WEBHOOK ENTRY POST] Received payload object: {data.get('object')}")
     if data.get("object") in ["page", "permissions"]:
         background_tasks.add_task(process_messenger_event, data)
+    else:
+        print(f"[WEBHOOK WARNING] Unknown object type: {data.get('object')}")
     return Response(content="EVENT_RECEIVED", status_code=200)
