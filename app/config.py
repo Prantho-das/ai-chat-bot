@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"
     RESPONSE_LENGTH: str = "short" # short, medium, long
+    DETAIL_KEYWORDS: str = "দাম,ফিচার,প্যাকেজ,লিস্ট,সব,বিস্তারিত,details,price,package,list,all,feature,পার্থক্য,difference,কি কি"
     
     # Facebook Settings
     FB_PAGE_ACCESS_TOKEN: str = ""

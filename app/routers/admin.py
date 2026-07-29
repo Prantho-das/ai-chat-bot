@@ -259,6 +259,7 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
         "google_calendar_token": settings_dict.get("google_calendar_token", ""),
         "response_length": settings_dict.get("response_length", getattr(settings, "RESPONSE_LENGTH", "short")),
         "booking_keywords": settings_dict.get("booking_keywords", ""),
+        "detail_keywords": settings_dict.get("detail_keywords", getattr(settings, "DETAIL_KEYWORDS", "")),
         "fallback_message": settings_dict.get("fallback_message", DEFAULT_FALLBACK_MESSAGE),
         "mailchimp_api_key": settings_dict.get("mailchimp_api_key", getattr(settings, "MAILCHIMP_API_KEY", "")),
         "mailchimp_list_id": settings_dict.get("mailchimp_list_id", getattr(settings, "MAILCHIMP_LIST_ID", "")),
@@ -294,6 +295,7 @@ async def update_settings(
     response_length: str = Form(None),
     fallback_message: str = Form(None),
     booking_keywords: str = Form(None),
+    detail_keywords: str = Form(None),
     gemini_api_key: str = Form(None),
     gemini_model: str = Form(None),
     fb_page_access_token: str = Form(None),
@@ -367,7 +369,9 @@ async def update_settings(
     elif form_type == "keywords":
         if booking_keywords is not None:
             await upsert_bot_setting(db, "booking_keywords", booking_keywords.strip())
-            await db.commit()
+        if detail_keywords is not None:
+            await upsert_bot_setting(db, "detail_keywords", detail_keywords.strip())
+        await db.commit()
 
     elif form_type == "marketing":
         mkt_settings = {

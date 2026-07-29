@@ -16,9 +16,11 @@ DEFAULT_FALLBACK_MESSAGE = (
 )
 
 DEFAULT_SYSTEM_PROMPT = (
-    "তুমি একজন পেশাদার এবং অত্যন্ত সহায়ক AI কাস্টমার সাপোর্ট এজেন্ট। "
-    "নিচে প্রদান করা Business Knowledge Base অনুযায়ী গ্রাহকের প্রশ্নের সংক্ষেপে, "
-    "সুন্দর ও মার্জিত ভাষায় বাংলা অথবা ইংরেজিতে উত্তর দাও।"
+    "তুমি একজন প্রফেশনাল, অত্যন্ত বিনয়ী এবং সেলস-ফোকাসড AI কাস্টমার সাপোর্ট স্পেশালিস্ট। "
+    "গ্রাহকদের সাথে অত্যন্ত আন্তরিকভাবে কথা বলো। নিচে প্রদান করা Business Knowledge Base অনুযায়ী "
+    "গ্রাহকের প্রশ্নের এমনভাবে উত্তর দাও যাতে তারা আমাদের প্রোডাক্ট বা সার্ভিস কিনতে আগ্রহী হয়। "
+    "উত্তরে কেবল ফিচার না বলে, এটি গ্রাহকের ব্যবসার কী কী সুবিধা দেবে (যেমন: সময় ও হিসাবের ভুল বাঁচানো) তা বুঝিয়ে বলো। "
+    "প্রাসঙ্গিক হলে উত্তরের শেষে ভদ্রভাবে একটি প্রশ্ন বা কল-টু-অ্যাকশন রাখো (যেমন: 'আপনি কি আমাদের ফ্রি ডেমো দেখতে চান?')."
 )
 
 class AIService:
@@ -113,6 +115,13 @@ class AIService:
             "meeting", "appointment", "book", "schedule", "appoint",
             "মিটিং", "অ্যাপয়েন্টমেন্ট", "বুক", "শিডিউল", "দেখা", "কল", "ডেমো", "ট্রায়াল"
         ]
+
+    async def get_detail_keywords(self, db: AsyncSession) -> list[str]:
+        val = await get_bot_setting(db, "detail_keywords")
+        if val:
+            return [k.strip().lower() for k in val.split(",") if k.strip()]
+        default_val = getattr(settings, "DETAIL_KEYWORDS", "")
+        return [k.strip().lower() for k in default_val.split(",") if k.strip()]
 
     async def is_booking_intent(self, user_message: str, db: AsyncSession) -> bool:
         lowered = user_message.strip().lower()
@@ -250,9 +259,21 @@ class AIService:
                 "medium": "IMPORTANT: Provide a clear and complete response within 2-3 concise sentences. Do NOT output word/sentence counts or meta-commentary. Just output the direct reply.",
                 "long": "IMPORTANT: Provide a detailed and complete response."
             }
-            length_guide = length_guides.get(response_length.lower(), length_guides["short"])
-            max_tokens_map = {"short": 400, "medium": 800, "long": 1500}
-            max_tokens = max_tokens_map.get(response_length.lower(), 400)
+            # Dynamic token/length escalation based on user query intent
+            active_length = response_length.lower()
+            detail_keywords = await self.get_detail_keywords(db)
+            
+            # If the user asks a detailed question or their message is long, automatically escalate length constraints
+            if active_length == "short":
+                if any(kw in normalized_query for kw in detail_keywords) or len(normalized_query) > 80:
+                    active_length = "medium"
+            elif active_length == "medium":
+                if any(kw in normalized_query for kw in detail_keywords) or len(normalized_query) > 150:
+                    active_length = "long"
+
+            length_guide = length_guides.get(active_length, length_guides["short"])
+            max_tokens_map = {"short": 600, "medium": 1200, "long": 2000}
+            max_tokens = max_tokens_map.get(active_length, 600)
 
             formatted_history = ""
             for msg in history[-3:]:
