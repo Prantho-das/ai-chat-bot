@@ -77,14 +77,17 @@ async def process_instagram_event(data: dict):
                         history_res = await db.execute(stmt_msg)
                         history = history_res.scalars().all()
 
-                        ai_reply, is_cached = await ai_service.generate_response(user_text, history, db)
+                        ai_reply, is_cached, token_stats = await ai_service.generate_response(user_text, history, db)
 
                         ai_msg = Message(
                             conversation_id=conversation.id,
                             role="assistant",
                             content=ai_reply,
                             is_ai_generated=True,
-                            is_cached=is_cached
+                            is_cached=is_cached,
+                            prompt_tokens=token_stats.get("prompt_tokens", 0),
+                            completion_tokens=token_stats.get("completion_tokens", 0),
+                            total_tokens=token_stats.get("total_tokens", 0)
                         )
                         db.add(ai_msg)
                         await db.commit()

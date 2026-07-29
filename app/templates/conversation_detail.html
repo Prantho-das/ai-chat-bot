@@ -44,7 +44,7 @@
                 {% if msg.is_cached %}
                 <span class="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold border border-emerald-200/60 shadow-sm">⚡ 0 API Token Used (Cached)</span>
                 {% else %}
-                <span class="text-[9px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-semibold">✨ Gemini AI Token</span>
+                <span class="text-[9px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-semibold border border-indigo-100">✨ {{ msg.total_tokens if msg.total_tokens else 0 }} Tokens (In: {{ msg.prompt_tokens if msg.prompt_tokens else 0 }} | Out: {{ msg.completion_tokens if msg.completion_tokens else 0 }})</span>
                 {% endif %}
                 <span class="text-[10px] text-indigo-600 font-bold">🤖 AI Bot Auto-Reply</span>
             </div>

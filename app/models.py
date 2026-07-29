@@ -33,6 +33,9 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text)
     is_ai_generated: Mapped[bool] = mapped_column(Boolean, default=True)
     is_cached: Mapped[bool] = mapped_column(Boolean, default=False)
+    prompt_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    completion_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    total_tokens: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     conversation: Mapped["Conversation"] = relationship("Conversation", back_populates="messages")

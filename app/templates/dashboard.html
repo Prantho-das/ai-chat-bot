@@ -5,7 +5,7 @@
 {% block content %}
 <div class="space-y-8">
     <!-- Stat Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between text-slate-400 mb-3">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Users</span>
@@ -31,6 +31,15 @@
             </div>
             <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.knowledge_entries }}</div>
             <p class="text-xs font-medium text-slate-400 mt-2">Active business items</p>
+        </div>
+
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Tokens Used</span>
+                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg font-bold">📊</div>
+            </div>
+            <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.total_tokens_used }}</div>
+            <p class="text-xs font-medium text-slate-400 mt-2">Total Gemini tokens consumed</p>
         </div>
 
         <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">

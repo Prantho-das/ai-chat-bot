@@ -63,6 +63,7 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     total_msgs = await db.scalar(select(func.count(Message.id))) or 0
     total_kb = await db.scalar(select(func.count(KnowledgeEntry.id))) or 0
     cached_msgs = await db.scalar(select(func.count(Message.id)).where(Message.is_cached == True)) or 0
+    total_tokens_used = await db.scalar(select(func.sum(Message.total_tokens))) or 0
 
     stmt = select(Conversation).order_by(Conversation.updated_at.desc()).limit(10)
     result = await db.execute(stmt)
@@ -72,7 +73,8 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         "total_conversations": total_convs,
         "total_messages": total_msgs,
         "knowledge_entries": total_kb,
-        "cached_messages": cached_msgs
+        "cached_messages": cached_msgs,
+        "total_tokens_used": total_tokens_used
     }
 
     return templates.TemplateResponse("dashboard.html", {

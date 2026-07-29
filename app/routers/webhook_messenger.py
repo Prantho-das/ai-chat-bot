@@ -138,7 +138,7 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
         history_res = await db.execute(stmt_msg)
         history = history_res.scalars().all()
 
-        ai_reply, is_cached = await ai_service.generate_response(user_text, history, db)
+        ai_reply, is_cached, token_stats = await ai_service.generate_response(user_text, history, db)
         await log_service.log("INFO", "AI Engine", f"AI reply for {sender_id}: '{ai_reply[:100]}'")
 
         ai_msg = Message(
@@ -146,7 +146,10 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
             role="assistant",
             content=ai_reply,
             is_ai_generated=True,
-            is_cached=is_cached
+            is_cached=is_cached,
+            prompt_tokens=token_stats.get("prompt_tokens", 0),
+            completion_tokens=token_stats.get("completion_tokens", 0),
+            total_tokens=token_stats.get("total_tokens", 0)
         )
         db.add(ai_msg)
         await db.commit()
@@ -210,7 +213,7 @@ async def _process_comment(entry_page_id: str, change: dict, access_token: str, 
         history_res = await db.execute(stmt_msg)
         history = history_res.scalars().all()
 
-        ai_reply, is_cached = await ai_service.generate_response(comment_text, history, db)
+        ai_reply, is_cached, token_stats = await ai_service.generate_response(comment_text, history, db)
         await log_service.log("INFO", "AI Engine", f"Comment AI reply: '{ai_reply[:100]}'")
 
         ai_msg = Message(
@@ -218,7 +221,10 @@ async def _process_comment(entry_page_id: str, change: dict, access_token: str, 
             role="assistant",
             content=ai_reply,
             is_ai_generated=True,
-            is_cached=is_cached
+            is_cached=is_cached,
+            prompt_tokens=token_stats.get("prompt_tokens", 0),
+            completion_tokens=token_stats.get("completion_tokens", 0),
+            total_tokens=token_stats.get("total_tokens", 0)
         )
         db.add(ai_msg)
         await db.commit()

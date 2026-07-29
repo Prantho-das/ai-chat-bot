@@ -231,114 +231,27 @@ class AIService:
             return f"[SYSTEM ACTION: Requested slot on {final_date} at {formatted_time} was busy. Google Calendar booked next available slot for {final_date} at {final_time}. Clearly confirm this date ({final_date}) and time ({final_time}) to customer.]"
         return f"[SYSTEM ACTION: Google Calendar appointment successfully booked for {final_date} at {final_time}. Clearly confirm this exact date ({final_date}) and time ({final_time}) to customer.]"
 
-    async def generate_response(self, user_message: str, history: list, db: AsyncSession) -> tuple[str, bool]:
-        fallback_msg = await self.get_fallback_message(db)
-        response_length = await self.get_response_length(db)
-        normalized_query = user_message.strip().lower()
-        is_booking_query = await self.is_booking_intent(normalized_query, db)
-
-        knowledge_base, kb_hash = await self.get_knowledge_base_data(db)
-
-        # Cache key includes Response Length + KB Hash + Query
-        query_hash = hashlib.sha256(f"{response_length}:{kb_hash}:{normalized_query}".encode("utf-8")).hexdigest()
-
-        if not is_booking_query:
-            stmt_cache = select(CacheEntry).where(CacheEntry.prompt_hash == query_hash)
-            cache_res = await db.execute(stmt_cache)
-            cached_entry = cache_res.scalar_one_or_none()
-
-            if cached_entry:
-                if cached_entry.expires_at is None or cached_entry.expires_at > datetime.utcnow():
-                    print(f"[CACHE HIT] Returning cached response for query: {user_message}")
-                    return cached_entry.ai_response, True
-                else:
-                    await db.delete(cached_entry)
-                    await db.commit()
-
-        api_key, model_name = await self.get_gemini_config(db)
-
-        if not api_key or api_key.startswith("your_") or api_key == "":
-            print("[AI SERVICE WARNING] Gemini API key not configured. Using fallback message.")
-            return fallback_msg, False
-
-        try:
-            self._ensure_genai_configured(api_key)
-
-            calendar_booking_info = ""
-            calendar_config = await self.get_calendar_config(db)
-            if calendar_config.get("google_calendar_token") or calendar_config.get("google_refresh_token"):
-                if is_booking_query:
-                    calendar_booking_info = await self._handle_calendar_booking(user_message, calendar_config, db)
-
-            system_prompt = await self.get_system_prompt(db)
-
-            length_guides = {
-                "short": "RESPONSE LENGTH: 1-2 short, COMPLETE sentences. Every sentence must end properly — never leave a sentence unfinished. Output ONLY the direct reply, no meta-text.",
-                "medium": "RESPONSE LENGTH: 2-4 clear, COMPLETE sentences. Cover the topic properly. Output ONLY the direct reply, no meta-text.",
-                "long": "RESPONSE LENGTH: Provide a detailed and thorough response. Cover all relevant points from the knowledge base. Output ONLY the direct reply, no meta-text."
-            }
-            # Dynamic token/length escalation based on user query intent
-            active_length = response_length.lower()
-            detail_keywords = await self.get_detail_keywords(db)
-
-            # Smart escalation: auto-upgrade length when context demands it
-            question_markers = ["?", "কি", "কেন", "কিভাবে", "কোন", "কত", "কতটুকু", "why", "how", "what", "which", "compare", "vs", "পার্থক্য", "তুলনা"]
-            has_detail_intent = any(kw in normalized_query for kw in detail_keywords)
-            has_question_depth = sum(1 for q in question_markers if q in normalized_query) >= 2
-            is_long_query = len(normalized_query) > 80
-
-            if active_length == "short":
-                if has_detail_intent or has_question_depth or is_long_query:
-                    active_length = "medium"
-                if is_booking_query:
-                    active_length = "medium"
-            elif active_length == "medium":
-                if (has_detail_intent and is_long_query) or has_question_depth or len(normalized_query) > 150:
-                    active_length = "long"
-
-            length_guide = length_guides.get(active_length, length_guides["short"])
-            max_tokens_map = {"short": 800, "medium": 1500, "long": 2500}
-            max_tokens = max_tokens_map.get(active_length, 800)
-
-            formatted_history = ""
-            for msg in history[-3:]:
-                role = "Customer" if msg.role == "user" else "Support AI"
-                formatted_history += f"{role}: {msg.content}\n"
-
-            full_prompt = f"""{system_prompt}
-
-{length_guide}
-
-⚠️ SAFETY RULES:
-- If the customer sends inappropriate, sexual, abusive, or off-topic messages, politely redirect them to product/service topics. Never engage with such content.
-- NEVER fabricate information. If unsure, say you'll connect them with the team.
-- Always finish your sentences completely. Never cut off mid-sentence.
-
-[KNOWLEDGE BASE]
-{knowledge_base}
-
-{calendar_booking_info}
-
-[RECENT CONVERSATION]
-{formatted_history}
-
-Customer: {user_message}
-Support AI Reply:"""
-
-            generation_config = genai.types.GenerationConfig(
-                max_output_tokens=max_tokens,
-                temperature=0.2
-            )
-
-            model = genai.GenerativeModel(model_name, generation_config=generation_config)
-            response = model.generate_content(full_prompt)
-
             ai_text = ""
+            prompt_tokens = 0
+            completion_tokens = 0
+            total_tokens = 0
+
             try:
                 ai_text = response.text.strip()
             except Exception:
                 if response.candidates and response.candidates[0].content.parts:
                     ai_text = response.candidates[0].content.parts[0].text.strip()
+
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                prompt_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+                completion_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
+                total_tokens = getattr(response.usage_metadata, 'total_token_count', 0) or (prompt_tokens + completion_tokens)
+
+            token_stats = {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens
+            }
 
             if not ai_text:
                 ai_text = fallback_msg
@@ -353,9 +266,9 @@ Support AI Reply:"""
                 db.add(new_cache)
                 await db.commit()
 
-            return ai_text, False
+            return ai_text, False, token_stats
         except Exception as e:
             print(f"[AI SERVICE ERROR] Failed to generate response: {e}")
-            return fallback_msg, False
+            return fallback_msg, False, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
 ai_service = AIService()
