@@ -17,7 +17,7 @@ except ImportError:
 
 18: from app.database import get_db, engine, Base
 19: from app.config import settings
-20: from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog, Lead
+20: from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog, Lead, QAIssueReport
 21: from app.services.ai_service import ai_service, DEFAULT_FALLBACK_MESSAGE, DEFAULT_SYSTEM_PROMPT
 22: from app.services.log_service import log_service
 23: from app.helpers import get_bot_setting, upsert_bot_setting
@@ -654,4 +654,108 @@ async def captured_leads_page(request: Request, db: AsyncSession = Depends(get_d
         "request": request,
         "leads": leads
     })
+
+# --- Facebook-Styled QA Tester Panel Routes ---
+
+@router.get("/qa-panel", response_class=HTMLResponse)
+async def qa_panel_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    stmt = select(QAIssueReport).order_by(QAIssueReport.created_at.desc())
+    res = await db.execute(stmt)
+    qa_reports = res.scalars().all()
+
+    return templates.TemplateResponse("qa_panel.html", {
+        "request": request,
+        "qa_reports": qa_reports
+    })
+
+@router.post("/api/qa/chat")
+async def qa_chat_api(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return {"error": "Unauthorized"}
+
+    data = await request.json()
+    tester_name = data.get("tester_name", "Tester")
+    user_query = data.get("query", "")
+    history = data.get("history", [])
+
+    if not user_query:
+        return {"error": "Empty query"}
+
+    ai_reply = await ai_service.generate_response(
+        query=user_query,
+        history=history,
+        db=db,
+        platform="qa_tester"
+    )
+
+    return {
+        "tester_name": tester_name,
+        "query": user_query,
+        "ai_response": ai_reply
+    }
+
+@router.post("/api/qa/report-issue")
+async def qa_report_issue_api(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return {"error": "Unauthorized"}
+
+    data = await request.json()
+    tester_name = data.get("tester_name", "Tester")
+    user_query = data.get("user_query", "")
+    ai_response = data.get("ai_response", "")
+    issue_category = data.get("issue_category", "Wrong Info")
+    corrected_response = data.get("corrected_response", "")
+
+    new_report = QAIssueReport(
+        tester_name=tester_name,
+        user_query=user_query,
+        ai_response=ai_response,
+        issue_category=issue_category,
+        corrected_response=corrected_response,
+        status="pending"
+    )
+    db.add(new_report)
+    await db.commit()
+    await db.refresh(new_report)
+
+    await log_service.log("WARNING", "QA Issue Reported", f"Tester '{tester_name}' reported an issue [{issue_category}] on query: {user_query[:50]}")
+
+    return {"status": "success", "report_id": new_report.id}
+
+@router.post("/api/qa/learn-issue/{report_id}")
+async def qa_learn_issue_api(report_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return {"error": "Unauthorized"}
+
+    stmt = select(QAIssueReport).where(QAIssueReport.id == report_id)
+    res = await db.execute(stmt)
+    report = res.scalar_one_or_none()
+
+    if not report:
+        return {"error": "Report not found"}
+
+    if not report.corrected_response:
+        return {"error": "No corrected response provided to learn from!"}
+
+    # Add to Knowledge Base
+    kb_title = f"QA Correction ({report.issue_category}): {report.user_query[:40]}"
+    kb_content = f"Question/Query: {report.user_query}\nCorrect Answer: {report.corrected_response}"
+    
+    new_kb = KnowledgeEntry(
+        category="qa_correction",
+        title=kb_title,
+        content=kb_content,
+        is_active=True
+    )
+    db.add(new_kb)
+    report.status = "learned"
+    await db.commit()
+
+    await log_service.log("SUCCESS", "AI Learned Correction", f"AI learned correction for QA Report #{report_id}")
+
+    return {"status": "success", "message": "Correction successfully converted to Knowledge Base entry for AI learning!"}
+
 

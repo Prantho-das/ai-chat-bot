@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+
+{% block title %}AI QA & Testing Panel (Facebook Theme){% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --fb-blue: #1877F2;
+    --fb-bg: #F0F2F5;
+    --fb-card-bg: #FFFFFF;
+    --fb-text: #050505;
+    --fb-text-muted: #65676B;
+    --fb-border: #CED0D4;
+    --fb-hover: #E4E6EB;
+  }
+
+  body.dark-mode {
+    --fb-bg: #18191A;
+    --fb-card-bg: #242526;
+    --fb-text: #E4E6EB;
+    --fb-text-muted: #B0B3B8;
+    --fb-border: #3E4042;
+    --fb-hover: #3A3B3C;
+  }
+
+  .fb-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr 340px;
+    gap: 15px;
+    height: calc(100vh - 90px);
+    margin-top: -10px;
+  }
+
+  /* Left Sidebar: Testers & Sessions */
+  .fb-sidebar-left {
+    background: var(--fb-card-bg);
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tester-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .tester-item:hover, .tester-item.active {
+    background: var(--fb-hover);
+  }
+
+  .avatar-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--fb-blue);
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+  }
+
+  /* Center: FB Messenger Chat */
+  .fb-chat-area {
+    background: var(--fb-card-bg);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--fb-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .chat-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    position: relative;
+  }
+
+  .msg-row.user {
+    justify-content: flex-end;
+  }
+
+  .msg-bubble {
+    max-width: 70%;
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    position: relative;
+  }
+
+  .msg-row.user .msg-bubble {
+    background: var(--fb-blue);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg-row.ai .msg-bubble {
+    background: var(--fb-hover);
+    color: var(--fb-text);
+    border-bottom-left-radius: 4px;
+  }
+
+  /* Hover Report Flag Button */
+  .msg-actions {
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .msg-row.ai:hover .msg-actions {
+    opacity: 1;
+  }
+
+  .btn-flag {
+    background: #FFF;
+    border: 1px solid var(--fb-border);
+    color: #E41E3F;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .chat-input-bar {
+    padding: 12px 20px;
+    border-top: 1px solid var(--fb-border);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .chat-input-bar input {
+    flex: 1;
+    background: var(--fb-hover);
+    border: none;
+    border-radius: 20px;
+    padding: 10px 16px;
+    color: var(--fb-text);
+  }
+
+  /* Right Sidebar: Issue Reports & Learning Table */
+  .fb-sidebar-right {
+    background: var(--fb-card-bg);
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .report-card {
+    border: 1px solid var(--fb-border);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+  }
+
+  .tag-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+  }
+  .bg-pending { background: #FFF3CD; color: #856404; }
+  .bg-learned { background: #D4EDDA; color: #155724; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3">
+  <!-- Top Tester Login Bar -->
+  <div class="d-flex align-items-center justify-content-between mb-3 p-2 bg-primary text-white rounded-3 shadow-sm" style="background-color: var(--fb-blue) !important;">
+    <div class="d-flex align-items-center gap-2">
+      <i class="fab fa-facebook-messenger fs-4"></i>
+      <h5 class="mb-0 fw-bold">Facebook QA Testing & Feedback Hub</h5>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span>Logged in as:</span>
+      <span class="badge bg-light text-primary fs-6" id="currentTesterBadge">Tester 1</span>
+      <button class="btn btn-sm btn-outline-light ms-2" onclick="changeTesterName()"><i class="fas fa-user-edit me-1"></i>Switch Name</button>
+    </div>
+  </div>
+
+  <div class="fb-layout">
+    <!-- Left Sidebar: Active QA Testers -->
+    <div class="fb-sidebar-left">
+      <h6 class="fw-bold mb-3 text-muted"><i class="fas fa-users me-2"></i>QA Testing Team (4-5 Testers)</h6>
+      
+      <div id="testerList">
+        <div class="tester-item active" onclick="selectTester('Tester 1')">
+          <div class="avatar-badge">T1</div>
+          <div>
+            <div class="fw-bold">Tester 1 (Default)</div>
+            <small class="text-success"><i class="fas fa-circle me-1" style="font-size: 8px;"></i>Online</small>
+          </div>
+        </div>
+        <div class="tester-item" onclick="selectTester('Tester 2')">
+          <div class="avatar-badge" style="background: #42b72a;">T2</div>
+          <div>
+            <div class="fw-bold">Tester 2</div>
+            <small class="text-muted">Active</small>
+          </div>
+        </div>
+        <div class="tester-item" onclick="selectTester('Tester 3')">
+          <div class="avatar-badge" style="background: #f7b928;">T3</div>
+          <div>
+            <div class="fw-bold">Tester 3</div>
+            <small class="text-muted">Active</small>
+          </div>
+        </div>
+        <div class="tester-item" onclick="selectTester('Tester 4')">
+          <div class="avatar-badge" style="background: #fa3e3e;">T4</div>
+          <div>
+            <div class="fw-bold">Tester 4</div>
+            <small class="text-muted">Active</small>
+          </div>
+        </div>
+      </div>
+      
+      <hr>
+      <div class="mt-auto p-2 rounded text-center bg-light">
+        <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Enter query & hover AI replies to flag issues.</small>
+      </div>
+    </div>
+
+    <!-- Center: Messenger Chat area -->
+    <div class="fb-chat-area">
+      <div class="chat-header">
+        <div class="d-flex align-items-center gap-2">
+          <div class="avatar-badge" style="background: var(--fb-blue);">AI</div>
+          <div>
+            <div class="fw-bold">AI Assistant (Testing Mode)</div>
+            <small class="text-muted">Interactive QA Response Evaluation</small>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" onclick="clearChat()"><i class="fas fa-broom me-1"></i>Clear Chat</button>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg-row ai">
+          <div class="avatar-badge" style="width: 28px; height: 28px; font-size: 0.75rem;">AI</div>
+          <div class="msg-bubble">
+            Hello! I am your AI bot. Type anything to test my answers. If I answer wrong, hover over my message and click the 🚩 Flag icon to report it!
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-bar">
+        <input type="text" id="userInput" placeholder="Ask AI something to test..." onkeypress="handleKeyPress(event)">
+        <button class="btn btn-primary rounded-circle" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
+
+    <!-- Right Sidebar: QA Issues & Learning Table -->
+    <div class="fb-sidebar-right">
+      <h6 class="fw-bold mb-3 text-muted"><i class="fas fa-database me-2"></i>Reported Errors Table</h6>
+      <p class="text-muted" style="font-size: 0.8rem;">Issues reported by testers stay in this DB table. Click <strong>Learn</strong> to train the AI instantly!</p>
+
+      <div id="qaReportsList">
+        {% for r in qa_reports %}
+        <div class="report-card">
+          <div class="d-flex justify-content-between mb-1">
+            <strong class="text-primary">{{ r.tester_name }}</strong>
+            <span class="tag-badge {% if r.status == 'learned' %}bg-learned{% else %}bg-pending{% endif %}">
+              {{ r.status | capitalize }}
+            </span>
+          </div>
+          <div class="text-muted"><strong>Q:</strong> {{ r.user_query }}</div>
+          <div class="text-danger"><strong>Bad AI:</strong> {{ r.ai_response }}</div>
+          {% if r.corrected_response %}
+            <div class="text-success fw-bold"><strong>Corrected:</strong> {{ r.corrected_response }}</div>
+          {% endif %}
+          
+          <div class="mt-2 d-flex justify-content-between align-items-center">
+            <span class="badge bg-secondary">{{ r.issue_category }}</span>
+            {% if r.status != 'learned' and r.corrected_response %}
+              <button class="btn btn-xs btn-success text-white py-1 px-2" style="font-size: 0.75rem;" onclick="learnIssue('{{ r.id }}')">
+                <i class="fas fa-brain me-1"></i>Learn This
+              </button>
+            {% endif %}
+          </div>
+        </div>
+        {% else %}
+          <p class="text-center text-muted py-4">No issue reports logged yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Report Issue -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="fas fa-flag me-2"></i>Report AI Response Issue</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="reportUserQuery">
+        <input type="hidden" id="reportAiResponse">
+        
+        <div class="mb-3">
+          <label class="form-label fw-bold">User Query:</label>
+          <div class="p-2 bg-light rounded" id="modalQueryText"></div>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label fw-bold text-danger">Flawed AI Response:</label>
+          <div class="p-2 bg-light rounded text-danger" id="modalAiText"></div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold">Select Problem Category:</label>
+          <select class="form-select" id="issueCategory">
+            <option value="Wrong Info">Wrong / Inaccurate Information</option>
+            <option value="Off-topic">Off-topic / Irrelevant</option>
+            <option value="Improper Tone">Improper / Rude Tone</option>
+            <option value="Hallucination">AI Hallucination</option>
+            <option value="Formatting">Bad Formatting</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold text-success">What is the Correct Answer? (To train AI):</label>
+          <textarea class="form-control" id="correctedResponse" rows="3" placeholder="Enter what AI SHOULD have answered..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" onclick="submitReport()"><i class="fas fa-save me-1"></i>Save & Submit to DB</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let currentTester = localStorage.getItem("qa_tester_name") || "Tester 1";
+  document.getElementById("currentTesterBadge").innerText = currentTester;
+  let chatHistory = [];
+
+  function changeTesterName() {
+    let name = prompt("Enter your Name for QA Testing:", currentTester);
+    if(name && name.trim() !== ""){
+      currentTester = name.trim();
+      localStorage.setItem("qa_tester_name", currentTester);
+      document.getElementById("currentTesterBadge").innerText = currentTester;
+    }
+  }
+
+  function selectTester(name) {
+    currentTester = name;
+    localStorage.setItem("qa_tester_name", currentTester);
+    document.getElementById("currentTesterBadge").innerText = currentTester;
+  }
+
+  function handleKeyPress(e) {
+    if(e.key === "Enter") sendMessage();
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById("userInput");
+    const query = input.value.trim();
+    if(!query) return;
+
+    appendMessage("user", query);
+    input.value = "";
+
+    try {
+      const res = await fetch("/admin/api/qa/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tester_name: currentTester,
+          query: query,
+          history: chatHistory
+        })
+      });
+      const data = await res.json();
+      if(data.ai_response) {
+        appendMessage("ai", data.ai_response, query);
+        chatHistory.push({ role: "user", content: query });
+        chatHistory.push({ role: "assistant", content: data.ai_response });
+      }
+    } catch(e) {
+      appendMessage("ai", "Error connecting to AI service.");
+    }
+  }
+
+  function appendMessage(role, text, userQueryContext = "") {
+    const chatContainer = document.getElementById("chatMessages");
+    const row = document.createElement("div");
+    row.className = `msg-row ${role}`;
+
+    if(role === "ai") {
+      row.innerHTML = `
+        <div class="avatar-badge" style="width: 28px; height: 28px; font-size: 0.75rem;">AI</div>
+        <div class="msg-bubble">${text}</div>
+        <div class="msg-actions ms-1">
+          <button class="btn-flag" title="Flag & Report Issue" onclick="openReportModal(\`${escapeHtml(userQueryContext)}\`, \`${escapeHtml(text)}\`)">
+            <i class="fas fa-flag"></i>
+          </button>
+        </div>
+      `;
+    } else {
+      row.innerHTML = `<div class="msg-bubble">${text}</div>`;
+    }
+
+    chatContainer.appendChild(row);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/`/g, "\\`").replace(/"/g, "&quot;");
+  }
+
+  function openReportModal(query, aiAns) {
+    document.getElementById("reportUserQuery").value = query;
+    document.getElementById("reportAiResponse").value = aiAns;
+    document.getElementById("modalQueryText").innerText = query;
+    document.getElementById("modalAiText").innerText = aiAns;
+    document.getElementById("correctedResponse").value = "";
+    
+    let modal = new bootstrap.Modal(document.getElementById('reportModal'));
+    modal.show();
+  }
+
+  async function submitReport() {
+    const query = document.getElementById("reportUserQuery").value;
+    const aiAns = document.getElementById("reportAiResponse").value;
+    const category = document.getElementById("issueCategory").value;
+    const corrected = document.getElementById("correctedResponse").value;
+
+    const res = await fetch("/admin/api/qa/report-issue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tester_name: currentTester,
+        user_query: query,
+        ai_response: aiAns,
+        issue_category: category,
+        corrected_response: corrected
+      })
+    });
+    
+    const data = await res.json();
+    if(data.status === "success") {
+      alert("Issue reported successfully to Database!");
+      location.reload();
+    }
+  }
+
+  async function learnIssue(reportId) {
+    if(!confirm("Are you sure you want to add this correction to the AI Knowledge Base?")) return;
+    
+    const res = await fetch(`/admin/api/qa/learn-issue/${reportId}`, { method: "POST" });
+    const data = await res.json();
+    if(data.status === "success") {
+      alert(data.message);
+      location.reload();
+    } else {
+      alert("Error: " + data.error);
+    }
+  }
+
+  function clearChat() {
+    document.getElementById("chatMessages").innerHTML = `
+      <div class="msg-row ai">
+        <div class="avatar-badge" style="width: 28px; height: 28px; font-size: 0.75rem;">AI</div>
+        <div class="msg-bubble">Chat cleared. Type any question to test AI.</div>
+      </div>`;
+    chatHistory = [];
+  }
+</script>
+{% endblock %}

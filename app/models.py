@@ -119,7 +119,19 @@ class Lead(Base):
     status: Mapped[str] = mapped_column(String(30), default="Hot Lead", index=True) # Hot Lead, Contacted, Converted
     notes: Mapped[str] = mapped_column(Text, nullable=True)
     last_message: Mapped[str] = mapped_column(Text, nullable=True)
+
+
+
+class QAIssueReport(Base):
+    __tablename__ = "qa_issue_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tester_name: Mapped[str] = mapped_column(String(100), index=True)
+    user_query: Mapped[str] = mapped_column(Text)
+    ai_response: Mapped[str] = mapped_column(Text)
+    issue_category: Mapped[str] = mapped_column(String(50), default="Wrong Info") # Wrong Info, Off-topic, Improper Tone, Hallucination, Formatting
+    corrected_response: Mapped[str] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="pending", index=True) # pending, reviewed, learned
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
