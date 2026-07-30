@@ -320,7 +320,13 @@ class AIService:
 
             return ai_text, False, token_stats
         except Exception as e:
-            print(f"[AI SERVICE ERROR] {e}")
+            err_msg = f"AI Response Critical Exception: {str(e)}"
+            print(f"[AI SERVICE ERROR] {err_msg}")
+            if db:
+                try:
+                    await log_service.log("ERROR", "AI Critical Exception", err_msg)
+                except Exception:
+                    pass
             return fallback_msg, False, token_stats
 
 ai_service = AIService()
