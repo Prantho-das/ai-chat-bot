@@ -136,32 +136,31 @@ class AIService:
         default_val = getattr(settings, "DETAIL_KEYWORDS", "")
         return [k.strip().lower() for k in default_val.split(",") if k.strip()]
 
-    async def is_booking_intent(self, user_message: str, db: AsyncSession) -> bool:
-        lowered = user_message.strip().lower()
+139:     async def is_booking_intent(self, user_message: str, db: AsyncSession) -> bool:
+140:         lowered = user_message.strip().lower()
+141: 
+142:         # 1. If user is asking a general question/query about booking availability (e.g. "kora jabe ki?", "hobe ki?", "kivabe korbo?")
+143:         question_indicators = ["kora jabe", "hobe ki", "jabe ki", "jabe?", "hobe?", "kivabe", "pari ki", "করা যাবে", "হবে কি", "যাবে কি", "কীভাবে", "পারি কি"]
+144:         has_question = any(q in lowered for q in question_indicators)
+145: 
+146:         # Explicit phone number or clear time specification indicates actual confirmation intent
+147:         has_phone = bool(re.search(r'01[3-9]\d{8}', lowered))
+148:         has_explicit_time = bool(re.search(r'\b(\d{1,2}|[০-৯]{1,2})\s*(?:ta|tai|tar|টার|টা|pm|am|:\d\d)\b', lowered))
+149: 
+150:         # Direct booking command words
+151:         direct_commands = ["book koro", "fix koro", "book korin", "booking den", "book den", "বুক করুন", "বুক করে দেন", "মিটিং ফিক্স করুন"]
+152:         has_direct_command = any(cmd in lowered for cmd in direct_commands)
+153: 
+154:         # If it's just a question without phone/time/direct command -> NOT direct booking execution (Let Gemini handle the friendly inquiry reply)
+155:         if has_question and not (has_phone or has_explicit_time or has_direct_command):
+156:             return False
+157: 
+158:         # Trigger actual Google Calendar booking execution if explicit details or commands are present
+159:         if has_phone or has_explicit_time or has_direct_command:
+160:             return True
+161: 
+162:         return False
 
-        def has_word(word_list, text):
-            for w in word_list:
-                pattern = r'\b' + re.escape(w) + r'\b'
-                if re.search(pattern, text):
-                    return True
-            return False
-
-        booking_keywords = await self.get_booking_keywords(db)
-        if has_word(booking_keywords, lowered):
-            return True
-
-        date_words = [
-            "today", "tomorrow", "ajker", "ajke", "aj", "ajk", "kalke", "kal", "kalk", "tarikh", "tariker",
-            "আজকের", "আজকে", "আজ", "কালকে", "কাল", "আগামীকাল", "পরশু", "তারিখ", "তারিখের"
-        ]
-        if has_word(date_words, lowered):
-            return True
-
-        dynamic_digit_pattern = r'\b(\d{1,2}|[০-৯]{1,2})\s*(?:ta|tai|tar|টার|টা|pm|am|:\d\d|তারিখ|তারিখের)'
-        if re.search(dynamic_digit_pattern, lowered):
-            return True
-
-        return False
 
     async def _handle_calendar_booking(self, user_message: str, calendar_config: dict, db: AsyncSession) -> str:
         phone_match = re.search(r'01[3-9]\d{8}', user_message)

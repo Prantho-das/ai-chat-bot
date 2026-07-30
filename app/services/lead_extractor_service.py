@@ -85,13 +85,12 @@ class LeadExtractorService:
         await db.commit()
         await db.refresh(lead)
 
-        await log_service.log(
-            db=db,
-            level="SUCCESS",
-            source="Lead Extractor",
-            message=f"🔥 Hot Lead captured from {platform.title()} ({sender_id}): Intent '{intent}'",
-            details=f"Email: {extracted_email or 'N/A'} | Phone: {extracted_phone or 'N/A'}"
-        )
+88:         await log_service.log(
+89:             level="SUCCESS",
+90:             source="Lead Extractor",
+91:             message=f"🔥 Hot Lead captured from {platform.title()} ({sender_id}): Intent '{intent}'",
+92:             details=f"Email: {extracted_email or 'N/A'} | Phone: {extracted_phone or 'N/A'}"
+93:         )
 
         return lead
 
