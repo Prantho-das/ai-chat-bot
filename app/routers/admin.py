@@ -370,6 +370,7 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
         "google_calendar_id": settings_dict.get("google_calendar_id", os.getenv("GOOGLE_CALENDAR_ID", "primary")),
         "google_calendar_token": settings_dict.get("google_calendar_token", ""),
         "response_length": settings_dict.get("response_length", getattr(settings, "RESPONSE_LENGTH", "short")),
+        "company_name": settings_dict.get("company_name", ""),
         "booking_keywords": settings_dict.get("booking_keywords", ""),
         "detail_keywords": settings_dict.get("detail_keywords", getattr(settings, "DETAIL_KEYWORDS", "")),
         "fallback_message": settings_dict.get("fallback_message", DEFAULT_FALLBACK_MESSAGE),
@@ -404,6 +405,7 @@ async def update_settings(
     request: Request,
     form_type: str = Form(...),
     system_prompt: str = Form(None),
+    company_name: str = Form(None),
     response_length: str = Form(None),
     fallback_message: str = Form(None),
     booking_keywords: str = Form(None),
@@ -439,6 +441,8 @@ async def update_settings(
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
     if form_type == "prompt":
+        if company_name is not None:
+            await upsert_bot_setting(db, "company_name", company_name.strip())
         if system_prompt is not None:
             await upsert_bot_setting(db, "system_prompt", system_prompt.strip())
         if response_length is not None:

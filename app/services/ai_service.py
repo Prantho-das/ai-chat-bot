@@ -15,19 +15,19 @@ from app.helpers import get_bot_setting, convert_bn_to_en
 
 DEFAULT_FALLBACK_MESSAGE = (
     "দুঃখিত, এই মুহূর্তে উত্তর তৈরিতে সামান্য সমস্যা হচ্ছে। "
-    "খুব দ্রুত আমাদের একজন প্রতিনিধি আপনার সাথে যোগাযোগ করবেন।"
+    "খুব দ্রুত আমাদের একজন প্রতিনিধি আপনার সাথে যোগাযোগ করবেন."
 )
 
-21: DEFAULT_SYSTEM_PROMPT = (
-22:     "তুমি একজন বিশ্বস্ত, আন্তরিক এবং সেলস-ফোকাসড AI কাস্টমার সাপোর্ট এজেন্ট। "
-23:     "তোমার কথা বলার ধরন হবে মেসেঞ্জারে চ্যাট করা একজন মানুষের মতো — সংক্ষিপ্ত, সরাসরি, এবং মাত্র ১-২ লাইনে।\n\n"
-24:     "## মূল নিয়মাবলী:\n"
-25:     "1. **সংক্ষিপ্ত উত্তর দাও (Max 2-3 Sentences):** চ্যাটিংয়ে কখনো লম্বা লিস্ট, বড় ভূমিকা বা অতিরিক্ত প্যারাগ্রাফ দেবে না। খুব সংক্ষেপে ও সরাসরি উত্তর দাও।\n"
-26:     "2. **শুধুমাত্র Knowledge Base থেকে উত্তর দাও।** Knowledge Base-এ নেই এমন কিছু বানিয়ে বলবে না। "
-27:     "উত্তর না থাকলে বলো: 'এই বিষয়ে আমাদের টিমের সাথে কথা বলতে পারবেন।'\n"
-28:     "3. **হ্যালুসিনেশন করবে না।** মিথ্যা তথ্য বা মনগড়া কথা বলবে না।\n"
-29:     "4. **মেটা-টেক্সট বা বুলেট পয়েন্ট দেবে না।** চ্যাটের মতো সংক্ষেপে কথা বলো।"
-30: )
+DEFAULT_SYSTEM_PROMPT = (
+    "তুমি একজন প্রফেশনাল ও অত্যন্ত আন্তরিক AI কাস্টমার সাপোর্ট স্পেশালিস্ট। "
+    "তোমার কথা বলার ধরন হবে মেসেঞ্জারে চ্যাট করা একজন মানুষের মতো — সংক্ষিপ্ত, সরাসরি, এবং মাত্র ১-২ লাইনে.\n\n"
+    "## মূল নিয়মাবলী:\n"
+    "1. **সংক্ষিপ্ত উত্তর দাও (Max 2-3 Sentences):** চ্যাটিংয়ে কখনো লম্বা লিস্ট, বড় ভূমিকা বা অতিরিক্ত প্যারাগ্রাফ দেবে না। খুব সংক্ষেপে ও সরাসরি উত্তর দাও।\n"
+    "2. **শুধুমাত্র Knowledge Base থেকে উত্তর দাও।** Knowledge Base-এ নেই এমন কিছু বানিয়ে বলবে না। "
+    "উত্তর না থাকলে বলো: 'এই বিষয়ে আমাদের টিমের সাথে কথা বলতে পারবেন।'\n"
+    "3. **হ্যালুসিনেশন করবে না।** মিথ্যা তথ্য বা মনগড়া কথা বলবে না।\n"
+    "4. **মেটা-টেক্সট বা বুলেট পয়েন্ট দেবে না।** চ্যাটের মতো সংক্ষেপে কথা বলো."
+)
 
 class AIService:
     def __init__(self):
@@ -239,7 +239,8 @@ class AIService:
             "হাই", "হ্যালো", "আসসালামু আলাইকুম", "assalamu alaikum", "slm", "slam"
         ]
         if clean_query in greetings:
-            instant_reply = "জি, আমি আছি! POSTech Live-এ আপনাকে স্বাগত। 😊 আমি আপনাকে কীভাবে সাহায্য করতে পারি বলুন?"
+            company_name = await get_bot_setting(db, "company_name", "আমাদের কাস্টমার সাপোর্টে") if db else "আমাদের কাস্টমার সাপোর্টে"
+            instant_reply = f"জি, আমি আছি! {company_name}-এ আপনাকে স্বাগত। 😊 আমি আপনাকে কীভাবে সাহায্য করতে পারি বলুন?"
             return instant_reply, True, {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
 
         try:
@@ -270,16 +271,15 @@ class AIService:
             
             import asyncio
             try:
-                response = await asyncio.to_thread(model.generate_content, full_prompt)
+                # Use generate_content_async directly with a strict 10s timeout
+                response = await asyncio.wait_for(model.generate_content_async(full_prompt), timeout=12.0)
                 ai_text = response.text.strip() if response and hasattr(response, 'text') else fallback_msg
+            except asyncio.TimeoutError:
+                print(f"[GEMINI API TIMEOUT] Gemini API model '{model_name}' timed out after 12s. Returning fallback.")
+                return fallback_msg, False, token_stats
             except Exception as gem_err:
                 print(f"[GEMINI API CALL ERROR] {gem_err}")
-                try:
-                    response = await model.generate_content_async(full_prompt)
-                    ai_text = response.text.strip() if response and hasattr(response, 'text') else fallback_msg
-                except Exception as inner_err:
-                    print(f"[GEMINI ASYNC FALLBACK ERROR] {inner_err}")
-                    return fallback_msg, False, token_stats
+                return fallback_msg, False, token_stats
 
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
                 token_stats["prompt_tokens"] = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0

@@ -34,6 +34,24 @@ class MessengerService:
                 await log_service.log("ERROR", "Messenger", f"Network Exception while sending FB DM: {e}")
                 return False
 
+    async def get_user_profile(self, user_id: str, access_token: str = None) -> dict:
+        """Fetch Facebook user name using Graph API."""
+        token = access_token or getattr(settings, "FB_PAGE_ACCESS_TOKEN", "")
+        if not token or token.startswith("your_"):
+            return {}
+
+        url = f"https://graph.facebook.com/v19.0/{user_id}"
+        params = {"fields": "first_name,last_name,name", "access_token": token}
+
+        async with httpx.AsyncClient() as client:
+            try:
+                res = await client.get(url, params=params, timeout=5.0)
+                if res.status_code == 200:
+                    return res.json()
+            except Exception as e:
+                print(f"[MESSENGER PROFILE FETCH ERROR] {e}")
+        return {}
+
     async def send_image_message(self, recipient_id: str, image_url: str, access_token: str = None) -> bool:
         """Send an image to a Messenger user via URL."""
         token = access_token or getattr(settings, "FB_PAGE_ACCESS_TOKEN", "")

@@ -95,7 +95,7 @@ def _extract_user_text(messaging_event: dict) -> str | None:
     return None
 
 
-async def _get_or_create_conversation(db: AsyncSession, sender_id: str) -> "Conversation":
+async def _get_or_create_conversation(db: AsyncSession, sender_id: str, access_token: str = None) -> "Conversation":
     """Get existing conversation or create new one for a messenger sender."""
     stmt = select(Conversation).where(
         Conversation.platform == "messenger",
@@ -105,14 +105,24 @@ async def _get_or_create_conversation(db: AsyncSession, sender_id: str) -> "Conv
     conversation = result.scalar_one_or_none()
 
     if not conversation:
+        user_name = f"FB User {sender_id[-4:]}"
+        profile = await messenger_service.get_user_profile(sender_id, access_token)
+        if profile and profile.get("name"):
+            user_name = profile["name"]
+
         conversation = Conversation(
             platform="messenger",
             sender_id=sender_id,
-            sender_name=f"FB User {sender_id[-4:]}"
+            sender_name=user_name
         )
         db.add(conversation)
         await db.commit()
         await db.refresh(conversation)
+    elif conversation.sender_name.startswith("FB User"):
+        profile = await messenger_service.get_user_profile(sender_id, access_token)
+        if profile and profile.get("name"):
+            conversation.sender_name = profile["name"]
+            await db.commit()
 
     return conversation
 
@@ -122,7 +132,7 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
     try:
         await log_service.log("INFO", "Messenger DM", f"Received DM from {sender_id}: '{user_text[:100]}'")
 
-        conversation = await _get_or_create_conversation(db, sender_id)
+        conversation = await _get_or_create_conversation(db, sender_id, access_token)
 
         user_msg = Message(
             conversation_id=conversation.id,
