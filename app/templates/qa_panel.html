@@ -50,54 +50,19 @@
                 <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                     <span>👥</span> QA Testing Team
                 </h3>
-                <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">4 Active</span>
+                <button onclick="addNewTesterPrompt()" class="text-[10px] bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded-lg font-bold border border-blue-200 transition-all flex items-center gap-1">
+                    <span>➕</span> Add Tester
+                </button>
             </div>
 
-            <div class="space-y-2" id="testerList">
-                <div onclick="setTester('Tester 1')" class="tester-card p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between bg-blue-50/60 border-blue-200 text-blue-900 shadow-sm" id="card-Tester1">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-9 h-9 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">T1</div>
-                        <div>
-                            <div class="font-bold text-xs">Tester 1</div>
-                            <div class="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Active Session
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div onclick="setTester('Tester 2')" class="tester-card p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-between text-slate-700" id="card-Tester2">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-9 h-9 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">T2</div>
-                        <div>
-                            <div class="font-bold text-xs">Tester 2</div>
-                            <div class="text-[10px] text-slate-400 font-semibold">Ready to test</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div onclick="setTester('Tester 3')" class="tester-card p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-between text-slate-700" id="card-Tester3">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-9 h-9 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-xs shadow-sm">T3</div>
-                        <div>
-                            <div class="font-bold text-xs">Tester 3</div>
-                            <div class="text-[10px] text-slate-400 font-semibold">Ready to test</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div onclick="setTester('Tester 4')" class="tester-card p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-between text-slate-700" id="card-Tester4">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-9 h-9 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">T4</div>
-                        <div>
-                            <div class="font-bold text-xs">Tester 4</div>
-                            <div class="text-[10px] text-slate-400 font-semibold">Ready to test</div>
-                        </div>
-                    </div>
-                </div>
+            <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar" id="testerList">
+                <!-- Dynamically rendered testers list -->
             </div>
 
             <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-500 leading-relaxed">
+                💡 <strong>Tip:</strong> Anyone can join as a tester by typing their name! Click ➕ <strong>Add Tester</strong> to add unlimited team members.
+            </div>
+        </div>
                 💡 <strong>Tip for Testers:</strong> Send queries to AI. If response has wrong info or bad tone, hover on the AI message & click 🚩 <strong>Report Problem</strong>.
             </div>
         </div>
@@ -254,28 +219,63 @@
 
 <script>
     let activeTester = localStorage.getItem("qa_active_tester") || "Tester 1";
+    let testersList = JSON.parse(localStorage.getItem("qa_testers_list")) || ["Tester 1", "Tester 2", "Tester 3", "Tester 4"];
     let chatHistory = [];
 
     document.addEventListener("DOMContentLoaded", () => {
+        renderTesters();
         setTester(activeTester);
     });
+
+    function renderTesters() {
+        if (!testersList.includes(activeTester)) {
+            testersList.push(activeTester);
+            localStorage.setItem("qa_testers_list", JSON.stringify(testersList));
+        }
+
+        const container = document.getElementById("testerList");
+        container.innerHTML = testersList.map(name => {
+            const isCurrent = name === activeTester;
+            const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2) || "T";
+            const safeId = name.replace(/\s+/g, '');
+            return `
+                <div onclick="setTester('${name}')" class="tester-card p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${isCurrent ? 'bg-blue-50/60 border-blue-200 text-blue-900 shadow-sm' : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700'}" id="card-${safeId}">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-full ${isCurrent ? 'bg-blue-600' : 'bg-slate-700'} text-white font-bold flex items-center justify-center text-xs shadow-sm">${initials}</div>
+                        <div>
+                            <div class="font-bold text-xs">${name}</div>
+                            <div class="text-[10px] ${isCurrent ? 'text-emerald-600 font-semibold' : 'text-slate-400'} flex items-center gap-1">
+                                ${isCurrent ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Active Session' : 'Ready to test'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
 
     function setTester(name) {
         activeTester = name;
         localStorage.setItem("qa_active_tester", name);
         document.getElementById("currentTesterName").innerText = name;
-        document.getElementById("testerBadgeAvatar").innerText = name.substring(0, 2).toUpperCase();
+        document.getElementById("testerBadgeAvatar").innerText = name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2) || "T";
+        renderTesters();
+    }
 
-        document.querySelectorAll(".tester-card").forEach(c => c.classList.remove("bg-blue-50/60", "border-blue-200", "text-blue-900", "shadow-sm"));
-        const target = document.getElementById(`card-${name.replace(/\s+/g, '')}`);
-        if(target) target.classList.add("bg-blue-50/60", "border-blue-200", "text-blue-900", "shadow-sm");
+    function addNewTesterPrompt() {
+        let name = prompt("Enter New QA Tester Name:");
+        if (name && name.trim()) {
+            let clean = name.trim();
+            if (!testersList.includes(clean)) {
+                testersList.push(clean);
+                localStorage.setItem("qa_testers_list", JSON.stringify(testersList));
+            }
+            setTester(clean);
+        }
     }
 
     function switchTesterModal() {
-        let input = prompt("Enter your Name for QA Testing:", activeTester);
-        if(input && input.trim()) {
-            setTester(input.trim());
-        }
+        addNewTesterPrompt();
     }
 
     async function sendChatMessage() {
