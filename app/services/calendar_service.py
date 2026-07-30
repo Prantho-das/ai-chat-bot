@@ -45,6 +45,8 @@ class CalendarService:
                     )
 
             if creds:
+                import socket
+                socket.setdefaulttimeout(3.0)
                 return build('calendar', 'v3', credentials=creds)
         except Exception as e:
             print(f"Error initializing Google Calendar client: {e}")
@@ -53,12 +55,13 @@ class CalendarService:
     def is_slot_available(self, service, calendar_id: str, start_dt: datetime, end_dt: datetime) -> bool:
         try:
             target_id = calendar_id if ("@" in calendar_id and not calendar_id.endswith(".gserviceaccount.com")) else "primary"
+            # Set request execution timeout by custom execution if needed, or rely on socket timeout
             events_result = service.events().list(
                 calendarId=target_id,
                 timeMin=start_dt.strftime('%Y-%m-%dT%H:%M:%S+06:00'),
                 timeMax=end_dt.strftime('%Y-%m-%dT%H:%M:%S+06:00'),
                 singleEvents=True
-            ).execute()
+            ).execute(num_retries=1)
             items = events_result.get('items', [])
             return len(items) == 0
         except Exception as e:
