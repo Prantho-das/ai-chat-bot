@@ -685,12 +685,17 @@ async def qa_chat_api(request: Request, db: AsyncSession = Depends(get_db)):
         if not user_query:
             return {"error": "Empty query"}
 
-        ai_reply = await ai_service.generate_response(
-            query=user_query,
+        ai_reply_data = await ai_service.generate_response(
+            user_message=user_query,
             history=history,
-            db=db,
-            platform="qa_tester"
+            db=db
         )
+
+        # Handle tuple response if generate_response returns (ai_reply, is_cached, token_stats)
+        if isinstance(ai_reply_data, tuple):
+            ai_reply = ai_reply_data[0]
+        else:
+            ai_reply = ai_reply_data
 
         return {
             "tester_name": tester_name,
