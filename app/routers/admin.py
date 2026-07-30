@@ -15,15 +15,29 @@ except ImportError:
     BadSignature = Exception
     SignatureExpired = Exception
 
-from app.database import get_db
-from app.config import settings
-from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog, Lead
-from app.services.ai_service import ai_service, DEFAULT_FALLBACK_MESSAGE, DEFAULT_SYSTEM_PROMPT
-from app.services.log_service import log_service
-from app.helpers import get_bot_setting, upsert_bot_setting
+18: from app.database import get_db, engine, Base
+19: from app.config import settings
+20: from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog, Lead
+21: from app.services.ai_service import ai_service, DEFAULT_FALLBACK_MESSAGE, DEFAULT_SYSTEM_PROMPT
+22: from app.services.log_service import log_service
+23: from app.helpers import get_bot_setting, upsert_bot_setting
+24: 
+25: router = APIRouter(prefix="/admin", tags=["Admin Panel"])
+26: templates = Jinja2Templates(directory="app/templates")
+27: 
+28: @router.post("/migrate-db")
+29: async def migrate_db(request: Request, db: AsyncSession = Depends(get_db)):
+30:     if not is_authenticated(request):
+31:         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+32:     try:
+33:         async with engine.begin() as conn:
+34:             await conn.run_sync(Base.metadata.create_all)
+35:         await log_service.log("INFO", "DB Migration", "Database schema migration executed successfully by Admin.")
+36:         return RedirectResponse(url="/admin/settings?msg=migration_success", status_code=status.HTTP_303_SEE_OTHER)
+37:     except Exception as e:
+38:         await log_service.log("ERROR", "DB Migration", f"Database migration failed: {e}")
+39:         return RedirectResponse(url="/admin/settings?error=migration_failed", status_code=status.HTTP_303_SEE_OTHER)
 
-router = APIRouter(prefix="/admin", tags=["Admin Panel"])
-templates = Jinja2Templates(directory="app/templates")
 
 COOKIE_NAME = "admin_token"
 TOKEN_MAX_AGE = 8 * 3600 # 8 Hours

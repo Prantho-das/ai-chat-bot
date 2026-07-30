@@ -15,14 +15,40 @@
         </span>
     </div>
 
-    {% if request.query_params.get('saved') or message %}
-    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
-        <div class="flex items-center space-x-2">
-            <span>✅</span>
-            <span>সেটিংস সফলভাবে সংরক্ষিত ও আপডেট করা হয়েছে! (Settings Saved Successfully)</span>
-        </div>
-    </div>
-    {% endif %}
+18:     {% if request.query_params.get('msg') == 'migration_success' %}
+19:     <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
+20:         <div class="flex items-center space-x-2">
+21:             <span>✅</span>
+22:             <span>ডাটাবেস মাইগ্রেশন সফলভাবে সম্পন্ন হয়েছে! (Database Schema Sync Complete)</span>
+23:         </div>
+24:     </div>
+25:     {% endif %}
+26: 
+27:     {% if request.query_params.get('saved') or message %}
+28:     <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
+29:         <div class="flex items-center space-x-2">
+30:             <span>✅</span>
+31:             <span>সেটিংস সফলভাবে সংরক্ষিত ও আপডেট করা হয়েছে! (Settings Saved Successfully)</span>
+32:         </div>
+33:     </div>
+34:     {% endif %}
+35: 
+36:     <!-- DB Migration Action Box -->
+37:     <div class="p-4 bg-slate-900 text-white rounded-2xl flex items-center justify-between shadow-md">
+38:         <div class="flex items-center space-x-3">
+39:             <div class="p-2.5 bg-slate-800 rounded-xl text-indigo-400">⚡</div>
+40:             <div>
+41:                 <h4 class="text-xs font-bold">Database Schema Migration</h4>
+42:                 <p class="text-[11px] text-slate-400">কোডবেসে নতুন কোনো SQL ফিল্ড বা মডেল যুক্ত হলে ডাটাবেস সিঙ্ক করতে এই বাটন চাপুন।</p>
+43:             </div>
+44:         </div>
+45:         <form action="/admin/migrate-db" method="POST">
+46:             <button type="submit" onclick="return confirm('আপনি কি নিশ্চিত যে ডাটাবেস মাইগ্রেট করতে চান?');" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center space-x-1.5">
+47:                 <span>🔄 Sync Database Schema</span>
+48:             </button>
+49:         </form>
+50:     </div>
+
 
     <!-- Visual Stepper / Tabs -->
     <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
