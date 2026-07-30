@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AI Chatbot Admin{% endblock %}</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Alpine.js CDN -->
@@ -159,6 +161,12 @@
                     </a>
                     <a href="/admin/conversations" @click="mobileMenuOpen = false" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800">
                         <span>💬 Conversations</span>
+                    </a>
+                    <a href="/admin/leads" @click="mobileMenuOpen = false" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-amber-400 hover:bg-slate-800">
+                        <span>🔥 Captured Leads</span>
+                    </a>
+                    <a href="/admin/qa-panel" @click="mobileMenuOpen = false" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-blue-400 hover:bg-slate-800">
+                        <span>🧪 QA & FB Testing Hub</span>
                     </a>
                     <a href="/admin/appointments" @click="mobileMenuOpen = false" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800">
                         <span>📅 Appointments</span>
