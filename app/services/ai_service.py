@@ -152,6 +152,14 @@ class AIService:
     async def is_booking_intent(self, user_message: str, db: AsyncSession) -> bool:
         lowered = user_message.strip().lower()
 
+        # Get configured booking keywords
+        booking_kws = await self.get_booking_keywords(db)
+        # Check if message contains any booking keyword
+        has_booking_kw = any(kw in lowered for kw in booking_kws)
+
+        if not has_booking_kw:
+            return False
+
         question_indicators = ["kora jabe", "hobe ki", "jabe ki", "jabe?", "hobe?", "kivabe", "pari ki", "করা যাবে", "হবে কি", "যাবে কি", "কীভাবে", "পারি কি"]
         has_question = any(q in lowered for q in question_indicators)
 
