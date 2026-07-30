@@ -64,17 +64,18 @@ class AIService:
         return {r.key: r.value for r in records}
 
     async def get_knowledge_base_data(self, db: AsyncSession) -> tuple[str, str]:
-        stmt = select(KnowledgeEntry).where(KnowledgeEntry.is_active == True)
+        stmt = select(KnowledgeEntry).where(KnowledgeEntry.is_active == True).order_by(KnowledgeEntry.category, KnowledgeEntry.id)
         result = await db.execute(stmt)
         entries = result.scalars().all()
         
         if not entries:
             return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb"
         
-        kb_text = ""
-        for entry in entries:
-            kb_text += f"\n- [{entry.category.upper()}] {entry.title}: {entry.content}"
+        kb_lines = []
+        for idx, entry in enumerate(entries, 1):
+            kb_lines.append(f"{idx}. [{entry.category.upper()}] {entry.title}: {entry.content}")
         
+        kb_text = "\n".join(kb_lines)
         kb_hash = hashlib.md5(kb_text.encode("utf-8")).hexdigest()
         return kb_text, kb_hash
 
@@ -222,9 +223,10 @@ class AIService:
         db.add(new_appointment)
         await db.commit()
 
+        link_str = f" Link: {cal_res.get('html_link', '')}" if cal_res.get('html_link') else ""
         if is_rescheduled:
-            return f"[SYSTEM ACTION: Requested slot on {final_date} at {formatted_time} was busy. Google Calendar booked next available slot for {final_date} at {final_time}. Clearly confirm this date ({final_date}) and time ({final_time}) to customer.]"
-        return f"[SYSTEM ACTION: Google Calendar appointment successfully booked for {final_date} at {final_time}. Clearly confirm this exact date ({final_date}) and time ({final_time}) to customer.]"
+            return f"[SYSTEM ACTION: Requested slot on {final_date} at {formatted_time} was busy. Google Calendar booked next available slot for {final_date} at {final_time}. Clearly confirm this date ({final_date}) and time ({final_time}) to customer.{link_str}]"
+        return f"[SYSTEM ACTION: Google Calendar appointment successfully booked for {final_date} at {final_time}. Clearly confirm this exact date ({final_date}) and time ({final_time}) and provide calendar link to customer.{link_str}]"
 
     async def generate_response(self, user_message: str, history: list = None, db: AsyncSession = None) -> tuple[str, bool, dict]:
         fallback_msg = await self.get_fallback_message(db) if db else DEFAULT_FALLBACK_MESSAGE
@@ -244,10 +246,10 @@ class AIService:
             return instant_reply, True, {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
 
         try:
+            booking_action_info = ""
             if db and await self.is_booking_intent(user_message, db):
                 cal_config = await self.get_calendar_config(db)
-                booking_msg = await self._handle_calendar_booking(user_message, cal_config, db)
-                return booking_msg, False, token_stats
+                booking_action_info = await self._handle_calendar_booking(user_message, cal_config, db)
 
             api_key, model_name = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
             if not api_key:
@@ -265,7 +267,10 @@ class AIService:
             sys_prompt = await self.get_system_prompt(db) if db else DEFAULT_SYSTEM_PROMPT
             kb_text, _ = await self.get_knowledge_base_data(db) if db else ("Empty", "empty")
 
-            full_prompt = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}\n\n## CUSTOMER QUERY:\n{user_message}"
+            full_prompt = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}\n\n"
+            if booking_action_info:
+                full_prompt += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
+            full_prompt += f"## CUSTOMER QUERY:\n{user_message}"
 
             model = genai.GenerativeModel(model_name)
             
