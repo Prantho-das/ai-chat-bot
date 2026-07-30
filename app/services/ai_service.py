@@ -11,6 +11,7 @@ from sqlalchemy import select
 from app.config import settings
 from app.models import KnowledgeEntry, BotSetting, CacheEntry, Appointment
 from app.services.calendar_service import calendar_service
+from app.services.log_service import log_service
 from app.helpers import get_bot_setting, convert_bn_to_en
 
 DEFAULT_FALLBACK_MESSAGE = (
@@ -272,18 +273,34 @@ class AIService:
                 full_prompt += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
             full_prompt += f"## CUSTOMER QUERY:\n{user_message}"
 
+            # Fast Cache Check
+            cache_key = hashlib.md5(f"{model_name}:{full_prompt}".encode("utf-8")).hexdigest()
+            stmt_c = select(CacheEntry).where(CacheEntry.query_hash == cache_key)
+            res_c = await db.execute(stmt_c)
+            cached = res_c.scalar_one_or_none()
+            if cached and cached.response_text:
+                return cached.response_text, True, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+
             model = genai.GenerativeModel(model_name)
             
             import asyncio
             try:
-                # Use generate_content_async directly with a strict 10s timeout
-                response = await asyncio.wait_for(model.generate_content_async(full_prompt), timeout=12.0)
+                response = await asyncio.wait_for(model.generate_content_async(full_prompt), timeout=8.0)
                 ai_text = response.text.strip() if response and hasattr(response, 'text') else fallback_msg
+                
+                if ai_text and ai_text != fallback_msg and db:
+                    new_cache = CacheEntry(query_hash=cache_key, prompt_text=user_message[:200], response_text=ai_text)
+                    db.add(new_cache)
+                    await db.commit()
             except asyncio.TimeoutError:
-                print(f"[GEMINI API TIMEOUT] Gemini API model '{model_name}' timed out after 12s. Returning fallback.")
+                err_text = f"Gemini API model '{model_name}' timed out after 8 seconds."
+                print(f"[GEMINI API TIMEOUT] {err_text}")
+                await log_service.log("WARNING", "AI Engine Timeout", err_text, f"Prompt: {user_message[:100]}")
                 return fallback_msg, False, token_stats
             except Exception as gem_err:
-                print(f"[GEMINI API CALL ERROR] {gem_err}")
+                err_text = f"Gemini API Exception ({type(gem_err).__name__}): {gem_err}"
+                print(f"[GEMINI API ERROR DIAGNOSIS] {err_text}")
+                await log_service.log("ERROR", "AI Engine Error", err_text, f"Model: {model_name}")
                 return fallback_msg, False, token_stats
 
             if hasattr(response, 'usage_metadata') and response.usage_metadata:

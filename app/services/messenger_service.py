@@ -13,26 +13,28 @@ class MessengerService:
             await log_service.log("ERROR", "Messenger", f"Cannot send DM to {recipient_id}: Page Access Token missing or invalid.", "Set FB Page Access Token in Bot Settings.")
             return False
 
-        payload = {
-            "recipient": {"id": recipient_id},
-            "message": {"text": text}
-        }
-        params = {"access_token": token}
+        # Facebook Messenger character limit per message is 2000. Chunking to 1800 chars for safe delivery
+        chunks = [text[i:i + 1800] for i in range(0, len(text), 1800)]
+        success = True
 
         async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(self.api_url, json=payload, params=params)
-                res_data = response.json()
-                if response.status_code == 200:
-                    await log_service.log("SUCCESS", "Messenger", f"Successfully sent DM reply to user {recipient_id}", json.dumps(res_data))
-                    return True
-                else:
-                    err_msg = res_data.get("error", {}).get("message", json.dumps(res_data))
-                    await log_service.log("ERROR", "Messenger", f"FB DM Send Failed ({response.status_code}): {err_msg}", json.dumps(res_data))
-                    return False
-            except Exception as e:
-                await log_service.log("ERROR", "Messenger", f"Network Exception while sending FB DM: {e}")
-                return False
+            for chunk in chunks:
+                payload = {
+                    "recipient": {"id": recipient_id},
+                    "message": {"text": chunk}
+                }
+                params = {"access_token": token}
+                try:
+                    response = await client.post(self.api_url, json=payload, params=params)
+                    res_data = response.json()
+                    if response.status_code != 200:
+                        err_msg = res_data.get("error", {}).get("message", json.dumps(res_data))
+                        await log_service.log("ERROR", "Messenger", f"FB DM Send Failed ({response.status_code}): {err_msg}", json.dumps(res_data))
+                        success = False
+                except Exception as e:
+                    await log_service.log("ERROR", "Messenger", f"Network Exception while sending FB DM: {e}")
+                    success = False
+        return success
 
     async def get_user_profile(self, user_id: str, access_token: str = None) -> dict:
         """Fetch Facebook user name using Graph API."""
