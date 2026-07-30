@@ -676,6 +676,8 @@ async def qa_chat_api(request: Request, db: AsyncSession = Depends(get_db)):
     if not is_authenticated(request):
         return {"error": "Unauthorized. Please login to admin dashboard."}
 
+    import time
+    start_time = time.time()
     try:
         data = await request.json()
         tester_name = data.get("tester_name", "Tester")
@@ -697,16 +699,20 @@ async def qa_chat_api(request: Request, db: AsyncSession = Depends(get_db)):
         else:
             ai_reply = ai_reply_data
 
+        elapsed = round(time.time() - start_time, 2)
         return {
             "tester_name": tester_name,
             "query": user_query,
-            "ai_response": ai_reply
+            "ai_response": ai_reply,
+            "elapsed_seconds": elapsed
         }
     except Exception as e:
+        elapsed = round(time.time() - start_time, 2)
         return {
             "tester_name": "Tester",
             "query": "",
-            "ai_response": f"AI Processing Error: {str(e)}"
+            "ai_response": f"AI Processing Error: {str(e)}",
+            "elapsed_seconds": elapsed
         }
 
 @router.post("/api/qa/report-issue")

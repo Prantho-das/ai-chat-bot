@@ -295,6 +295,7 @@
         appendUserMsg(msg);
         input.value = "";
 
+        const startTime = Date.now();
         try {
             const res = await fetch("/admin/api/qa/chat", {
                 method: "POST",
@@ -306,17 +307,19 @@
                 })
             });
             const data = await res.json();
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
             if(data.ai_response) {
-                appendAiMsg(data.ai_response, msg);
+                appendAiMsg(data.ai_response, msg, data.elapsed_seconds || elapsed);
                 chatHistory.push({ role: "user", content: msg });
                 chatHistory.push({ role: "assistant", content: data.ai_response });
             } else if (data.error) {
-                appendAiMsg("AI Server Error: " + data.error, msg);
+                appendAiMsg("AI Server Error: " + data.error, msg, elapsed);
             } else {
-                appendAiMsg("AI response was empty. Please check your API key / AI settings.", msg);
+                appendAiMsg("AI response was empty. Please check your API key / AI settings.", msg, elapsed);
             }
         } catch(e) {
-            appendAiMsg("Failed to connect to AI server: " + e.message, msg);
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+            appendAiMsg("Failed to connect to AI server: " + e.message, msg, elapsed);
         }
     }
 
@@ -333,7 +336,7 @@
         area.scrollTop = area.scrollHeight;
     }
 
-    function appendAiMsg(aiText, originalQuery) {
+    function appendAiMsg(aiText, originalQuery, elapsedSeconds) {
         const area = document.getElementById("chatArea");
         const div = document.createElement("div");
         div.className = "flex items-start space-x-2.5 group relative";
@@ -343,11 +346,16 @@
 
         div.innerHTML = `
             <div class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">AI</div>
-            <div class="bg-white border border-slate-200/70 p-3 rounded-2xl rounded-tl-none shadow-sm text-xs text-slate-700 max-w-[85%] leading-relaxed relative">
-                ${aiText}
-                <button onclick="openFlagModal('${escapedQuery}', '${escapedAi}')" class="absolute -right-8 top-2 opacity-0 group-hover:opacity-100 transition-all bg-white border border-slate-200 text-rose-500 hover:bg-rose-50 p-1.5 rounded-full shadow-sm" title="Report & Teach AI">
-                    🚩
-                </button>
+            <div class="space-y-1 max-w-[85%]">
+                <div class="bg-white border border-slate-200/70 p-3 rounded-2xl rounded-tl-none shadow-sm text-xs text-slate-700 leading-relaxed relative">
+                    ${aiText}
+                    <button onclick="openFlagModal('${escapedQuery}', '${escapedAi}')" class="absolute -right-8 top-2 opacity-0 group-hover:opacity-100 transition-all bg-white border border-slate-200 text-rose-500 hover:bg-rose-50 p-1.5 rounded-full shadow-sm" title="Report & Teach AI">
+                        🚩
+                    </button>
+                </div>
+                <div class="text-[9px] text-slate-400 font-semibold px-2">
+                    ⚡ Response Time: ${elapsedSeconds}s
+                </div>
             </div>
         `;
         area.appendChild(div);
