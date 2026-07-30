@@ -291,11 +291,11 @@ class AIService:
 
             # Fast Cache Check
             cache_key = hashlib.md5(f"{model_name}:{full_prompt}".encode("utf-8")).hexdigest()
-            stmt_c = select(CacheEntry).where(CacheEntry.query_hash == cache_key)
+            stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
             res_c = await db.execute(stmt_c)
             cached = res_c.scalar_one_or_none()
-            if cached and cached.response_text:
-                return cached.response_text, True, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+            if cached and cached.ai_response:
+                return cached.ai_response, True, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
             model = genai.GenerativeModel(model_name)
             
@@ -304,7 +304,7 @@ class AIService:
                 ai_text = response.text.strip() if response and hasattr(response, 'text') else fallback_msg
                 
                 if ai_text and ai_text != fallback_msg and db:
-                    new_cache = CacheEntry(query_hash=cache_key, prompt_text=user_message[:200], response_text=ai_text)
+                    new_cache = CacheEntry(prompt_hash=cache_key, user_query=user_message[:200], ai_response=ai_text)
                     db.add(new_cache)
                     await db.commit()
             except Exception as gem_err:
