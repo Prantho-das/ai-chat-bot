@@ -291,6 +291,14 @@ class AIService:
             
             # Enforce dynamic response length instruction
             resp_len = await self.get_response_length(db) if db else "short"
+            
+            # Check if user query contains detail keywords (e.g. price, features, details) to auto-upgrade to medium/long response
+            detail_kws = await self.get_detail_keywords(db) if db else []
+            has_detail_kw = any(kw in user_message.lower() for kw in detail_kws) if detail_kws else False
+            
+            if resp_len == "short" and has_detail_kw:
+                resp_len = "medium"  # Auto-upgrade to medium to allow displaying list/prices
+
             if resp_len == "short":
                 sys_prompt += "\n\n## RESPONSE LENGTH CRITICAL RULE:\nউত্তর অবশ্যই অত্যন্ত সংক্ষিপ্ত এবং সর্বোচ্চ ১ থেকে ২ লাইনের মধ্যে হতে হবে। কোনো অতিরিক্ত বিবরণ বা পয়েন্ট আকারে বড় তালিকা দেওয়া যাবে না।"
             elif resp_len == "medium":
