@@ -674,28 +674,35 @@ async def qa_panel_page(request: Request, db: AsyncSession = Depends(get_db)):
 @router.post("/api/qa/chat")
 async def qa_chat_api(request: Request, db: AsyncSession = Depends(get_db)):
     if not is_authenticated(request):
-        return {"error": "Unauthorized"}
+        return {"error": "Unauthorized. Please login to admin dashboard."}
 
-    data = await request.json()
-    tester_name = data.get("tester_name", "Tester")
-    user_query = data.get("query", "")
-    history = data.get("history", [])
+    try:
+        data = await request.json()
+        tester_name = data.get("tester_name", "Tester")
+        user_query = data.get("query", "")
+        history = data.get("history", [])
 
-    if not user_query:
-        return {"error": "Empty query"}
+        if not user_query:
+            return {"error": "Empty query"}
 
-    ai_reply = await ai_service.generate_response(
-        query=user_query,
-        history=history,
-        db=db,
-        platform="qa_tester"
-    )
+        ai_reply = await ai_service.generate_response(
+            query=user_query,
+            history=history,
+            db=db,
+            platform="qa_tester"
+        )
 
-    return {
-        "tester_name": tester_name,
-        "query": user_query,
-        "ai_response": ai_reply
-    }
+        return {
+            "tester_name": tester_name,
+            "query": user_query,
+            "ai_response": ai_reply
+        }
+    except Exception as e:
+        return {
+            "tester_name": "Tester",
+            "query": "",
+            "ai_response": f"AI Processing Error: {str(e)}"
+        }
 
 @router.post("/api/qa/report-issue")
 async def qa_report_issue_api(request: Request, db: AsyncSession = Depends(get_db)):
