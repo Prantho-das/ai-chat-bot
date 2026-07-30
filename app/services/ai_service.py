@@ -288,6 +288,16 @@ class AIService:
             self._ensure_genai_configured(api_key)
 
             sys_prompt = await self.get_system_prompt(db) if db else DEFAULT_SYSTEM_PROMPT
+            
+            # Enforce dynamic response length instruction
+            resp_len = await self.get_response_length(db) if db else "short"
+            if resp_len == "short":
+                sys_prompt += "\n\n## RESPONSE LENGTH CRITICAL RULE:\nউত্তর অবশ্যই অত্যন্ত সংক্ষিপ্ত এবং সর্বোচ্চ ১ থেকে ২ লাইনের মধ্যে হতে হবে। কোনো অতিরিক্ত বিবরণ বা পয়েন্ট আকারে বড় তালিকা দেওয়া যাবে না।"
+            elif resp_len == "medium":
+                sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nউত্তরটি মাঝারি মানের হবে, ৩ থেকে ৪ লাইনের মধ্যে শেষ করবে।"
+            elif resp_len == "long":
+                sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nবিস্তারিত উত্তর প্রদান করো।"
+
             kb_text, _ = await self.get_knowledge_base_data(db, user_message) if db else ("Empty", "empty")
 
             full_prompt = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}\n\n"
