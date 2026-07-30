@@ -298,9 +298,13 @@
                 appendAiMsg(data.ai_response, msg);
                 chatHistory.push({ role: "user", content: msg });
                 chatHistory.push({ role: "assistant", content: data.ai_response });
+            } else if (data.error) {
+                appendAiMsg("AI Server Error: " + data.error, msg);
+            } else {
+                appendAiMsg("AI response was empty. Please check your API key / AI settings.", msg);
             }
         } catch(e) {
-            appendAiMsg("Failed to connect to AI server.", msg);
+            appendAiMsg("Failed to connect to AI server: " + e.message, msg);
         }
     }
 
