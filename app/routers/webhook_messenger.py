@@ -130,6 +130,9 @@ async def _get_or_create_conversation(db: AsyncSession, sender_id: str, access_t
 async def _process_dm(sender_id: str, user_text: str, access_token: str, db: AsyncSession):
     """Process a single DM: save message, generate AI reply, send back."""
     try:
+        # Immediate typing indicator for smooth user experience
+        await messenger_service.send_typing_indicator(sender_id, access_token)
+
         await log_service.log("INFO", "Messenger DM", f"Received DM from {sender_id}: '{user_text[:100]}'")
 
         conversation = await _get_or_create_conversation(db, sender_id, access_token)

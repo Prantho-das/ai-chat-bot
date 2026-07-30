@@ -20,14 +20,13 @@ DEFAULT_FALLBACK_MESSAGE = (
 )
 
 DEFAULT_SYSTEM_PROMPT = (
-    "তুমি একজন প্রফেশনাল ও অত্যন্ত আন্তরিক AI কাস্টমার সাপোর্ট স্পেশালিস্ট। "
-    "তোমার কথা বলার ধরন হবে মেসেঞ্জারে চ্যাট করা একজন মানুষের মতো — সংক্ষিপ্ত, সরাসরি, এবং মাত্র ১-২ লাইনে.\n\n"
-    "## মূল নিয়মাবলী:\n"
-    "1. **সংক্ষিপ্ত উত্তর দাও (Max 2-3 Sentences):** চ্যাটিংয়ে কখনো লম্বা লিস্ট, বড় ভূমিকা বা অতিরিক্ত প্যারাগ্রাফ দেবে না। খুব সংক্ষেপে ও সরাসরি উত্তর দাও।\n"
-    "2. **শুধুমাত্র Knowledge Base থেকে উত্তর দাও।** Knowledge Base-এ নেই এমন কিছু বানিয়ে বলবে না। "
-    "উত্তর না থাকলে বলো: 'এই বিষয়ে আমাদের টিমের সাথে কথা বলতে পারবেন।'\n"
-    "3. **হ্যালুসিনেশন করবে না।** মিথ্যা তথ্য বা মনগড়া কথা বলবে না।\n"
-    "4. **মেটা-টেক্সট বা বুলেট পয়েন্ট দেবে না।** চ্যাটের মতো সংক্ষেপে কথা বলো."
+    "তুমি একজন অত্যন্ত বুদ্ধিমান, আন্তরিক এবং প্রফেশনাল AI কাস্টমার সাপোর্ট স্পেশালিস্ট। "
+    "কথোপকথন সবসময় ব্যালেন্সড, আকর্ষণীয় এবং রিডেবল রাখবে:\n\n"
+    "## স্মার্ট রেসপন্স রুলস:\n"
+    "১. **পরিমিত ও আকর্ষণীয় উত্তর (Max 3-4 Lines):** বিস্তারিত বিষয় হলেও চ্যাটে কখনো বিশাল লম্বা এসে (Essay) বা অতিরিক্ত পয়েন্ট দেবে না। মূল ৩-৪টি গুরুত্বপূর্ণ পয়েন্ট সংক্ষেপে ও স্পষ্ট করে তুলে ধরো।\n"
+    "২. **সহজ প্রশ্ন (Greetings, ঠিকানা, মূল্য):** ১-২ লাইনে সরাসরি উত্তর দাও।\n"
+    "৩. **তথ্য উৎস:** শুধুমাত্র প্রদত্ত Knowledge Base থেকে সঠিক তথ্য প্রকাশ করবে।\n"
+    "৪. **মেসেঞ্জার ফ্রেন্ডলি:** পড়া সহজ হয় এমনভাবে সুন্দর ফর্মেটিংয়ে লিখবে।"
 )
 
 class AIService:
@@ -64,7 +63,7 @@ class AIService:
         records = result.scalars().all()
         return {r.key: r.value for r in records}
 
-    async def get_knowledge_base_data(self, db: AsyncSession) -> tuple[str, str]:
+    async def get_knowledge_base_data(self, db: AsyncSession, user_message: str = "") -> tuple[str, str]:
         stmt = select(KnowledgeEntry).where(KnowledgeEntry.is_active == True).order_by(KnowledgeEntry.category, KnowledgeEntry.id)
         result = await db.execute(stmt)
         entries = result.scalars().all()
@@ -72,8 +71,21 @@ class AIService:
         if not entries:
             return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb"
         
+        # If user message is present, do relevance filtering
+        selected_entries = entries
+        if user_message:
+            query_words = set(re.findall(r'\w+', user_message.lower()))
+            matched = []
+            for entry in entries:
+                entry_text = f"{entry.category} {entry.title} {entry.content}".lower()
+                # If query word matches title, category or content
+                if any(word in entry_text for word in query_words if len(word) > 2):
+                    matched.append(entry)
+            if matched:
+                selected_entries = matched
+
         kb_lines = []
-        for idx, entry in enumerate(entries, 1):
+        for idx, entry in enumerate(selected_entries, 1):
             kb_lines.append(f"{idx}. [{entry.category.upper()}] {entry.title}: {entry.content}")
         
         kb_text = "\n".join(kb_lines)
@@ -266,7 +278,7 @@ class AIService:
             self._ensure_genai_configured(api_key)
 
             sys_prompt = await self.get_system_prompt(db) if db else DEFAULT_SYSTEM_PROMPT
-            kb_text, _ = await self.get_knowledge_base_data(db) if db else ("Empty", "empty")
+            kb_text, _ = await self.get_knowledge_base_data(db, user_message) if db else ("Empty", "empty")
 
             full_prompt = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}\n\n"
             if booking_action_info:
@@ -283,20 +295,14 @@ class AIService:
 
             model = genai.GenerativeModel(model_name)
             
-            import asyncio
             try:
-                response = await asyncio.wait_for(model.generate_content_async(full_prompt), timeout=8.0)
+                response = await model.generate_content_async(full_prompt)
                 ai_text = response.text.strip() if response and hasattr(response, 'text') else fallback_msg
                 
                 if ai_text and ai_text != fallback_msg and db:
                     new_cache = CacheEntry(query_hash=cache_key, prompt_text=user_message[:200], response_text=ai_text)
                     db.add(new_cache)
                     await db.commit()
-            except asyncio.TimeoutError:
-                err_text = f"Gemini API model '{model_name}' timed out after 8 seconds."
-                print(f"[GEMINI API TIMEOUT] {err_text}")
-                await log_service.log("WARNING", "AI Engine Timeout", err_text, f"Prompt: {user_message[:100]}")
-                return fallback_msg, False, token_stats
             except Exception as gem_err:
                 err_text = f"Gemini API Exception ({type(gem_err).__name__}): {gem_err}"
                 print(f"[GEMINI API ERROR DIAGNOSIS] {err_text}")

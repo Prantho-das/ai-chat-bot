@@ -36,6 +36,25 @@ class MessengerService:
                     success = False
         return success
 
+    async def send_typing_indicator(self, recipient_id: str, access_token: str = None) -> bool:
+        """Send typing_on action so Facebook user sees 'typing...' bubble immediately."""
+        token = access_token or getattr(settings, "FB_PAGE_ACCESS_TOKEN", "")
+        if not token or token.startswith("your_"):
+            return False
+
+        payload = {
+            "recipient": {"id": recipient_id},
+            "sender_action": "typing_on"
+        }
+        params = {"access_token": token}
+
+        async with httpx.AsyncClient() as client:
+            try:
+                await client.post(self.api_url, json=payload, params=params, timeout=3.0)
+                return True
+            except Exception:
+                return False
+
     async def get_user_profile(self, user_id: str, access_token: str = None) -> dict:
         """Fetch Facebook user name using Graph API."""
         token = access_token or getattr(settings, "FB_PAGE_ACCESS_TOKEN", "")
