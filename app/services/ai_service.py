@@ -99,7 +99,12 @@ class AIService:
         settings_dict = {r.key: r.value for r in records}
 
         api_key = settings_dict.get("gemini_api_key", "")
-        model_name = settings_dict.get("gemini_model", "gemini-2.0-flash")
+        model_name = settings_dict.get("gemini_model", "").strip()
+        
+        # Fallback to stable valid models if empty or invalid
+        if not model_name or "3.6" in model_name or "flash-lite" in model_name.lower():
+            model_name = "gemini-2.0-flash"
+
         return api_key, model_name
 
     def get_available_models(self, api_key: str = None) -> list[dict]:
@@ -116,15 +121,16 @@ class AIService:
                             "name": m.display_name or model_id
                         })
                 if models:
-                    return models
+                    # Filter out experimental or deprecated preview models that fail text generation
+                    valid_models = [m for m in models if "preview" not in m["id"].lower() and "experimental" not in m["id"].lower() and "vision" not in m["id"].lower() and "lite" not in m["id"].lower()]
+                    return valid_models if valid_models else models
         except Exception as e:
             print(f"Error fetching models from Gemini API: {e}")
 
         return [
-            {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash"},
+            {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash (Recommended)"},
             {"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash"},
-            {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro"},
-            {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash"},
+            {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro"}
         ]
 
     async def get_booking_keywords(self, db: AsyncSession) -> list[str]:
@@ -247,13 +253,14 @@ class AIService:
 
         # Fast Instant Path for simple Greetings & Check-ins (50ms response time)
         clean_query = user_message.strip().lower().rstrip(".!?")
+        normalized_query = re.sub(r'(.)\1{2,}', r'\1', clean_query)
         greetings = [
-            "hey", "hlw", "hello", "hi", "hy", "hei",
+            "hey", "heey", "heeey", "heyy", "heyyy", "hlw", "hello", "hi", "hy", "hei", "hii", "hiii",
             "keo asen", "keu asen", "keo asea", "keo acen", "keu acen",
             "কেউ আছেন", "কেউ আছো", "কেউ কি আছেন", "আছো কেউ", "আছেন কেউ",
             "হাই", "হ্যালো", "আসসালামু আলাইকুম", "assalamu alaikum", "slm", "slam"
         ]
-        if clean_query in greetings:
+        if clean_query in greetings or normalized_query in greetings:
             company_name = await get_bot_setting(db, "company_name", "আমাদের কাস্টমার সাপোর্টে") if db else "আমাদের কাস্টমার সাপোর্টে"
             instant_reply = f"জি, আমি আছি! {company_name}-এ আপনাকে স্বাগত। 😊 আমি আপনাকে কীভাবে সাহায্য করতে পারি বলুন?"
             return instant_reply, True, {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
@@ -284,6 +291,8 @@ class AIService:
             if booking_action_info:
                 full_prompt += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
             full_prompt += f"## CUSTOMER QUERY:\n{user_message}"
+
+            print(f"[AI ENGINE DIAGNOSTIC] Using Model: '{model_name}', API Key starts with: '{api_key[:8] if api_key else 'None'}'")
 
             # Fast Cache Check
             cache_key = hashlib.md5(f"{model_name}:{full_prompt}".encode("utf-8")).hexdigest()
