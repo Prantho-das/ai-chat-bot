@@ -1,4 +1,5 @@
 import os
+from app.config import settings
 from fastapi import APIRouter, Request, Response, Depends, Form, UploadFile, File, status
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -16,7 +17,6 @@ except ImportError:
     SignatureExpired = Exception
 
 from app.database import get_db, engine, Base
-from app.config import settings
 from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog, Lead, QAIssueReport
 from app.services.ai_service import ai_service, DEFAULT_FALLBACK_MESSAGE, DEFAULT_SYSTEM_PROMPT
 from app.services.log_service import log_service
@@ -650,9 +650,19 @@ async def captured_leads_page(request: Request, db: AsyncSession = Depends(get_d
     res = await db.execute(stmt)
     leads = res.scalars().all()
 
+    stmt_app = select(Appointment)
+    res_app = await db.execute(stmt_app)
+    appointments = res_app.scalars().all()
+
+    phone_to_appointment = {}
+    for app in appointments:
+        if app.customer_phone and app.google_event_link:
+            phone_to_appointment[app.customer_phone.strip()] = app.google_event_link
+
     return templates.TemplateResponse("leads.html", {
         "request": request,
-        "leads": leads
+        "leads": leads,
+        "phone_to_appointment": phone_to_appointment
     })
 
 # --- Facebook-Styled QA Tester Panel Routes ---

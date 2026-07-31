@@ -91,6 +91,13 @@
                                 <span>✉️</span> <a href="mailto:{{ lead.email }}" class="text-indigo-600 hover:underline">{{ lead.email }}</a>
                             </div>
                             {% endif %}
+                            {% if lead.phone and phone_to_appointment.get(lead.phone.strip()) %}
+                            <div class="pt-1">
+                                <a href="{{ phone_to_appointment.get(lead.phone.strip()) }}" target="_blank" class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md hover:bg-emerald-100 transition-colors">
+                                    📅 Calendar Event
+                                </a>
+                            </div>
+                            {% endif %}
                             {% if not lead.phone and not lead.email %}
                             <span class="text-slate-400 text-[11px] font-medium">Inferred from Chat Intent</span>
                             {% endif %}

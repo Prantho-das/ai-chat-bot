@@ -68,7 +68,6 @@ class LeadExtractorService:
             lead.intent = intent
             lead.last_message = user_text
             lead.status = "Hot Lead"
-            lead.updated_at = datetime.utcnow()
         else:
             lead = Lead(
                 sender_id=sender_id,
