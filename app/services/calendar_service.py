@@ -47,7 +47,7 @@ class CalendarService:
             if creds:
                 import socket
                 socket.setdefaulttimeout(3.0)
-                return build('calendar', 'v3', credentials=creds)
+                return build('calendar', 'v3', credentials=creds, static_discovery=True)
         except Exception as e:
             print(f"Error initializing Google Calendar client: {e}")
         return None

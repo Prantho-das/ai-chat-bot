@@ -309,14 +309,32 @@ class AIService:
 
             kb_text, _ = await self.get_knowledge_base_data(db, user_message) if db else ("Empty", "empty")
 
+            hist_txt = ""
+            if history:
+                h_lines = []
+                for msg in history[-12:]:
+                    if isinstance(msg, dict):
+                        role = msg.get("role")
+                        content = msg.get("content")
+                    else:
+                        role = getattr(msg, "role", "")
+                        content = getattr(msg, "content", "")
+                    if role == "user":
+                        h_lines.append(f"Customer: {content}")
+                    elif role == "assistant":
+                        h_lines.append(f"Assistant: {content}")
+                if h_lines:
+                    hist_txt = "## CONVERSATION HISTORY:\n" + "\n".join(h_lines) + "\n\n"
+
             full_prompt = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}\n\n"
+            if hist_txt:
+                full_prompt += hist_txt
             if booking_action_info:
                 full_prompt += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
             full_prompt += f"## CUSTOMER QUERY:\n{user_message}"
 
             print(f"[AI ENGINE DIAGNOSTIC] Using Model: '{model_name}', API Key starts with: '{api_key[:8] if api_key else 'None'}'")
 
-            # Fast Cache Check
             cache_key = hashlib.md5(f"{model_name}:{full_prompt}".encode("utf-8")).hexdigest()
             stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
             res_c = await db.execute(stmt_c)

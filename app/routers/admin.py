@@ -646,7 +646,7 @@ async def captured_leads_page(request: Request, db: AsyncSession = Depends(get_d
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
-    stmt = select(Lead).order_by(Lead.updated_at.desc())
+    stmt = select(Lead).order_by(Lead.id.desc())
     res = await db.execute(stmt)
     leads = res.scalars().all()
 

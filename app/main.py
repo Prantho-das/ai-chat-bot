@@ -1,3 +1,9 @@
+import socket
+_orig_gai = socket.getaddrinfo
+def _patched_gai(*args, **kwargs):
+    return [r for r in _orig_gai(*args, **kwargs) if r[0] == socket.AF_INET]
+socket.getaddrinfo = _patched_gai
+
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 import os
