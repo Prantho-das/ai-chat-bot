@@ -4,48 +4,44 @@
 
 {% block header_title %}🧪 QA Testing & AI Learning Hub{% endblock %}
 
-{% block content %}
-<div class="space-y-6" x-data="{ leftSidebarOpen: true, rightSidebarOpen: true }">
-    <!-- Top Welcome & Tester Active Bar -->
-    <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 rounded-2xl p-6 text-white shadow-xl shadow-blue-500/10 border border-blue-400/20 relative overflow-hidden">
-        <div class="absolute right-0 top-0 translate-x-4 -translate-y-4 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+{% block content <div class="space-y-6" x-data="{ leftSidebarOpen: true, rightSidebarOpen: true }">
+    <div class="bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-950 rounded-3xl p-6 text-white shadow-xl border border-slate-800 relative overflow-hidden">
+        <div class="absolute right-0 top-0 translate-x-4 -translate-y-4 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
             <div class="flex items-center space-x-4">
-                <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-2xl shadow-inner">
-                    ⚡
+                <div class="w-12 h-12 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center text-2xl shadow-inner">
+                    🧪
                 </div>
                 <div>
-                    <h2 class="text-xl font-extrabold tracking-tight flex items-center gap-2">
+                    <h2 class="text-lg font-black tracking-tight flex items-center gap-2">
                         Facebook AI QA & Error Fine-Tuning Panel
-                        <span class="text-xs bg-white/20 text-white font-bold px-2 py-0.5 rounded-full border border-white/30">LIVE QA</span>
+                        <span class="text-[9px] bg-indigo-500/20 text-indigo-300 font-bold px-2.5 py-0.5 rounded-full border border-indigo-500/30 tracking-wider">LIVE QA</span>
                     </h2>
-                    <p class="text-xs text-blue-100/80 font-medium mt-0.5">
-                        4-5 testers enter name, chat with AI, flag responses, & train AI database in real-time.
+                    <p class="text-xs text-slate-400 font-medium mt-0.5">
+                        Multiple testers simulate user messaging, flag response bugs, and retrain the database.
                     </p>
                 </div>
             </div>
 
-            <!-- Active Tester Badge & Switcher & Toggle buttons -->
-            <div class="flex items-center gap-2.5">
-                <!-- Toggle Sidebars Controls -->
-                <div class="flex bg-slate-900/40 backdrop-blur-md p-1 rounded-xl border border-white/10 text-xs text-white">
-                    <button @click="leftSidebarOpen = !leftSidebarOpen" :class="leftSidebarOpen ? 'bg-blue-600 font-bold' : 'hover:bg-white/10'" class="px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1">
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex bg-slate-800/80 p-1 rounded-2xl border border-slate-700/60 text-xs text-white">
+                    <button @click="leftSidebarOpen = !leftSidebarOpen" :class="leftSidebarOpen ? 'bg-indigo-600 font-bold' : 'hover:bg-slate-700/50 text-slate-300'" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5">
                         👥 <span class="hidden sm:inline">Team</span>
                     </button>
-                    <button @click="rightSidebarOpen = !rightSidebarOpen" :class="rightSidebarOpen ? 'bg-blue-600 font-bold' : 'hover:bg-white/10'" class="px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1">
+                    <button @click="rightSidebarOpen = !rightSidebarOpen" :class="rightSidebarOpen ? 'bg-indigo-600 font-bold' : 'hover:bg-slate-700/50 text-slate-300'" class="px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5">
                         📊 <span class="hidden sm:inline">DB Table</span>
                     </button>
                 </div>
 
-                <div class="flex items-center space-x-3 bg-slate-900/40 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
-                    <div class="w-8 h-8 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center text-xs shadow" id="testerBadgeAvatar">
+                <div class="flex items-center space-x-3 bg-slate-800/80 px-4 py-1.5 rounded-2xl border border-slate-700/60">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-500 text-white font-extrabold flex items-center justify-center text-xs shadow-md" id="testerBadgeAvatar">
                         T1
                     </div>
                     <div class="text-xs">
-                        <span class="text-slate-400 block font-semibold text-[10px]">CURRENT TESTER</span>
-                        <span class="font-extrabold text-white text-sm" id="currentTesterName">Tester 1</span>
+                        <span class="text-slate-500 block font-bold text-[9px] uppercase tracking-wider">CURRENT TESTER</span>
+                        <span class="font-black text-slate-200 text-xs" id="currentTesterName">Tester 1</span>
                     </div>
-                    <button onclick="switchTesterModal()" class="ml-2 px-2.5 py-1 text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all border border-white/20">
+                    <button onclick="switchTesterModal()" class="ml-2 px-3 py-1.5 text-[10px] font-bold bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10">
                         ✏️ Change Name
                     </button>
                 </div>
@@ -53,67 +49,60 @@
         </div>
     </div>
 
-    <!-- Main Grid: Left Testers, Center FB Chat, Right Learning Table -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        <!-- Column 1: Tester Selector (3 cols) -->
-        <div x-show="leftSidebarOpen" x-transition class="lg:col-span-3 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+        <div x-show="leftSidebarOpen" x-transition class="lg:col-span-3 bg-white rounded-3xl p-5 border border-slate-200/60 shadow-xs space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                    <span>👥</span> QA Testing Team
+                <h3 class="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                    👥 QA Testing Team
                 </h3>
-                <button onclick="addNewTesterPrompt()" class="text-[10px] bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded-lg font-bold border border-blue-200 transition-all flex items-center gap-1">
-                    <span>➕</span> Add Tester
+                <button onclick="addNewTesterPrompt()" class="text-[10px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-2.5 py-1.5 rounded-xl font-bold border border-indigo-200/50 transition-all flex items-center gap-1">
+                    ➕ Add Tester
                 </button>
             </div>
 
             <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar" id="testerList">
-                <!-- Dynamically rendered testers list -->
             </div>
 
-            <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-500 leading-relaxed">
-                💡 <strong>Tip:</strong> Anyone can join as a tester by typing their name! Click ➕ <strong>Add Tester</strong> to add unlimited team members.
+            <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-[10px] text-slate-500 leading-relaxed font-medium">
+                💡 Click <strong>Add Tester</strong> to add new members. Anyone can join the simulation dynamically by setting their session.
             </div>
         </div>
 
-        <!-- Column 2: Messenger Style Chat Room (Dynamic cols) -->
-        <div :class="[leftSidebarOpen && rightSidebarOpen ? 'lg:col-span-5' : (!leftSidebarOpen && !rightSidebarOpen ? 'lg:col-span-12' : 'lg:col-span-9')]" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col h-[620px] transition-all duration-300">
+        <div :class="[leftSidebarOpen && rightSidebarOpen ? 'lg:col-span-5' : (!leftSidebarOpen && !rightSidebarOpen ? 'lg:col-span-12' : 'lg:col-span-9')]" class="bg-white rounded-3xl border border-slate-200/60 shadow-xs flex flex-col h-[620px] transition-all duration-300">
             
-            <!-- Chat Header -->
-            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-2xl">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-3xl">
                 <div class="flex items-center space-x-3">
                     <div class="relative">
-                        <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-blue-500/20">
+                        <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-500/20">
                             🤖
                         </div>
-                        <span class="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white absolute bottom-0 right-0"></span>
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white absolute -bottom-0.5 -right-0.5"></span>
                     </div>
                     <div>
-                        <h4 class="font-extrabold text-sm text-slate-900">AI Assistant (Testing Mode)</h4>
-                        <p class="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
-                            <span>Facebook Messenger Simulator</span> • <span>Fast Response</span>
+                        <h4 class="font-black text-xs text-slate-900">AI Assistant (Testing Mode)</h4>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <span>Facebook Messenger Simulator</span> • <span class="text-emerald-600">Active</span>
                         </p>
                     </div>
                 </div>
-                <button onclick="clearChatArea()" class="text-xs text-slate-400 hover:text-rose-600 font-bold px-2.5 py-1 rounded-lg hover:bg-rose-50 transition-all">
+                <button onclick="clearChatArea()" class="text-[10px] text-slate-400 hover:text-rose-600 font-bold px-3 py-1.5 rounded-xl hover:bg-rose-50 transition-all">
                     🧹 Clear
                 </button>
             </div>
 
-            <!-- Chat Message List -->
-            <div class="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar bg-slate-50/30" id="chatArea">
+            <div class="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar bg-slate-50/20" id="chatArea">
                 <div class="flex items-start space-x-2.5">
-                    <div class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">AI</div>
-                    <div class="bg-white border border-slate-200/70 p-3 rounded-2xl rounded-tl-none shadow-sm text-xs text-slate-700 max-w-[85%] leading-relaxed">
+                    <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">AI</div>
+                    <div class="bg-white border border-slate-200/50 p-3 rounded-2xl rounded-tl-none shadow-xs text-xs text-slate-700 max-w-[85%] leading-relaxed font-medium">
                         👋 Welcome QA Tester! I am the AI Bot. Ask me any question. If I respond with wrong information, hover on my message and click 🚩 <strong>Report & Correct</strong>.
                     </div>
                 </div>
             </div>
 
-            <!-- Chat Input Bar -->
-            <div class="p-3 border-t border-slate-100 bg-white rounded-b-2xl flex items-center space-x-2">
-                <input type="text" id="userMsgInput" onkeypress="if(event.key==='Enter') sendChatMessage()" placeholder="Type a message to test AI..." class="flex-1 bg-slate-100 border-none rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-blue-500 font-medium text-slate-800 placeholder-slate-400">
-                <button onclick="sendChatMessage()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5">
+            <div class="p-3 border-t border-slate-100 bg-white rounded-b-3xl flex items-center space-x-2">
+                <input type="text" id="userMsgInput" onkeypress="if(event.key==='Enter') sendChatMessage()" placeholder="Type a message to test AI..." class="flex-1 bg-slate-50 border-none rounded-2xl px-4 py-3 text-xs focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 placeholder-slate-400">
+                <button onclick="sendChatMessage()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-3 rounded-2xl text-xs shadow-md shadow-indigo-500/10 transition-all flex items-center gap-1.5">
                     <span>Send</span>
                     <span>➔</span>
                 </button>
@@ -121,45 +110,44 @@
 
         </div>
 
-        <!-- Column 3: DB Learning & Reported Errors Table (4 cols) -->
-        <div x-show="rightSidebarOpen" x-transition class="lg:col-span-4 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col h-[620px]">
+        <div x-show="rightSidebarOpen" x-transition class="lg:col-span-4 bg-white rounded-3xl p-5 border border-slate-200/60 shadow-xs flex flex-col h-[620px]">
             <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
                 <div>
-                    <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                        <span>📊</span> Reported Errors DB Table
+                    <h3 class="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                        📊 Reported Errors DB Table
                     </h3>
-                    <p class="text-[11px] text-slate-400 font-medium mt-0.5">Click "Train AI" to apply corrections directly.</p>
+                    <p class="text-[10px] text-slate-400 font-medium mt-0.5">Click "Train AI" to apply corrections directly.</p>
                 </div>
             </div>
 
             <div class="flex-1 overflow-y-auto space-y-3 mt-3 pr-1 custom-scrollbar" id="dbReportsContainer">
                 {% for r in qa_reports %}
-                <div class="p-3.5 rounded-xl border border-slate-100 bg-slate-50/60 space-y-2 hover:border-slate-200 transition-all">
+                <div class="p-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-2 hover:border-slate-200/80 transition-all">
                     <div class="flex items-center justify-between text-xs">
-                        <span class="font-extrabold text-blue-600">{{ r.tester_name }}</span>
+                        <span class="font-extrabold text-indigo-600 text-[11px]">{{ r.tester_name }}</span>
                         {% if r.status == 'learned' %}
-                            <span class="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Learned & Trained</span>
+                            <span class="text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-0.5 rounded-full">Learned & Trained</span>
                         {% else %}
-                            <span class="text-[9px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Pending Fix</span>
+                            <span class="text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-0.5 rounded-full">Pending Fix</span>
                         {% endif %}
                     </div>
-                    <div class="text-[11px] text-slate-700">
-                        <strong class="text-slate-500">Query:</strong> "{{ r.user_query }}"
+                    <div class="text-xs text-slate-700 font-medium">
+                        <strong class="text-slate-400 font-bold uppercase tracking-wider text-[9px] block">Query:</strong> {{ r.user_query }}
                     </div>
-                    <div class="text-[11px] text-rose-600 bg-rose-50 p-2 rounded-lg border border-rose-100">
-                        <strong>Bad AI:</strong> {{ r.ai_response }}
+                    <div class="text-xs text-rose-600 bg-rose-50/60 p-2.5 rounded-xl border border-rose-100/60 leading-relaxed">
+                        <strong class="text-rose-700 font-bold uppercase tracking-wider text-[9px] block mb-0.5">Bad AI:</strong> {{ r.ai_response }}
                     </div>
                     {% if r.corrected_response %}
-                    <div class="text-[11px] text-emerald-700 bg-emerald-50 p-2 rounded-lg border border-emerald-100 font-medium">
-                        <strong>Correction:</strong> {{ r.corrected_response }}
+                    <div class="text-xs text-emerald-700 bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-100/60 font-medium leading-relaxed">
+                        <strong class="text-emerald-800 font-bold uppercase tracking-wider text-[9px] block mb-0.5">Correction:</strong> {{ r.corrected_response }}
                     </div>
                     {% endif %}
 
                     <div class="flex items-center justify-between pt-1">
-                        <span class="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded font-bold">{{ r.issue_category }}</span>
+                        <span class="text-[9px] bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">{{ r.issue_category }}</span>
                         {% if r.status != 'learned' and r.corrected_response %}
-                        <button onclick="trainAiFromReport('{{ r.id }}')" class="px-2.5 py-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition-all flex items-center gap-1">
-                            <span>🧠</span> Train AI Now
+                        <button onclick="trainAiFromReport('{{ r.id }}')" class="px-3 py-1.5 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md shadow-emerald-500/10 transition-all flex items-center gap-1">
+                            🧠 Train AI Now
                         </button>
                         {% endif %}
                     </div>
@@ -176,11 +164,10 @@
     </div>
 </div>
 
-<!-- Modal: Flag / Report AI Response -->
-<div id="flagModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-100">
+<div id="flagModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-100">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 class="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+            <h3 class="font-black text-sm text-slate-900 flex items-center gap-2">
                 <span class="text-rose-500">🚩</span> Report AI Response & Teach Solution
             </h3>
             <button onclick="closeFlagModal()" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
@@ -202,7 +189,7 @@
 
             <div>
                 <label class="font-bold text-slate-700 block mb-1">Select Category:</label>
-                <select id="issueCategorySelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500">
+                <select id="issueCategorySelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500">
                     <option value="Wrong Info">Wrong / Inaccurate Information</option>
                     <option value="Off-topic">Off-topic / Irrelevant Reply</option>
                     <option value="Improper Tone">Rude or Improper Tone</option>
@@ -219,7 +206,7 @@
 
         <div class="flex items-center justify-end space-x-2 pt-2">
             <button onclick="closeFlagModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all">Cancel</button>
-            <button onclick="submitReportToDb()" class="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-500/20 transition-all">
+            <button onclick="submitReportToDb()" class="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-500/25 transition-all">
                 Save & Report to DB
             </button>
         </div>
@@ -248,9 +235,9 @@
             const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2) || "T";
             const safeId = name.replace(/\s+/g, '');
             return `
-                <div onclick="setTester('${name}')" class="tester-card p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${isCurrent ? 'bg-blue-50/60 border-blue-200 text-blue-900 shadow-sm' : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700'}" id="card-${safeId}">
+                <div onclick="setTester('${name}')" class="tester-card p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${isCurrent ? 'bg-indigo-50/60 border-indigo-200 text-indigo-900 shadow-sm' : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700'}" id="card-${safeId}">
                     <div class="flex items-center space-x-3">
-                        <div class="w-9 h-9 rounded-full ${isCurrent ? 'bg-blue-600' : 'bg-slate-700'} text-white font-bold flex items-center justify-center text-xs shadow-sm">${initials}</div>
+                        <div class="w-9 h-9 rounded-full ${isCurrent ? 'bg-indigo-600' : 'bg-slate-700'} text-white font-bold flex items-center justify-center text-xs shadow-sm">${initials}</div>
                         <div>
                             <div class="font-bold text-xs">${name}</div>
                             <div class="text-[10px] ${isCurrent ? 'text-emerald-600 font-semibold' : 'text-slate-400'} flex items-center gap-1">
@@ -328,7 +315,7 @@
         const div = document.createElement("div");
         div.className = "flex items-end justify-end space-x-2";
         div.innerHTML = `
-            <div class="bg-blue-600 text-white p-3 rounded-2xl rounded-tr-none shadow-sm text-xs max-w-[85%] leading-relaxed">
+            <div class="bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-none shadow-sm text-xs max-w-[85%] leading-relaxed">
                 ${text}
             </div>
         `;
@@ -345,7 +332,7 @@
         const escapedAi = aiText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
         div.innerHTML = `
-            <div class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">AI</div>
+            <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">AI</div>
             <div class="space-y-1 max-w-[85%]">
                 <div class="bg-white border border-slate-200/70 p-3 rounded-2xl rounded-tl-none shadow-sm text-xs text-slate-700 leading-relaxed relative">
                     ${aiText}
@@ -415,8 +402,8 @@
     function clearChatArea() {
         document.getElementById("chatArea").innerHTML = `
             <div class="flex items-start space-x-2.5">
-                <div class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">AI</div>
-                <div class="bg-white border border-slate-200/70 p-3 rounded-2xl rounded-tl-none shadow-sm text-xs text-slate-700 max-w-[85%] leading-relaxed">
+                <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">AI</div>
+                <div class="bg-white border border-slate-200/70 p-3 rounded-2xl rounded-tl-none shadow-xs text-xs text-slate-700 max-w-[85%] leading-relaxed font-medium">
                     Chat reset. Ask any question to test AI.
                 </div>
             </div>`;
