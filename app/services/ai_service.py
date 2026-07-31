@@ -261,7 +261,8 @@ class AIService:
             "hey", "heey", "heeey", "heyy", "heyyy", "hlw", "hello", "hi", "hy", "hei", "hii", "hiii",
             "keo asen", "keu asen", "keo asea", "keo acen", "keu acen",
             "কেউ আছেন", "কেউ আছো", "কেউ কি আছেন", "আছো কেউ", "আছেন কেউ",
-            "হাই", "হ্যালো", "আসসালামু আলাইকুম", "assalamu alaikum", "slm", "slam"
+            "হাই", "হ্যালো", "আসসালামু আলাইকুম", "assalamu alaikum", "slm", "slam",
+            "hey brother", "hey bro", "hello bro", "hello brother", "hey man"
         ]
         if clean_query in greetings or normalized_query in greetings:
             company_name = await get_bot_setting(db, "company_name", "আমাদের কাস্টমার সাপোর্টে") if db else "আমাদের কাস্টমার সাপোর্টে"
