@@ -21,6 +21,7 @@ from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appoin
 from app.services.ai_service import ai_service, DEFAULT_FALLBACK_MESSAGE, DEFAULT_SYSTEM_PROMPT
 from app.services.log_service import log_service
 from app.helpers import get_bot_setting, upsert_bot_setting
+from app.services.lead_extractor_service import lead_extractor_service
 
 router = APIRouter(prefix="/admin", tags=["Admin Panel"])
 templates = Jinja2Templates(directory="app/templates")
@@ -53,6 +54,12 @@ def is_authenticated(request: Request) -> bool:
         return data.get("user") == settings.ADMIN_USERNAME
     except (BadSignature, SignatureExpired):
         return False
+
+async def render_admin_page(template_name: str, request: Request, db: AsyncSession, context: dict):
+    simplified_mode = await get_bot_setting(db, "simplified_client_mode", "false")
+    context["simplified_client_mode"] = (simplified_mode == "true")
+    context["request"] = request
+    return templates.TemplateResponse(template_name, context)
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -91,8 +98,7 @@ async def guide_page(request: Request, db: AsyncSession = Depends(get_db)):
     has_wa = bool(settings_dict.get("wa_access_token", settings.WA_ACCESS_TOKEN))
     has_calendar = bool(settings_dict.get("google_calendar_token") or settings_dict.get("google_refresh_token") or os.getenv("GOOGLE_REFRESH_TOKEN"))
 
-    return templates.TemplateResponse("guide.html", {
-        "request": request,
+    return await render_admin_page("guide.html", request, db, {
         "has_gemini": has_gemini,
         "has_fb": has_fb,
         "has_wa": has_wa,
@@ -122,8 +128,7 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         "total_tokens_used": total_tokens_used
     }
 
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
+    return await render_admin_page("dashboard.html", request, db, {
         "stats": stats,
         "recent_conversations": recent_conversations
     })
@@ -168,8 +173,7 @@ async def knowledge_base_page(
     active_count = sum(1 for e in all_entries if e.is_active)
     categories_set = set(e.category for e in all_entries if e.category)
 
-    return templates.TemplateResponse("knowledge_base.html", {
-        "request": request,
+    return await render_admin_page("knowledge_base.html", request, db, {
         "entries": entries,
         "total_count": total_count,
         "active_count": active_count,
@@ -317,8 +321,7 @@ async def conversations_page(
     result = await db.execute(stmt)
     conversations = result.scalars().all()
 
-    return templates.TemplateResponse("conversations.html", {
-        "request": request,
+    return await render_admin_page("conversations.html", request, db, {
         "conversations": conversations,
         "selected_platform": platform or "all",
         "search_query": q or ""
@@ -340,8 +343,7 @@ async def conversation_detail(conv_id: int, request: Request, db: AsyncSession =
     res_msgs = await db.execute(stmt_msgs)
     messages = res_msgs.scalars().all()
 
-    return templates.TemplateResponse("conversation_detail.html", {
-        "request": request,
+    return await render_admin_page("conversation_detail.html", request, db, {
         "conversation": conv,
         "messages": messages
     })
@@ -391,8 +393,7 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
 
     available_models = ai_service.get_available_models(creds["gemini_api_key"])
 
-    return templates.TemplateResponse("settings.html", {
-        "request": request,
+    return await render_admin_page("settings.html", request, db, {
         "system_prompt": settings_dict.get("system_prompt", DEFAULT_SYSTEM_PROMPT),
         "fallback_message": creds["fallback_message"],
         "creds": creds,
@@ -435,6 +436,7 @@ async def update_settings(
     vapid_claims_email: str = Form(None),
     gmail_sender_email: str = Form(None),
     gmail_app_password: str = Form(None),
+    simplified_client_mode: str = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
     if not is_authenticated(request):
@@ -449,6 +451,7 @@ async def update_settings(
             await upsert_bot_setting(db, "response_length", response_length.strip())
         if fallback_message is not None:
             await upsert_bot_setting(db, "fallback_message", fallback_message.strip())
+        await upsert_bot_setting(db, "simplified_client_mode", "true" if simplified_client_mode == "true" else "false")
         await db.commit()
 
     elif form_type == "credentials":
@@ -521,8 +524,7 @@ async def appointments_page(request: Request, db: AsyncSession = Depends(get_db)
     result = await db.execute(stmt)
     appointments = result.scalars().all()
 
-    return templates.TemplateResponse("appointments.html", {
-        "request": request,
+    return await render_admin_page("appointments.html", request, db, {
         "appointments": appointments,
         "saved": request.query_params.get("saved")
     })
@@ -589,8 +591,7 @@ async def live_logs_page(request: Request, db: AsyncSession = Depends(get_db)):
     res = await db.execute(stmt)
     db_logs = res.scalars().all()
 
-    return templates.TemplateResponse("logs.html", {
-        "request": request,
+    return await render_admin_page("logs.html", request, db, {
         "logs": db_logs
     })
 
@@ -659,8 +660,7 @@ async def captured_leads_page(request: Request, db: AsyncSession = Depends(get_d
         if app.customer_phone and app.google_event_link:
             phone_to_appointment[app.customer_phone.strip()] = app.google_event_link
 
-    return templates.TemplateResponse("leads.html", {
-        "request": request,
+    return await render_admin_page("leads.html", request, db, {
         "leads": leads,
         "phone_to_appointment": phone_to_appointment
     })
@@ -676,8 +676,7 @@ async def qa_panel_page(request: Request, db: AsyncSession = Depends(get_db)):
     res = await db.execute(stmt)
     qa_reports = res.scalars().all()
 
-    return templates.TemplateResponse("qa_panel.html", {
-        "request": request,
+    return await render_admin_page("qa_panel.html", request, db, {
         "qa_reports": qa_reports
     })
 
@@ -703,11 +702,18 @@ async def qa_chat_api(request: Request, db: AsyncSession = Depends(get_db)):
             db=db
         )
 
-        # Handle tuple response if generate_response returns (ai_reply, is_cached, token_stats)
         if isinstance(ai_reply_data, tuple):
             ai_reply = ai_reply_data[0]
         else:
             ai_reply = ai_reply_data
+
+        await lead_extractor_service.process_chat_lead(
+            db=db,
+            sender_id=f"qa_tester_{tester_name.replace(' ', '_').lower()}",
+            platform="messenger",
+            user_text=user_query,
+            sender_name=tester_name
+        )
 
         elapsed = round(time.time() - start_time, 2)
         return {
