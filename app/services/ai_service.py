@@ -71,18 +71,24 @@ class AIService:
         if not entries:
             return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb"
         
-        # If user message is present, do relevance filtering
         selected_entries = entries
         if user_message:
-            query_words = set(re.findall(r'\w+', user_message.lower()))
-            matched = []
+            cleaned_msg = user_message.lower().strip()
+            query_words = set(re.findall(r'\w+', cleaned_msg))
+            scored_entries = []
             for entry in entries:
-                entry_text = f"{entry.category} {entry.title} {entry.content}".lower()
-                # If query word matches title, category or content
-                if any(word in entry_text for word in query_words if len(word) > 2):
-                    matched.append(entry)
-            if matched:
-                selected_entries = matched
+                score = 0
+                title_words = set(re.findall(r'\w+', entry.title.lower()))
+                score += len(query_words.intersection(title_words)) * 3
+                content_words = set(re.findall(r'\w+', entry.content.lower()))
+                score += len(query_words.intersection(content_words))
+                if entry.category and entry.category.lower() in cleaned_msg:
+                    score += 2
+                if score > 0:
+                    scored_entries.append((score, entry))
+            if scored_entries:
+                scored_entries.sort(key=lambda x: x[0], reverse=True)
+                selected_entries = [item[1] for item in scored_entries[:8]]
 
         kb_lines = []
         for idx, entry in enumerate(selected_entries, 1):
