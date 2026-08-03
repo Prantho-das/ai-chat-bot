@@ -350,20 +350,6 @@ class AIService:
         fallback_msg = await self.get_fallback_message(db) if db else DEFAULT_FALLBACK_MESSAGE
         token_stats = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
-        # Fast Instant Path for simple Greetings & Check-ins (50ms response time)
-        clean_query = user_message.strip().lower().rstrip(".!?")
-        normalized_query = re.sub(r'(.)\1{2,}', r'\1', clean_query)
-        greetings = [
-            "hey", "heey", "heeey", "heyy", "heyyy", "hlw", "hello", "hi", "hy", "hei", "hii", "hiii",
-            "keo asen", "keu asen", "keo asea", "keo acen", "keu acen",
-            "কেউ আছেন", "কেউ আছো", "কেউ কি আছেন", "আছো কেউ", "আছেন কেউ",
-            "হাই", "হ্যালো", "আসসালামু আলাইকুম", "assalamu alaikum", "slm", "slam",
-            "hey brother", "hey bro", "hello bro", "hello brother", "hey man"
-        ]
-        if clean_query in greetings or normalized_query in greetings:
-            company_name = await get_bot_setting(db, "company_name", "আমাদের কাস্টমার সাপোর্টে") if db else "আমাদের কাস্টমার সাপোর্টে"
-            instant_reply = f"জি, আমি আছি! {company_name}-এ আপনাকে স্বাগত। 😊 আমি আপনাকে কীভাবে সাহায্য করতে পারি বলুন?"
-            return instant_reply, True, {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
 
         try:
             booking_action_info = ""
@@ -439,21 +425,30 @@ class AIService:
                     "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
                 }
 
-            models_to_try = [model_name]
+            models_to_try = []
             try:
                 available_gen_models = []
-                for m in genai.list_models():
+                all_models_raw = genai.list_models()
+                for m in all_models_raw:
                     if "generateContent" in getattr(m, "supported_generation_methods", []):
                         m_id = m.name.replace("models/", "")
                         available_gen_models.append(m_id)
+
+                if model_name in available_gen_models:
+                    models_to_try.append(model_name)
+                elif f"models/{model_name}" in [m.name for m in all_models_raw]:
+                    models_to_try.append(f"models/{model_name}")
+
+                for rec in ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-2.5-flash"]:
+                    if rec in available_gen_models and rec not in models_to_try:
+                        models_to_try.append(rec)
+
                 for m_id in available_gen_models:
                     if m_id not in models_to_try:
                         models_to_try.append(m_id)
             except Exception as list_err:
                 print(f"[GEMINI API DIAGNOSTIC] Could not list models: {list_err}")
-                for fallback_m in ["gemini-1.5-flash-latest", "gemini-1.5-pro", "gemini-2.0-flash"]:
-                    if fallback_m not in models_to_try:
-                        models_to_try.append(fallback_m)
+                models_to_try = [model_name, "gemini-2.0-flash", "gemini-1.5-flash-latest", "models/gemini-1.5-flash"]
 
             response = None
             ai_text = None
