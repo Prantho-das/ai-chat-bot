@@ -119,16 +119,16 @@ class AIService:
         if not entries:
             return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb"
         
-        selected_entries = entries
+        selected_entries = entries[:2]
         if user_message:
             cleaned_msg = user_message.lower().strip()
             query_words = set(re.findall(r'\w+', cleaned_msg))
             scored_entries = []
             for entry in entries:
                 score = 0
-                title_words = set(re.findall(r'\w+', entry.title.lower()))
+                title_words = set(re.findall(r'\w+', (entry.title or "").lower()))
                 score += len(query_words.intersection(title_words)) * 3
-                content_words = set(re.findall(r'\w+', entry.content.lower()))
+                content_words = set(re.findall(r'\w+', (entry.content or "").lower()))
                 score += len(query_words.intersection(content_words))
                 if entry.category and entry.category.lower() in cleaned_msg:
                     score += 2
@@ -136,7 +136,7 @@ class AIService:
                     scored_entries.append((score, entry))
             if scored_entries:
                 scored_entries.sort(key=lambda x: x[0], reverse=True)
-                selected_entries = [item[1] for item in scored_entries[:8]]
+                selected_entries = [item[1] for item in scored_entries[:3]]
 
         kb_lines = []
         for idx, entry in enumerate(selected_entries, 1):
@@ -154,7 +154,7 @@ class AIService:
         if not entries:
             return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb", []
         
-        selected_entries = entries
+        selected_entries = entries[:2]
         if user_message:
             cleaned_msg = user_message.lower().strip()
             query_words = set(re.findall(r'\w+', cleaned_msg))
@@ -175,7 +175,7 @@ class AIService:
                     scored_entries.append((score, entry))
             if scored_entries:
                 scored_entries.sort(key=lambda x: x[0], reverse=True)
-                selected_entries = [item[1] for item in scored_entries[:8]]
+                selected_entries = [item[1] for item in scored_entries[:3]]
 
         kb_lines = []
         for idx, entry in enumerate(selected_entries, 1):
@@ -413,7 +413,8 @@ class AIService:
                 full_prompt += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
             full_prompt += f"## CUSTOMER QUERY:\n{user_message}"
 
-            cache_key = hashlib.md5(f"{model_name}:{full_prompt}".encode("utf-8")).hexdigest()
+            clean_q = user_message.strip().lower()
+            cache_key = hashlib.md5(f"{clean_q}:{kb_hash}".encode("utf-8")).hexdigest()
             stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
             res_c = await db.execute(stmt_c)
             cached = res_c.scalar_one_or_none()
