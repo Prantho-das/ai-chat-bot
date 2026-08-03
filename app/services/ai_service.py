@@ -207,8 +207,8 @@ class AIService:
         api_key = settings_dict.get("gemini_api_key", "")
         model_name = settings_dict.get("gemini_model", "").strip()
         
-        # Fallback to stable valid models if empty or invalid
-        if not model_name or "3.6" in model_name or "flash-lite" in model_name.lower():
+        # Fallback to stable valid models if empty or invalid model selected
+        if not model_name or "tts" in model_name.lower():
             model_name = "gemini-2.0-flash"
 
         return api_key, model_name
@@ -227,8 +227,8 @@ class AIService:
                             "name": m.display_name or model_id
                         })
                 if models:
-                    # Filter out experimental or deprecated preview models that fail text generation
-                    valid_models = [m for m in models if "preview" not in m["id"].lower() and "experimental" not in m["id"].lower() and "vision" not in m["id"].lower() and "lite" not in m["id"].lower()]
+                    # Filter out TTS/Audio only models that fail standard text chat
+                    valid_models = [m for m in models if "tts" not in m["id"].lower() and "audio" not in m["id"].lower()]
                     return valid_models if valid_models else models
         except Exception as e:
             print(f"Error fetching models from Gemini API: {e}")
