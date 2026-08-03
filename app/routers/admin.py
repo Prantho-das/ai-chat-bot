@@ -702,8 +702,11 @@ async def qa_chat_api(request: Request, db: AsyncSession = Depends(get_db)):
             db=db
         )
 
+        rag_info = {}
         if isinstance(ai_reply_data, tuple):
             ai_reply = ai_reply_data[0]
+            if len(ai_reply_data) >= 3 and isinstance(ai_reply_data[2], dict):
+                rag_info = ai_reply_data[2]
         else:
             ai_reply = ai_reply_data
 
@@ -720,8 +723,10 @@ async def qa_chat_api(request: Request, db: AsyncSession = Depends(get_db)):
             "tester_name": tester_name,
             "query": user_query,
             "ai_response": ai_reply,
-            "elapsed_seconds": elapsed
+            "elapsed_seconds": elapsed,
+            "rag_info": rag_info
         }
+
     except Exception as e:
         elapsed = round(time.time() - start_time, 2)
         return {

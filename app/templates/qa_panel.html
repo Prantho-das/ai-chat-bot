@@ -297,7 +297,7 @@
             const data = await res.json();
             const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
             if(data.ai_response) {
-                appendAiMsg(data.ai_response, msg, data.elapsed_seconds || elapsed);
+                appendAiMsg(data.ai_response, msg, data.elapsed_seconds || elapsed, data.rag_info || {});
                 chatHistory.push({ role: "user", content: msg });
                 chatHistory.push({ role: "assistant", content: data.ai_response });
             } else if (data.error) {
@@ -324,7 +324,7 @@
         area.scrollTop = area.scrollHeight;
     }
 
-    function appendAiMsg(aiText, originalQuery, elapsedSeconds) {
+    function appendAiMsg(aiText, originalQuery, elapsedSeconds, ragInfo = {}) {
         const area = document.getElementById("chatArea");
         const div = document.createElement("div");
         div.className = "flex items-start space-x-2.5 group relative";
@@ -332,23 +332,39 @@
         const escapedQuery = originalQuery.replace(/'/g, "\\'").replace(/"/g, '&quot;');
         const escapedAi = aiText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
+        const matchedCount = ragInfo.matched_count || 0;
+        const matchedTitles = ragInfo.matched_titles || [];
+        const modelUsed = ragInfo.model_used || "Gemini AI";
+        const tokens = ragInfo.tokens || {};
+
+        let ragPill = matchedCount > 0 
+            ? `<span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-md border border-emerald-200 text-[10px]" title="Matched Sources: ${matchedTitles.join(', ')}">📚 RAG Matched (${matchedCount} Docs)</span>`
+            : `<span class="inline-flex items-center gap-1 bg-slate-100 text-slate-500 font-medium px-2 py-0.5 rounded-md border border-slate-200 text-[10px]">🤖 General Prompt</span>`;
+
+        let titlesTooltip = matchedTitles.length > 0 ? `<div class="mt-1 text-[10px] text-slate-500 font-normal bg-slate-50 p-1.5 rounded border border-slate-100"><strong>Retrieved Sources:</strong> ${matchedTitles.join(' • ')}</div>` : '';
+
         div.innerHTML = `
-            <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">AI</div>
-            <div class="space-y-1 max-w-[85%]">
-                <div class="bg-white border border-slate-200/70 p-3 rounded-2xl rounded-tl-none shadow-sm text-xs text-slate-700 leading-relaxed relative">
+            <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 shadow-sm">AI</div>
+            <div class="space-y-1.5 max-w-[88%]">
+                <div class="bg-white border border-slate-200/80 p-3.5 rounded-2xl rounded-tl-none shadow-xs text-xs text-slate-800 leading-relaxed relative">
                     ${aiText}
+                    ${titlesTooltip}
                     <button onclick="openFlagModal('${escapedQuery}', '${escapedAi}')" class="absolute -right-8 top-2 opacity-0 group-hover:opacity-100 transition-all bg-white border border-slate-200 text-rose-500 hover:bg-rose-50 p-1.5 rounded-full shadow-sm" title="Report & Teach AI">
                         🚩
                     </button>
                 </div>
-                <div class="text-[9px] text-slate-400 font-semibold px-2">
-                    ⚡ Response Time: ${elapsedSeconds}s
+                <div class="flex flex-wrap items-center gap-2 text-[10px] font-medium px-1">
+                    ${ragPill}
+                    <span class="text-slate-400">⚡ <strong>${elapsedSeconds}s</strong></span>
+                    <span class="text-slate-400">🤖 <strong>${modelUsed}</strong></span>
+                    ${tokens.total_tokens ? `<span class="text-slate-400">🎟️ ${tokens.total_tokens} tokens</span>` : ''}
                 </div>
             </div>
         `;
         area.appendChild(div);
         area.scrollTop = area.scrollHeight;
     }
+
 
     function openFlagModal(query, aiText) {
         document.getElementById("flaggedUserQuery").value = query;

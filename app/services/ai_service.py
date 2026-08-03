@@ -98,6 +98,42 @@ class AIService:
         kb_hash = hashlib.md5(kb_text.encode("utf-8")).hexdigest()
         return kb_text, kb_hash
 
+    async def get_knowledge_base_data_with_entries(self, db: AsyncSession, user_message: str = "") -> tuple[str, str, list]:
+        stmt = select(KnowledgeEntry).where(KnowledgeEntry.is_active == True).order_by(KnowledgeEntry.category, KnowledgeEntry.id)
+        result = await db.execute(stmt)
+        entries = result.scalars().all()
+        
+        if not entries:
+            return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb", []
+        
+        selected_entries = entries
+        if user_message:
+            cleaned_msg = user_message.lower().strip()
+            query_words = set(re.findall(r'\w+', cleaned_msg))
+            scored_entries = []
+            for entry in entries:
+                score = 0
+                title_words = set(re.findall(r'\w+', entry.title.lower()))
+                score += len(query_words.intersection(title_words)) * 3
+                content_words = set(re.findall(r'\w+', entry.content.lower()))
+                score += len(query_words.intersection(content_words))
+                if entry.category and entry.category.lower() in cleaned_msg:
+                    score += 2
+                if score > 0:
+                    scored_entries.append((score, entry))
+            if scored_entries:
+                scored_entries.sort(key=lambda x: x[0], reverse=True)
+                selected_entries = [item[1] for item in scored_entries[:8]]
+
+        kb_lines = []
+        for idx, entry in enumerate(selected_entries, 1):
+            kb_lines.append(f"{idx}. [{entry.category.upper()}] {entry.title}: {entry.content}")
+        
+        kb_text = "\n".join(kb_lines)
+        kb_hash = hashlib.md5(kb_text.encode("utf-8")).hexdigest()
+        return kb_text, kb_hash, selected_entries
+
+
     async def get_gemini_config(self, db: AsyncSession) -> tuple[str, str]:
         stmt = select(BotSetting).where(BotSetting.key.in_(["gemini_api_key", "gemini_model"]))
         result = await db.execute(stmt)
@@ -313,22 +349,20 @@ class AIService:
             elif resp_len == "long":
                 sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nবিস্তারিত উত্তর প্রদান করো।"
 
-            kb_text, _ = await self.get_knowledge_base_data(db, user_message) if db else ("Empty", "empty")
+            kb_text, _, selected_entries = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [])
 
             hist_txt = ""
             if history:
                 h_lines = []
-                for msg in history[-12:]:
+                for msg in history[-6:]:
                     if isinstance(msg, dict):
                         role = msg.get("role")
                         content = msg.get("content")
                     else:
                         role = getattr(msg, "role", "")
                         content = getattr(msg, "content", "")
-                    if role == "user":
-                        h_lines.append(f"Customer: {content}")
-                    elif role == "assistant":
-                        h_lines.append(f"Assistant: {content}")
+                    r = "Customer" if role == "user" else "Assistant"
+                    h_lines.append(f"{r}: {content}")
                 if h_lines:
                     hist_txt = "## CONVERSATION HISTORY:\n" + "\n".join(h_lines) + "\n\n"
 
@@ -339,14 +373,17 @@ class AIService:
                 full_prompt += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
             full_prompt += f"## CUSTOMER QUERY:\n{user_message}"
 
-            print(f"[AI ENGINE DIAGNOSTIC] Using Model: '{model_name}', API Key starts with: '{api_key[:8] if api_key else 'None'}'")
-
             cache_key = hashlib.md5(f"{model_name}:{full_prompt}".encode("utf-8")).hexdigest()
             stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
             res_c = await db.execute(stmt_c)
             cached = res_c.scalar_one_or_none()
             if cached and cached.ai_response:
-                return cached.ai_response, True, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                return cached.ai_response, True, {
+                    "matched_count": len(selected_entries),
+                    "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
+                    "model_used": model_name + " (Cached)",
+                    "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                }
 
             model = genai.GenerativeModel(model_name)
             
@@ -362,14 +399,25 @@ class AIService:
                 err_text = f"Gemini API Exception ({type(gem_err).__name__}): {gem_err}"
                 print(f"[GEMINI API ERROR DIAGNOSIS] {err_text}")
                 await log_service.log("ERROR", "AI Engine Error", err_text, f"Model: {model_name}")
-                return fallback_msg, False, token_stats
+                return fallback_msg, False, {
+                    "matched_count": len(selected_entries),
+                    "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
+                    "model_used": model_name,
+                    "tokens": token_stats
+                }
 
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
                 token_stats["prompt_tokens"] = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
                 token_stats["completion_tokens"] = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
                 token_stats["total_tokens"] = getattr(response.usage_metadata, 'total_token_count', 0) or (token_stats["prompt_tokens"] + token_stats["completion_tokens"])
 
-            return ai_text, False, token_stats
+            rag_info = {
+                "matched_count": len(selected_entries),
+                "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
+                "model_used": model_name,
+                "tokens": token_stats
+            }
+            return ai_text, False, rag_info
         except Exception as e:
             err_msg = f"AI Response Critical Exception: {str(e)}"
             print(f"[AI SERVICE ERROR] {err_msg}")
@@ -378,6 +426,12 @@ class AIService:
                     await log_service.log("ERROR", "AI Critical Exception", err_msg)
                 except Exception:
                     pass
-            return fallback_msg, False, token_stats
+            return fallback_msg, False, {
+                "matched_count": 0,
+                "matched_titles": [],
+                "model_used": "unknown",
+                "tokens": token_stats
+            }
 
 ai_service = AIService()
+
