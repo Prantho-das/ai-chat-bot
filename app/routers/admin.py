@@ -240,10 +240,24 @@ async def toggle_knowledge_status(entry_id: int, request: Request, db: AsyncSess
     if entry:
         entry.is_active = not entry.is_active
         await db.commit()
-
     return RedirectResponse(url="/admin/knowledge", status_code=status.HTTP_302_FOUND)
 
+@router.post("/knowledge/delete/{entry_id}")
+async def delete_knowledge_entry(entry_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    stmt = select(KnowledgeEntry).where(KnowledgeEntry.id == entry_id)
+    result = await db.execute(stmt)
+    entry = result.scalar_one_or_none()
+    if entry:
+        await db.delete(entry)
+        await db.commit()
+
+    return RedirectResponse(url="/admin/knowledge?saved=1", status_code=status.HTTP_302_FOUND)
+
 @router.post("/knowledge/upload")
+
 async def upload_knowledge_file(
     request: Request,
     category: str = Form(...),
