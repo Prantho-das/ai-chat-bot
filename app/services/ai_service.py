@@ -119,7 +119,7 @@ class AIService:
         if not entries:
             return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb"
         
-        selected_entries = entries[:2]
+        selected_entries = []
         if user_message:
             cleaned_msg = user_message.lower().strip()
             query_words = set(re.findall(r'\w+', cleaned_msg))
@@ -137,6 +137,11 @@ class AIService:
             if scored_entries:
                 scored_entries.sort(key=lambda x: x[0], reverse=True)
                 selected_entries = [item[1] for item in scored_entries[:3]]
+        else:
+            selected_entries = entries[:3]
+
+        if not selected_entries:
+            return "কোনো প্রাসঙ্গিক নলেজ ডকু দেওয়া হয়নি।", "no_rag_match"
 
         kb_lines = []
         for idx, entry in enumerate(selected_entries, 1):
@@ -154,7 +159,7 @@ class AIService:
         if not entries:
             return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb", []
         
-        selected_entries = entries[:2]
+        selected_entries = []
         if user_message:
             cleaned_msg = user_message.lower().strip()
             query_words = set(re.findall(r'\w+', cleaned_msg))
@@ -176,6 +181,11 @@ class AIService:
             if scored_entries:
                 scored_entries.sort(key=lambda x: x[0], reverse=True)
                 selected_entries = [item[1] for item in scored_entries[:3]]
+        else:
+            selected_entries = entries[:3]
+
+        if not selected_entries:
+            return "কোনো প্রাসঙ্গিক নলেজ ডকু দেওয়া হয়নি।", "no_rag_match", []
 
         kb_lines = []
         for idx, entry in enumerate(selected_entries, 1):
