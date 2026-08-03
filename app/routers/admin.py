@@ -203,7 +203,16 @@ async def add_knowledge(
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
-    entry = KnowledgeEntry(category=category.strip(), title=title.strip(), content=content.strip(), is_active=is_active)
+    text_to_embed = f"{title.strip()}\n{content.strip()}"
+    embedding_vector_json = await ai_service.generate_embedding(text_to_embed, db=db)
+
+    entry = KnowledgeEntry(
+        category=category.strip(),
+        title=title.strip(),
+        content=content.strip(),
+        embedding_json=embedding_vector_json,
+        is_active=is_active
+    )
     db.add(entry)
     await db.commit()
 
@@ -230,6 +239,9 @@ async def edit_knowledge(
         entry.title = title.strip()
         entry.content = content.strip()
         entry.is_active = is_active
+        
+        text_to_embed = f"{title.strip()}\n{content.strip()}"
+        entry.embedding_json = await ai_service.generate_embedding(text_to_embed, db=db)
         await db.commit()
 
     return RedirectResponse(url="/admin/knowledge?saved=1", status_code=status.HTTP_302_FOUND)
@@ -262,7 +274,6 @@ async def delete_knowledge_entry(entry_id: int, request: Request, db: AsyncSessi
     return RedirectResponse(url="/admin/knowledge?saved=1", status_code=status.HTTP_302_FOUND)
 
 @router.post("/knowledge/upload")
-
 async def upload_knowledge_file(
     request: Request,
     category: str = Form(...),
@@ -286,11 +297,15 @@ async def upload_knowledge_file(
             content_str = content_bytes.decode("utf-8", errors="ignore")
 
         filename = file.filename or "Uploaded Document"
+        full_text = content_str.strip()
+
+        embedding_vector_json = await ai_service.generate_embedding(f"{filename}\n{full_text}", db=db)
 
         entry = KnowledgeEntry(
             category=category.strip(),
             title=f"File: {filename}",
-            content=content_str.strip()
+            content=full_text,
+            embedding_json=embedding_vector_json
         )
         db.add(entry)
         await db.commit()
@@ -298,6 +313,7 @@ async def upload_knowledge_file(
     except Exception as e:
         print(f"Error reading file upload: {e}")
         return RedirectResponse(url="/admin/knowledge?error=upload_failed", status_code=status.HTTP_302_FOUND)
+
 
 @router.post("/knowledge/delete/{entry_id}")
 async def delete_knowledge(entry_id: int, request: Request, db: AsyncSession = Depends(get_db)):

@@ -40,7 +40,30 @@ class AIService:
             self._cached_api_key = api_key
             self._configured = True
 
+    async def generate_embedding(self, text: str, db: AsyncSession = None) -> str:
+        try:
+            if not text or not genai:
+                return None
+            api_key, _ = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
+            if not api_key:
+                api_key = settings.GEMINI_API_KEY
+            if not api_key or api_key.startswith("your_"):
+                return None
+
+            self._ensure_genai_configured(api_key.strip().strip('"').strip("'"))
+            result = genai.embed_content(
+                model="models/text-embedding-004",
+                content=text[:2000],
+                task_type="retrieval_document"
+            )
+            if result and "embedding" in result:
+                return json.dumps(result["embedding"])
+        except Exception as e:
+            print(f"[EMBEDDING ERROR] Failed to generate embedding: {e}")
+        return None
+
     async def get_fallback_message(self, db: AsyncSession) -> str:
+
         return await get_bot_setting(db, "fallback_message", DEFAULT_FALLBACK_MESSAGE)
 
     async def get_system_prompt(self, db: AsyncSession) -> str:
