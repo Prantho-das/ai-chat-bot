@@ -56,7 +56,7 @@ class AIService:
             self._ensure_genai_configured(clean_key)
             
             result = genai.embed_content(
-                model="models/text-embedding-004",
+                model="text-embedding-004",
                 content=text[:2000],
                 task_type="retrieval_document"
             )
