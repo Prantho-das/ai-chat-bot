@@ -35,20 +35,29 @@
 
         <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
             <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Total Tokens</span>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Total Tokens Used</span>
                 <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-base font-bold shadow-sm">📊</div>
             </div>
             <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.total_tokens_used }}</div>
-            <p class="text-[11px] font-medium text-slate-400 mt-2">Total Gemini tokens</p>
+            <p class="text-[11px] font-medium text-slate-400 mt-2">In: {{ stats.total_prompt_tokens }} | Out: {{ stats.total_completion_tokens }}</p>
         </div>
 
         <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
             <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Token Saved (0 Cost)</span>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Estimated Cost (খরচ)</span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-base font-bold shadow-sm">💰</div>
+            </div>
+            <div class="text-3xl font-extrabold text-emerald-600 tracking-tight">৳{{ stats.estimated_cost_bdt }}</div>
+            <p class="text-[11px] font-medium text-slate-400 mt-2">${{ stats.estimated_cost_usd }} USD total spent</p>
+        </div>
+
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Saved (0 Cost)</span>
                 <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-base font-bold shadow-sm">⚡</div>
             </div>
             <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.cached_messages }}</div>
-            <p class="text-[11px] font-medium text-emerald-600 mt-2">Zero-cost API replies</p>
+            <p class="text-[11px] font-medium text-emerald-600 mt-2">🔥 {{ stats.savings_pct }}% API Calls Saved</p>
         </div>
     </div>
 

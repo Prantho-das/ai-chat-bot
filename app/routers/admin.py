@@ -119,7 +119,18 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     total_msgs = await db.scalar(select(func.count(Message.id))) or 0
     total_kb = await db.scalar(select(func.count(KnowledgeEntry.id))) or 0
     cached_msgs = await db.scalar(select(func.count(Message.id)).where(Message.is_cached == True)) or 0
+    
+    total_prompt_tokens = await db.scalar(select(func.sum(Message.prompt_tokens))) or 0
+    total_completion_tokens = await db.scalar(select(func.sum(Message.completion_tokens))) or 0
     total_tokens_used = await db.scalar(select(func.sum(Message.total_tokens))) or 0
+
+    # Gemini 2.0 Flash pricing estimate: $0.10 / 1M input tokens, $0.40 / 1M output tokens
+    estimated_cost_usd = (total_prompt_tokens * 0.00000010) + (total_completion_tokens * 0.00000040)
+    estimated_cost_bdt = estimated_cost_usd * 122.0
+
+    # Calculate Savings Percentage
+    ai_msgs_total = await db.scalar(select(func.count(Message.id)).where(Message.role == "assistant")) or 0
+    savings_pct = round((cached_msgs / ai_msgs_total * 100), 1) if ai_msgs_total > 0 else 0.0
 
     stmt = select(Conversation).order_by(Conversation.updated_at.desc()).limit(10)
     result = await db.execute(stmt)
@@ -130,7 +141,12 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         "total_messages": total_msgs,
         "knowledge_entries": total_kb,
         "cached_messages": cached_msgs,
-        "total_tokens_used": total_tokens_used
+        "total_tokens_used": total_tokens_used,
+        "total_prompt_tokens": total_prompt_tokens,
+        "total_completion_tokens": total_completion_tokens,
+        "estimated_cost_usd": f"{estimated_cost_usd:.4f}",
+        "estimated_cost_bdt": f"{estimated_cost_bdt:.2f}",
+        "savings_pct": savings_pct
     }
 
     return await render_admin_page("dashboard.html", request, db, {
