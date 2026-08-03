@@ -113,11 +113,15 @@ class AIService:
             scored_entries = []
             for entry in entries:
                 score = 0
-                title_words = set(re.findall(r'\w+', entry.title.lower()))
+                entry_title = entry.title or ""
+                entry_content = entry.content or ""
+                entry_category = entry.category or ""
+
+                title_words = set(re.findall(r'\w+', entry_title.lower()))
                 score += len(query_words.intersection(title_words)) * 3
-                content_words = set(re.findall(r'\w+', entry.content.lower()))
+                content_words = set(re.findall(r'\w+', entry_content.lower()))
                 score += len(query_words.intersection(content_words))
-                if entry.category and entry.category.lower() in cleaned_msg:
+                if entry_category and entry_category.lower() in cleaned_msg:
                     score += 2
                 if score > 0:
                     scored_entries.append((score, entry))
@@ -127,11 +131,13 @@ class AIService:
 
         kb_lines = []
         for idx, entry in enumerate(selected_entries, 1):
-            kb_lines.append(f"{idx}. [{entry.category.upper()}] {entry.title}: {entry.content}")
+            cat = (entry.category or 'GENERAL').upper()
+            kb_lines.append(f"{idx}. [{cat}] {entry.title or ''}: {entry.content or ''}")
         
         kb_text = "\n".join(kb_lines)
         kb_hash = hashlib.md5(kb_text.encode("utf-8")).hexdigest()
         return kb_text, kb_hash, selected_entries
+
 
 
     async def get_gemini_config(self, db: AsyncSession) -> tuple[str, str]:

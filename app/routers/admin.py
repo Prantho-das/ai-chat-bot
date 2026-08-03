@@ -162,9 +162,10 @@ async def knowledge_base_page(
     elif status_filter == "inactive":
         stmt = stmt.where(KnowledgeEntry.is_active == False)
 
-    stmt = stmt.order_by(KnowledgeEntry.created_at.desc())
+    stmt = stmt.order_by(KnowledgeEntry.id.desc())
     result = await db.execute(stmt)
     entries = result.scalars().all()
+
 
     # Stats calculation
     all_result = await db.execute(select(KnowledgeEntry))
