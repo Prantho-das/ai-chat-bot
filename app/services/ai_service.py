@@ -43,24 +43,35 @@ class AIService:
     async def generate_embedding(self, text: str, db: AsyncSession = None) -> str:
         try:
             if not text or not genai:
+                print("[EMBEDDING DIAGNOSTIC] Text is empty or genai module is None.")
                 return None
             api_key, _ = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
             if not api_key:
                 api_key = settings.GEMINI_API_KEY
             if not api_key or api_key.startswith("your_"):
+                print(f"[EMBEDDING DIAGNOSTIC] Gemini API Key is missing or default placeholder ('{api_key}'). Cannot generate embedding.")
                 return None
 
-            self._ensure_genai_configured(api_key.strip().strip('"').strip("'"))
+            clean_key = api_key.strip().strip('"').strip("'")
+            self._ensure_genai_configured(clean_key)
+            
             result = genai.embed_content(
                 model="models/text-embedding-004",
                 content=text[:2000],
                 task_type="retrieval_document"
             )
             if result and "embedding" in result:
+                print(f"[EMBEDDING SUCCESS] Successfully generated vector embedding ({len(result['embedding'])} dims)")
                 return json.dumps(result["embedding"])
         except Exception as e:
             print(f"[EMBEDDING ERROR] Failed to generate embedding: {e}")
+            try:
+                if db:
+                    await log_service.log("ERROR", "Embedding Failure", f"Failed to generate embedding: {e}")
+            except Exception:
+                pass
         return None
+
 
     async def get_fallback_message(self, db: AsyncSession) -> str:
 
