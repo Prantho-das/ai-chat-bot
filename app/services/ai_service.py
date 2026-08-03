@@ -389,7 +389,7 @@ class AIService:
             elif resp_len == "long":
                 sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nবিস্তারিত উত্তর প্রদান করো।"
 
-            kb_text, _, selected_entries = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [])
+            kb_text, kb_hash, selected_entries = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [])
 
             hist_txt = ""
             if history:
