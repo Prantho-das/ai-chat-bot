@@ -161,26 +161,55 @@ class AIService:
         
         selected_entries = []
         if user_message:
-            cleaned_msg = user_message.lower().strip()
-            query_words = set(re.findall(r'\w+', cleaned_msg))
-            scored_entries = []
-            for entry in entries:
-                score = 0
-                entry_title = entry.title or ""
-                entry_content = entry.content or ""
-                entry_category = entry.category or ""
+            # 1. Try Hybrid Vector Search (Cosine Similarity)
+            query_embedding_json = await self.generate_embedding(user_message, db=db)
+            if query_embedding_json:
+                try:
+                    import math
+                    query_vec = json.loads(query_embedding_json)
+                    vector_scores = []
+                    
+                    for entry in entries:
+                        if entry.embedding_json:
+                            doc_vec = json.loads(entry.embedding_json)
+                            # Cosine Similarity Calculation
+                            dot_product = sum(q * d for q, d in zip(query_vec, doc_vec))
+                            norm_q = math.sqrt(sum(q * q for q in query_vec))
+                            norm_d = math.sqrt(sum(d * d for d in doc_vec))
+                            similarity = dot_product / (norm_q * norm_d) if (norm_q * norm_d) > 0 else 0
+                            
+                            if similarity > 0.4: # Cosine threshold
+                                vector_scores.append((similarity, entry))
+                    
+                    if vector_scores:
+                        vector_scores.sort(key=lambda x: x[0], reverse=True)
+                        selected_entries = [item[1] for item in vector_scores[:3]]
+                        print(f"[VECTOR SEARCH SUCCESS] Found {len(selected_entries)} relevant documents via Cosine Similarity.")
+                except Exception as vec_err:
+                    print(f"[VECTOR SEARCH ERROR] Fallback to keyword matching: {vec_err}")
 
-                title_words = set(re.findall(r'\w+', entry_title.lower()))
-                score += len(query_words.intersection(title_words)) * 3
-                content_words = set(re.findall(r'\w+', entry_content.lower()))
-                score += len(query_words.intersection(content_words))
-                if entry_category and entry_category.lower() in cleaned_msg:
-                    score += 2
-                if score > 0:
-                    scored_entries.append((score, entry))
-            if scored_entries:
-                scored_entries.sort(key=lambda x: x[0], reverse=True)
-                selected_entries = [item[1] for item in scored_entries[:3]]
+            # 2. Keyword Fallback if Vector Search found nothing or embedding not ready
+            if not selected_entries:
+                cleaned_msg = user_message.lower().strip()
+                query_words = set(re.findall(r'\w+', cleaned_msg))
+                scored_entries = []
+                for entry in entries:
+                    score = 0
+                    entry_title = entry.title or ""
+                    entry_content = entry.content or ""
+                    entry_category = entry.category or ""
+
+                    title_words = set(re.findall(r'\w+', entry_title.lower()))
+                    score += len(query_words.intersection(title_words)) * 3
+                    content_words = set(re.findall(r'\w+', entry_content.lower()))
+                    score += len(query_words.intersection(content_words))
+                    if entry_category and entry_category.lower() in cleaned_msg:
+                        score += 2
+                    if score > 0:
+                        scored_entries.append((score, entry))
+                if scored_entries:
+                    scored_entries.sort(key=lambda x: x[0], reverse=True)
+                    selected_entries = [item[1] for item in scored_entries[:3]]
         else:
             selected_entries = entries[:3]
 
