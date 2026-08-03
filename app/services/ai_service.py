@@ -56,19 +56,27 @@ class AIService:
             self._ensure_genai_configured(clean_key)
             
             models_to_try = ["models/text-embedding-004", "models/embedding-001"]
+            try:
+                available = [m.name for m in genai.list_models() if "embedContent" in getattr(m, "supported_generation_methods", [])]
+                for m in available:
+                    if m not in models_to_try:
+                        models_to_try.append(m)
+            except Exception as list_err:
+                print(f"[EMBEDDING DIAGNOSTIC] Could not list models: {list_err}")
+
             for model_name in models_to_try:
-                try:
-                    result = genai.embed_content(
-                        model=model_name,
-                        content=text[:2000],
-                        task_type="retrieval_document"
-                    )
-                    if result and "embedding" in result:
-                        print(f"[EMBEDDING SUCCESS] Successfully generated vector embedding with {model_name} ({len(result['embedding'])} dims)")
-                        return json.dumps(result["embedding"])
-                except Exception as model_err:
-                    print(f"[EMBEDDING DIAGNOSTIC] Failed with {model_name}: {model_err}")
-                    continue
+                for kwargs in [
+                    {"model": model_name, "content": text[:2000], "task_type": "retrieval_document"},
+                    {"model": model_name, "content": text[:2000]}
+                ]:
+                    try:
+                        result = genai.embed_content(**kwargs)
+                        if result and "embedding" in result:
+                            print(f"[EMBEDDING SUCCESS] Successfully generated vector embedding with {model_name} ({len(result['embedding'])} dims)")
+                            return json.dumps(result["embedding"])
+                    except Exception as model_err:
+                        print(f"[EMBEDDING DIAGNOSTIC] Failed with {model_name}: {model_err}")
+                        continue
         except Exception as e:
             print(f"[EMBEDDING ERROR] Failed to generate embedding: {e}")
             try:
