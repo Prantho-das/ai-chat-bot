@@ -440,10 +440,20 @@ class AIService:
                 }
 
             models_to_try = [model_name]
-            if model_name != "gemini-2.0-flash":
-                models_to_try.append("gemini-2.0-flash")
-            if "gemini-1.5-flash" not in models_to_try:
-                models_to_try.append("gemini-1.5-flash")
+            try:
+                available_gen_models = []
+                for m in genai.list_models():
+                    if "generateContent" in getattr(m, "supported_generation_methods", []):
+                        m_id = m.name.replace("models/", "")
+                        available_gen_models.append(m_id)
+                for m_id in available_gen_models:
+                    if m_id not in models_to_try:
+                        models_to_try.append(m_id)
+            except Exception as list_err:
+                print(f"[GEMINI API DIAGNOSTIC] Could not list models: {list_err}")
+                for fallback_m in ["gemini-1.5-flash-latest", "gemini-1.5-pro", "gemini-2.0-flash"]:
+                    if fallback_m not in models_to_try:
+                        models_to_try.append(fallback_m)
 
             response = None
             ai_text = None
