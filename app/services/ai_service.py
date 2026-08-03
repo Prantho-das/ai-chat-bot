@@ -96,7 +96,7 @@ class AIService:
         entries = result.scalars().all()
 
         if not entries:
-            return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb", [], "none"
+            return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb", [], "none", None
 
         selected_entries = []
         search_method = "none"
@@ -148,7 +148,7 @@ class AIService:
             search_method = "default"
 
         if not selected_entries:
-            return "কোনো প্রাসঙ্গিক নলেজ ডকু দেওয়া হয়নি।", "no_rag_match", [], search_method
+            return "কোনো প্রাসঙ্গিক নলেজ ডকু দেওয়া হয়নি।", "no_rag_match", [], search_method, query_embedding_json
 
         kb_lines = []
         for idx, entry in enumerate(selected_entries, 1):
@@ -157,7 +157,7 @@ class AIService:
 
         kb_text = "\n".join(kb_lines)
         kb_hash = hashlib.md5(kb_text.encode("utf-8")).hexdigest()
-        return kb_text, kb_hash, selected_entries, search_method
+        return kb_text, kb_hash, selected_entries, search_method, query_embedding_json
 
 
     async def get_gemini_config(self, db: AsyncSession) -> tuple[str, str]:
@@ -376,7 +376,7 @@ class AIService:
 
             # 2. Normalized Query for Higher Cache Hits
             clean_q = re.sub(r'[^\w\s]', '', clean_raw).strip()
-            kb_text, kb_hash, selected_entries, search_method = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [], "none")
+            kb_text, kb_hash, selected_entries, search_method, query_emb_json = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [], "none", None)
 
             cache_key = hashlib.md5(f"{clean_q}:{kb_hash}".encode("utf-8")).hexdigest()
             if db and not booking_action_info:
