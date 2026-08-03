@@ -1,5 +1,6 @@
 import hashlib
 import json
+import math
 import re
 from datetime import datetime, timedelta
 try:
@@ -21,12 +22,12 @@ DEFAULT_FALLBACK_MESSAGE = (
 
 DEFAULT_SYSTEM_PROMPT = (
     "তুমি একজন অত্যন্ত বুদ্ধিমান, আন্তরিক এবং প্রফেশনাল AI কাস্টমার সাপোর্ট স্পেশালিস্ট। "
-    "কথোপকথন সবসময় ব্যালেন্সড, আকর্ষণীয় এবং রিডেবল রাখবে:\n\n"
+    "কথোপকথন সবসময় ব্যালেন্সড, আকর্ষণীয় এবং রিডেবল রাখবে:\n\n"
     "## স্মার্ট রেসপন্স রুলস:\n"
-    "১. **পরিমিত ও আকর্ষণীয় উত্তর (Max 3-4 Lines):** বিস্তারিত বিষয় হলেও চ্যাটে কখনো বিশাল লম্বা এসে (Essay) বা অতিরিক্ত পয়েন্ট দেবে না। মূল ৩-৪টি গুরুত্বপূর্ণ পয়েন্ট সংক্ষেপে ও স্পষ্ট করে তুলে ধরো।\n"
+    "১. **পরিমিত ও আকর্ষণীয় উত্তর (Max 3-4 Lines):** বিস্তারিত বিষয় হলেও চ্যাটে কখনো বিশাল লম্বা এসে (Essay) বা অতিরিক্ত পয়েন্ট দেবে না। মূল ৩-৪টি গুরুত্বপূর্ণ পয়েন্ট সংক্ষেপে ও স্পষ্ট করে তুলে ধরো।\n"
     "২. **সহজ প্রশ্ন (Greetings, ঠিকানা, মূল্য):** ১-২ লাইনে সরাসরি উত্তর দাও।\n"
     "৩. **তথ্য উৎস:** শুধুমাত্র প্রদত্ত Knowledge Base থেকে সঠিক তথ্য প্রকাশ করবে।\n"
-    "৪. **মেসেঞ্জার ফ্রেন্ডলি:** পড়া সহজ হয় এমনভাবে সুন্দর ফর্মেটিংয়ে লিখবে।"
+    "৪. **মেসেঞ্জার ফ্রেন্ডলি:** পড়া সহজ হয় এমনভাবে সুন্দর ফর্মেটিংয়ে লিখবে।"
 )
 
 class AIService:
@@ -43,47 +44,25 @@ class AIService:
     async def generate_embedding(self, text: str, db: AsyncSession = None) -> str:
         try:
             if not text or not genai:
-                print("[EMBEDDING DIAGNOSTIC] Text is empty or genai module is None.")
                 return None
             api_key, _ = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
             if not api_key:
                 api_key = settings.GEMINI_API_KEY
             if not api_key or api_key.startswith("your_"):
-                print(f"[EMBEDDING DIAGNOSTIC] Gemini API Key is missing or default placeholder ('{api_key}'). Cannot generate embedding.")
                 return None
 
             clean_key = api_key.strip().strip('"').strip("'")
             self._ensure_genai_configured(clean_key)
-            
-            models_to_try = ["models/text-embedding-004", "models/embedding-001"]
-            try:
-                available = [m.name for m in genai.list_models() if "embedContent" in getattr(m, "supported_generation_methods", [])]
-                for m in available:
-                    if m not in models_to_try:
-                        models_to_try.append(m)
-            except Exception as list_err:
-                print(f"[EMBEDDING DIAGNOSTIC] Could not list models: {list_err}")
 
-            for model_name in models_to_try:
-                for kwargs in [
-                    {"model": model_name, "content": text[:2000], "task_type": "retrieval_document"},
-                    {"model": model_name, "content": text[:2000]}
-                ]:
-                    try:
-                        result = genai.embed_content(**kwargs)
-                        if result and "embedding" in result:
-                            print(f"[EMBEDDING SUCCESS] Successfully generated vector embedding with {model_name} ({len(result['embedding'])} dims)")
-                            return json.dumps(result["embedding"])
-                    except Exception as model_err:
-                        print(f"[EMBEDDING DIAGNOSTIC] Failed with {model_name}: {model_err}")
-                        continue
+            for model_name in ["models/text-embedding-004", "models/embedding-001"]:
+                try:
+                    result = genai.embed_content(model=model_name, content=text[:2000], task_type="retrieval_document")
+                    if result and "embedding" in result:
+                        return json.dumps(result["embedding"])
+                except Exception:
+                    continue
         except Exception as e:
-            print(f"[EMBEDDING ERROR] Failed to generate embedding: {e}")
-            try:
-                if db:
-                    await log_service.log("ERROR", "Embedding Failure", f"Failed to generate embedding: {e}")
-            except Exception:
-                pass
+            print(f"[EMBEDDING ERROR] {e}")
         return None
 
 
@@ -111,120 +90,74 @@ class AIService:
         records = result.scalars().all()
         return {r.key: r.value for r in records}
 
-    async def get_knowledge_base_data(self, db: AsyncSession, user_message: str = "") -> tuple[str, str]:
+    async def get_knowledge_base_data_with_entries(self, db: AsyncSession, user_message: str = "") -> tuple[str, str, list, str]:
         stmt = select(KnowledgeEntry).where(KnowledgeEntry.is_active == True).order_by(KnowledgeEntry.category, KnowledgeEntry.id)
         result = await db.execute(stmt)
         entries = result.scalars().all()
-        
+
         if not entries:
-            return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb"
-        
+            return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb", [], "none"
+
         selected_entries = []
+        search_method = "none"
+
         if user_message:
-            cleaned_msg = user_message.lower().strip()
-            query_words = set(re.findall(r'\w+', cleaned_msg))
-            scored_entries = []
-            for entry in entries:
-                score = 0
-                title_words = set(re.findall(r'\w+', (entry.title or "").lower()))
-                score += len(query_words.intersection(title_words)) * 3
-                content_words = set(re.findall(r'\w+', (entry.content or "").lower()))
-                score += len(query_words.intersection(content_words))
-                if entry.category and entry.category.lower() in cleaned_msg:
-                    score += 2
-                if score > 0:
-                    scored_entries.append((score, entry))
-            if scored_entries:
-                scored_entries.sort(key=lambda x: x[0], reverse=True)
-                selected_entries = [item[1] for item in scored_entries[:3]]
-        else:
-            selected_entries = entries[:3]
-
-        if not selected_entries:
-            return "কোনো প্রাসঙ্গিক নলেজ ডকু দেওয়া হয়নি।", "no_rag_match"
-
-        kb_lines = []
-        for idx, entry in enumerate(selected_entries, 1):
-            kb_lines.append(f"{idx}. [{entry.category.upper()}] {entry.title}: {entry.content}")
-        
-        kb_text = "\n".join(kb_lines)
-        kb_hash = hashlib.md5(kb_text.encode("utf-8")).hexdigest()
-        return kb_text, kb_hash
-
-    async def get_knowledge_base_data_with_entries(self, db: AsyncSession, user_message: str = "") -> tuple[str, str, list]:
-        stmt = select(KnowledgeEntry).where(KnowledgeEntry.is_active == True).order_by(KnowledgeEntry.category, KnowledgeEntry.id)
-        result = await db.execute(stmt)
-        entries = result.scalars().all()
-        
-        if not entries:
-            return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb", []
-        
-        selected_entries = []
-        if user_message:
-            # 1. Try Hybrid Vector Search (Cosine Similarity)
+            # 1. Vector Search (Cosine Similarity)
             query_embedding_json = await self.generate_embedding(user_message, db=db)
             if query_embedding_json:
                 try:
-                    import math
                     query_vec = json.loads(query_embedding_json)
                     vector_scores = []
-                    
                     for entry in entries:
                         if entry.embedding_json:
                             doc_vec = json.loads(entry.embedding_json)
-                            # Cosine Similarity Calculation
-                            dot_product = sum(q * d for q, d in zip(query_vec, doc_vec))
+                            dot = sum(q * d for q, d in zip(query_vec, doc_vec))
                             norm_q = math.sqrt(sum(q * q for q in query_vec))
                             norm_d = math.sqrt(sum(d * d for d in doc_vec))
-                            similarity = dot_product / (norm_q * norm_d) if (norm_q * norm_d) > 0 else 0
-                            
-                            if similarity > 0.4: # Cosine threshold
-                                vector_scores.append((similarity, entry))
-                    
+                            sim = dot / (norm_q * norm_d) if (norm_q * norm_d) > 0 else 0
+                            if sim > 0.4:
+                                vector_scores.append((sim, entry))
                     if vector_scores:
                         vector_scores.sort(key=lambda x: x[0], reverse=True)
                         selected_entries = [item[1] for item in vector_scores[:3]]
-                        print(f"[VECTOR SEARCH SUCCESS] Found {len(selected_entries)} relevant documents via Cosine Similarity.")
-                except Exception as vec_err:
-                    print(f"[VECTOR SEARCH ERROR] Fallback to keyword matching: {vec_err}")
+                        search_method = "vector"
+                except Exception:
+                    pass
 
-            # 2. Keyword Fallback if Vector Search found nothing or embedding not ready
+            # 2. Keyword Fallback
             if not selected_entries:
                 cleaned_msg = user_message.lower().strip()
                 query_words = set(re.findall(r'\w+', cleaned_msg))
-                scored_entries = []
+                scored = []
                 for entry in entries:
                     score = 0
-                    entry_title = entry.title or ""
-                    entry_content = entry.content or ""
-                    entry_category = entry.category or ""
-
-                    title_words = set(re.findall(r'\w+', entry_title.lower()))
+                    title_words = set(re.findall(r'\w+', (entry.title or "").lower()))
                     score += len(query_words.intersection(title_words)) * 3
-                    content_words = set(re.findall(r'\w+', entry_content.lower()))
+                    content_words = set(re.findall(r'\w+', (entry.content or "").lower()))
                     score += len(query_words.intersection(content_words))
-                    if entry_category and entry_category.lower() in cleaned_msg:
+                    if (entry.category or "") and entry.category.lower() in cleaned_msg:
                         score += 2
                     if score > 0:
-                        scored_entries.append((score, entry))
-                if scored_entries:
-                    scored_entries.sort(key=lambda x: x[0], reverse=True)
-                    selected_entries = [item[1] for item in scored_entries[:3]]
+                        scored.append((score, entry))
+                if scored:
+                    scored.sort(key=lambda x: x[0], reverse=True)
+                    selected_entries = [item[1] for item in scored[:3]]
+                    search_method = "keyword"
         else:
             selected_entries = entries[:3]
+            search_method = "default"
 
         if not selected_entries:
-            return "কোনো প্রাসঙ্গিক নলেজ ডকু দেওয়া হয়নি।", "no_rag_match", []
+            return "কোনো প্রাসঙ্গিক নলেজ ডকু দেওয়া হয়নি।", "no_rag_match", [], search_method
 
         kb_lines = []
         for idx, entry in enumerate(selected_entries, 1):
             cat = (entry.category or 'GENERAL').upper()
             kb_lines.append(f"{idx}. [{cat}] {entry.title or ''}: {entry.content or ''}")
-        
+
         kb_text = "\n".join(kb_lines)
         kb_hash = hashlib.md5(kb_text.encode("utf-8")).hexdigest()
-        return kb_text, kb_hash, selected_entries
-
+        return kb_text, kb_hash, selected_entries, search_method
 
 
     async def get_gemini_config(self, db: AsyncSession) -> tuple[str, str]:
@@ -389,7 +322,6 @@ class AIService:
         fallback_msg = await self.get_fallback_message(db) if db else DEFAULT_FALLBACK_MESSAGE
         token_stats = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
-
         try:
             booking_action_info = ""
             if db and await self.is_booking_intent(user_message, db):
@@ -422,13 +354,13 @@ class AIService:
                 resp_len = "medium"  # Auto-upgrade to medium to allow displaying list/prices
 
             if resp_len == "short":
-                sys_prompt += "\n\n## RESPONSE LENGTH CRITICAL RULE:\nউত্তর অবশ্যই অত্যন্ত সংক্ষিপ্ত এবং সর্বোচ্চ ১ থেকে ২ লাইনের মধ্যে হতে হবে। কোনো অতিরিক্ত বিবরণ বা পয়েন্ট আকারে বড় তালিকা দেওয়া যাবে না।"
+                sys_prompt += "\n\n## RESPONSE LENGTH CRITICAL RULE:\nউত্তর অবশ্যই অত্যন্ত সংক্ষিপ্ত এবং সর্বোচ্চ ১ থেকে ২ লাইনের মধ্যে হতে হবে। কোনো অতিরিক্ত বিবরণ বা পয়েন্ট আকারে বড় তালিকা দেওয়া যাবে না।"
             elif resp_len == "medium":
                 sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nউত্তরটি মাঝারি মানের হবে, ৩ থেকে ৪ লাইনের মধ্যে শেষ করবে।"
             elif resp_len == "long":
                 sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nবিস্তারিত উত্তর প্রদান করো।"
 
-            kb_text, kb_hash, selected_entries = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [])
+            kb_text, kb_hash, selected_entries, search_method = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [], "none")
 
             hist_txt = ""
             if history:
@@ -461,34 +393,15 @@ class AIService:
                 return cached.ai_response, True, {
                     "matched_count": len(selected_entries),
                     "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
+                    "search_method": search_method,
                     "model_used": model_name + " (Cached)",
                     "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
                 }
 
-            models_to_try = []
-            try:
-                available_gen_models = []
-                all_models_raw = genai.list_models()
-                for m in all_models_raw:
-                    if "generateContent" in getattr(m, "supported_generation_methods", []):
-                        m_id = m.name.replace("models/", "")
-                        available_gen_models.append(m_id)
-
-                if model_name in available_gen_models:
-                    models_to_try.append(model_name)
-                elif f"models/{model_name}" in [m.name for m in all_models_raw]:
-                    models_to_try.append(f"models/{model_name}")
-
-                for rec in ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-2.5-flash"]:
-                    if rec in available_gen_models and rec not in models_to_try:
-                        models_to_try.append(rec)
-
-                for m_id in available_gen_models:
-                    if m_id not in models_to_try:
-                        models_to_try.append(m_id)
-            except Exception as list_err:
-                print(f"[GEMINI API DIAGNOSTIC] Could not list models: {list_err}")
-                models_to_try = [model_name, "gemini-2.0-flash", "gemini-1.5-flash-latest", "models/gemini-1.5-flash"]
+            # Direct model call with simple fallback (no list_models per message)
+            models_to_try = [model_name]
+            if model_name != "gemini-2.0-flash":
+                models_to_try.append("gemini-2.0-flash")
 
             response = None
             ai_text = None
@@ -512,7 +425,7 @@ class AIService:
                             break
                 except Exception as gem_err:
                     err_text = f"Gemini API Exception for {m_name} ({type(gem_err).__name__}): {gem_err}"
-                    print(f"[GEMINI API ERROR DIAGNOSIS] {err_text}")
+                    print(f"[GEMINI API ERROR] {err_text}")
                     await log_service.log("ERROR", "AI Engine Error", err_text, f"Model: {m_name}")
                     continue
 
@@ -520,6 +433,7 @@ class AIService:
                 return fallback_msg, False, {
                     "matched_count": len(selected_entries),
                     "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
+                    "search_method": search_method,
                     "model_used": model_name,
                     "tokens": token_stats
                 }
@@ -540,6 +454,7 @@ class AIService:
             rag_info = {
                 "matched_count": len(selected_entries),
                 "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
+                "search_method": search_method,
                 "model_used": model_name,
                 "tokens": token_stats
             }
@@ -555,9 +470,9 @@ class AIService:
             return fallback_msg, False, {
                 "matched_count": 0,
                 "matched_titles": [],
+                "search_method": "error",
                 "model_used": "unknown",
                 "tokens": token_stats
             }
 
 ai_service = AIService()
-
