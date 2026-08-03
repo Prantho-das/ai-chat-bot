@@ -59,7 +59,12 @@ async def render_admin_page(template_name: str, request: Request, db: AsyncSessi
     simplified_mode = await get_bot_setting(db, "simplified_client_mode", "false")
     context["simplified_client_mode"] = (simplified_mode == "true")
     context["request"] = request
-    return templates.TemplateResponse(template_name, context)
+    try:
+        return templates.TemplateResponse(request, template_name, context)
+    except TypeError:
+        return templates.TemplateResponse(template_name, context)
+
+
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
