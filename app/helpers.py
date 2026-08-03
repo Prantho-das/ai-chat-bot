@@ -3,10 +3,18 @@ from sqlalchemy import select
 from app.models import BotSetting
 
 async def get_bot_setting(db: AsyncSession, key: str, default_val: str = "") -> str:
-    stmt = select(BotSetting).where(BotSetting.key == key)
-    res = await db.execute(stmt)
-    setting = res.scalar_one_or_none()
-    return setting.value if setting else default_val
+    try:
+        stmt = select(BotSetting).where(BotSetting.key == key)
+        res = await db.execute(stmt)
+        setting = res.scalar_one_or_none()
+        return setting.value if setting else default_val
+    except Exception as e:
+        print(f"[DB HELPER ERROR] Failed to fetch bot setting '{key}': {e}")
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+        return default_val
 
 async def upsert_bot_setting(db: AsyncSession, key: str, value: str):
     stmt = select(BotSetting).where(BotSetting.key == key)

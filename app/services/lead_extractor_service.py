@@ -127,16 +127,23 @@ class LeadExtractorService:
             )
             db.add(lead)
 
-        await db.commit()
-        await db.refresh(lead)
+        try:
+            await db.commit()
+            await db.refresh(lead)
 
-        await log_service.log(
-            level="SUCCESS",
-            source="Lead Extractor",
-            message=f"🔥 Hot Lead captured from {platform.title()} ({sender_id}): Intent '{intent}'",
-            details=f"Email: {extracted_email or 'N/A'} | Phone: {extracted_phone or 'N/A'}"
-        )
-
-        return lead
+            await log_service.log(
+                level="SUCCESS",
+                source="Lead Extractor",
+                message=f"🔥 Hot Lead captured from {platform.title()} ({sender_id}): Intent '{intent}'",
+                details=f"Email: {extracted_email or 'N/A'} | Phone: {extracted_phone or 'N/A'}"
+            )
+            return lead
+        except Exception as err:
+            print(f"[LEAD EXTRACTOR DB ERROR] {err}")
+            try:
+                await db.rollback()
+            except Exception:
+                pass
+            return None
 
 lead_extractor_service = LeadExtractorService()
