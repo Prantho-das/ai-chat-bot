@@ -102,47 +102,47 @@ class AIService:
         search_method = "none"
 
         if user_message:
-            # 1. Vector Search (Cosine Similarity)
+            cleaned_msg = user_message.lower().strip()
+            query_words = set(re.findall(r'\w+', cleaned_msg))
+
+            # 1. Hybrid Search (Vector Similarity + Keyword Boosting)
             query_embedding_json = await self.generate_embedding(user_message, db=db)
+            hybrid_scores = []
+
+            query_vec = None
             if query_embedding_json:
                 try:
                     query_vec = json.loads(query_embedding_json)
-                    vector_scores = []
-                    for entry in entries:
-                        if entry.embedding_json:
-                            doc_vec = json.loads(entry.embedding_json)
-                            dot = sum(q * d for q, d in zip(query_vec, doc_vec))
-                            norm_q = math.sqrt(sum(q * q for q in query_vec))
-                            norm_d = math.sqrt(sum(d * d for d in doc_vec))
-                            sim = dot / (norm_q * norm_d) if (norm_q * norm_d) > 0 else 0
-                            if sim > 0.4:
-                                vector_scores.append((sim, entry))
-                    if vector_scores:
-                        vector_scores.sort(key=lambda x: x[0], reverse=True)
-                        selected_entries = [item[1] for item in vector_scores[:3]]
-                        search_method = "vector"
                 except Exception:
-                    pass
+                    query_vec = None
 
-            # 2. Keyword Fallback
-            if not selected_entries:
-                cleaned_msg = user_message.lower().strip()
-                query_words = set(re.findall(r'\w+', cleaned_msg))
-                scored = []
-                for entry in entries:
-                    score = 0
-                    title_words = set(re.findall(r'\w+', (entry.title or "").lower()))
-                    score += len(query_words.intersection(title_words)) * 3
-                    content_words = set(re.findall(r'\w+', (entry.content or "").lower()))
-                    score += len(query_words.intersection(content_words))
-                    if (entry.category or "") and entry.category.lower() in cleaned_msg:
-                        score += 2
-                    if score > 0:
-                        scored.append((score, entry))
-                if scored:
-                    scored.sort(key=lambda x: x[0], reverse=True)
-                    selected_entries = [item[1] for item in scored[:3]]
-                    search_method = "keyword"
+            for entry in entries:
+                v_score = 0.0
+                if query_vec and entry.embedding_json:
+                    try:
+                        doc_vec = json.loads(entry.embedding_json)
+                        dot = sum(q * d for q, d in zip(query_vec, doc_vec))
+                        norm_q = math.sqrt(sum(q * q for q in query_vec))
+                        norm_d = math.sqrt(sum(d * d for d in doc_vec))
+                        v_score = dot / (norm_q * norm_d) if (norm_q * norm_d) > 0 else 0.0
+                    except Exception:
+                        v_score = 0.0
+
+                # Keyword boost calculation
+                title_words = set(re.findall(r'\w+', (entry.title or "").lower()))
+                content_words = set(re.findall(r'\w+', (entry.content or "").lower()))
+                k_score = (len(query_words.intersection(title_words)) * 0.15) + (len(query_words.intersection(content_words)) * 0.05)
+                if (entry.category or "") and entry.category.lower() in cleaned_msg:
+                    k_score += 0.1
+
+                final_score = (v_score * 0.7) + (k_score * 0.3)
+                if final_score > 0.25:
+                    hybrid_scores.append((final_score, entry))
+
+            if hybrid_scores:
+                hybrid_scores.sort(key=lambda x: x[0], reverse=True)
+                selected_entries = [item[1] for item in hybrid_scores[:2]]
+                search_method = "hybrid_vector"
         else:
             selected_entries = entries[:3]
             search_method = "default"
@@ -323,6 +323,26 @@ class AIService:
         token_stats = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
         try:
+            clean_raw = user_message.strip().lower()
+
+            # 1. Static Greeting Bypass (0 Tokens, Instant Reply - Dynamic DB Controlled)
+            default_greetings = "hi, hello, hey, হাই, হ্যালো, হে, হেই, assalamu alaikum, assalamualaikum, সালামু আলাইকুম, আসসালামু আলাইকুম, কেমন আছেন, kemon achen, kemon asen"
+            default_greeting_reply = "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি? আমাদের সফটওয়্যার বা সার্ভিস সম্পর্কে বিস্তারিত জানতে কোনো প্রশ্ন থাকলে বলতে পারেন।"
+
+            db_greetings_str = await get_bot_setting(db, "static_greeting_keywords", default_greetings) if db else default_greetings
+            db_greeting_reply = await get_bot_setting(db, "static_greeting_reply", default_greeting_reply) if db else default_greeting_reply
+
+            simple_greetings = {k.strip().lower() for k in db_greetings_str.split(",") if k.strip()}
+
+            if clean_raw in simple_greetings:
+                return db_greeting_reply, True, {
+                    "matched_count": 0,
+                    "matched_titles": [],
+                    "search_method": "static_rule",
+                    "model_used": "Static Rule (0 Tokens)",
+                    "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                }
+
             booking_action_info = ""
             if db and await self.is_booking_intent(user_message, db):
                 cal_config = await self.get_calendar_config(db)
@@ -360,11 +380,14 @@ class AIService:
             elif resp_len == "long":
                 sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nবিস্তারিত উত্তর প্রদান করো।"
 
-            clean_q = user_message.strip().lower()
+            # 2. Normalized Query for Higher Cache Hits
+            clean_q = re.sub(r'[^\w\s]', '', clean_raw).strip()
             kb_text, kb_hash, selected_entries, search_method = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [], "none")
 
             cache_key = hashlib.md5(f"{clean_q}:{kb_hash}".encode("utf-8")).hexdigest()
+            query_emb_json = None
             if db and not booking_action_info:
+                # 2a. Exact Hash Match
                 stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
                 res_c = await db.execute(stmt_c)
                 cached = res_c.scalar_one_or_none()
@@ -373,14 +396,52 @@ class AIService:
                         "matched_count": len(selected_entries),
                         "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
                         "search_method": search_method,
-                        "model_used": model_name + " (Cached)",
+                        "model_used": model_name + " (Exact Cache)",
                         "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
                     }
+
+                # 2b. Semantic Vector Cache Match (85%+ Cosine Similarity on Previous Unique Questions)
+                query_emb_json = await self.generate_embedding(clean_q, db=db)
+                if query_emb_json:
+                    try:
+                        q_vec = json.loads(query_emb_json)
+                        stmt_all_cache = select(CacheEntry).where(CacheEntry.embedding_json.is_not(None)).order_by(CacheEntry.id.desc()).limit(100)
+                        all_caches = (await db.execute(stmt_all_cache)).scalars().all()
+
+                        best_sim = 0.0
+                        best_cached_resp = None
+                        for c_entry in all_caches:
+                            if c_entry.embedding_json:
+                                c_vec = json.loads(c_entry.embedding_json)
+                                dot = sum(qv * cv for qv, cv in zip(q_vec, c_vec))
+                                norm_q = math.sqrt(sum(qv * qv for qv in q_vec))
+                                norm_c = math.sqrt(sum(cv * cv for cv in c_vec))
+                                sim = dot / (norm_q * norm_c) if (norm_q * norm_c) > 0 else 0
+                                if sim > best_sim:
+                                    best_sim = sim
+                                    best_cached_resp = c_entry.ai_response
+
+                        if best_sim >= 0.86 and best_cached_resp:
+                            return best_cached_resp, True, {
+                                "matched_count": len(selected_entries),
+                                "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
+                                "search_method": f"semantic_cache_{int(best_sim*100)}%",
+                                "model_used": model_name + f" (Semantic Cache {int(best_sim*100)}%)",
+                                "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                            }
+                    except Exception as sem_err:
+                        print(f"[SEMANTIC CACHE WARNING] {sem_err}")
+
+            hist_limit_val = await get_bot_setting(db, "max_history_turns") if db else "4"
+            try:
+                hist_limit = int(hist_limit_val)
+            except ValueError:
+                hist_limit = 4
 
             hist_txt = ""
             if history:
                 h_lines = []
-                for msg in history[-4:]:
+                for msg in history[-hist_limit:]:
                     if isinstance(msg, dict):
                         role = msg.get("role")
                         content = msg.get("content")
@@ -399,7 +460,6 @@ class AIService:
                 full_prompt += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
             full_prompt += f"## CUSTOMER QUERY:\n{user_message}"
 
-            # Direct model call with simple fallback (no list_models per message)
             models_to_try = [model_name]
             if model_name != "gemini-2.0-flash":
                 models_to_try.append("gemini-2.0-flash")
@@ -407,10 +467,36 @@ class AIService:
             response = None
             ai_text = None
 
+            # Attempt Gemini Native Context Caching if static system context is large (>2000 chars) and caching module exists
+            cached_context_obj = None
+            static_context = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}"
+            if len(static_context) > 2000 and hasattr(genai, 'caching') and hasattr(genai.caching, 'CachedContent'):
+                try:
+                    cache_ttl_minutes = 15
+                    cached_context_obj = genai.caching.CachedContent.create(
+                        model=f"models/{model_name}",
+                        display_name="system_kb_context",
+                        contents=[static_context],
+                        ttl=timedelta(minutes=cache_ttl_minutes)
+                    )
+                except Exception as cache_err:
+                    cached_context_obj = None
+
             for m_name in models_to_try:
                 try:
-                    model = genai.GenerativeModel(m_name)
-                    res = await model.generate_content_async(full_prompt)
+                    if cached_context_obj:
+                        model = genai.GenerativeModel.from_cached_content(cached_content=cached_context_obj)
+                        user_prompt_payload = ""
+                        if hist_txt:
+                            user_prompt_payload += hist_txt
+                        if booking_action_info:
+                            user_prompt_payload += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
+                        user_prompt_payload += f"## CUSTOMER QUERY:\n{user_message}"
+                        res = await model.generate_content_async(user_prompt_payload)
+                    else:
+                        model = genai.GenerativeModel(m_name)
+                        res = await model.generate_content_async(full_prompt)
+
                     if res:
                         t = None
                         try:
@@ -441,7 +527,12 @@ class AIService:
 
             if db and ai_text != fallback_msg:
                 try:
-                    new_cache = CacheEntry(prompt_hash=cache_key, user_query=user_message[:200], ai_response=ai_text)
+                    new_cache = CacheEntry(
+                        prompt_hash=cache_key,
+                        user_query=user_message[:200],
+                        ai_response=ai_text,
+                        embedding_json=query_emb_json
+                    )
                     db.add(new_cache)
                     await db.commit()
                 except Exception:

@@ -135,6 +135,19 @@
                 </div>
             </div>
 
+            <!-- Dynamic Chat History Limit Setting -->
+            <div class="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 space-y-2">
+                <label class="block text-xs font-bold text-indigo-900 flex items-center space-x-1.5">
+                    <span>💬</span>
+                    <span>এআই চ্যাট হিস্ট্রি লিমিট (Dynamic History Limit)</span>
+                </label>
+                <div class="flex items-center space-x-3">
+                    <input type="number" min="2" max="20" name="max_history_turns" value="{{ creds.max_history_turns or '4' }}" class="w-32 bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600">
+                    <span class="text-xs text-slate-500">টি সাম্প্রতিক মেসেজ এআই-তে ইনপুট হিসেবে যাবে (ডিফল্ট: ৪টি)</span>
+                </div>
+                <p class="text-[10px] text-indigo-700">💡 সংখ্যা যত কমাবেন, ইনপুট টোকেন খরচ তত কমবে ও স্পিড বাড়বে।</p>
+            </div>
+
             <!-- Custom AI Fallback Response Message Box -->
             <div class="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/70 space-y-2">
                 <label class="block text-xs font-bold text-amber-900 flex items-center space-x-1.5">
@@ -143,6 +156,23 @@
                 </label>
                 <textarea name="fallback_message" rows="3" class="w-full bg-white border border-amber-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/10 leading-relaxed" placeholder="দুঃখিত, এই মুহূর্তে উত্তর তৈরিতে সামান্য সমস্যা হচ্ছে। খুব দ্রুত আমাদের একজন প্রতিনিধি আপনার সাথে যোগাযোগ করবেন।">{{ fallback_message }}</textarea>
                 <p class="text-[10px] text-amber-700 font-medium">💡 এআই এপিআই রেসপন্স না দিলে বা কোনো সার্ভার ত্রুটি হলে গ্রাহক এই কাস্টম বার্তাটি দেখতে পাবেন।</p>
+            </div>
+
+            <!-- Dynamic Static Greetings Bypass Options -->
+            <div class="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200/70 space-y-3">
+                <label class="block text-xs font-bold text-emerald-900 flex items-center space-x-1.5">
+                    <span>⚡</span>
+                    <span>স্ট্যাটিক গ্রিটিং ও অটো-রিপ্লাই (0 Token Greeting Rule)</span>
+                </label>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">গ্রিটিং কি-ওয়ার্ডসমূহ (কমা দিয়ে আলাদা করুন):</label>
+                    <input type="text" name="static_greeting_keywords" value="{{ creds.static_greeting_keywords or 'hi, hello, hey, হাই, হ্যালো, হে, হেই, assalamu alaikum, assalamualaikum, সালামু আলাইকুম, আসসালামু আলাইকুম, কেমন আছেন, kemon achen, kemon asen' }}" class="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-emerald-600">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">গ্রিটিং অটো-রিপ্লাই উত্তর (Static Reply):</label>
+                    <textarea name="static_greeting_reply" rows="2" class="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-emerald-600">{{ creds.static_greeting_reply or 'হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি? আমাদের সফটওয়্যার বা সার্ভিস সম্পর্কে বিস্তারিত জানতে কোনো প্রশ্ন থাকলে বলতে পারেন।' }}</textarea>
+                </div>
+                <p class="text-[10px] text-emerald-700">💡 এই শব্দগুলোর জন্য সরাসরি আপনার পছন্দমতো এই রিপ্লাইটি চলে যাবে (কোনো এপিআই টোকেন খরচ হবে না)।</p>
             </div>
 
             <div>

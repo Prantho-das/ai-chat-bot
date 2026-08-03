@@ -46,6 +46,23 @@ class LeadExtractorService:
         return "General Inquiry"
 
     @staticmethod
+    def extract_business_type(text: str) -> str | None:
+        """Detect customer business category from Bengali / English chat text."""
+        lowered = text.lower()
+        business_map = {
+            "pan": ["পান", "paner", "paan", "পান দোকান", "pan shop"],
+            "grocery": ["মুদি", "মদি", "grocery", "গ্লোসারী", "মুদির দোকান"],
+            "pharmacy": ["ফার্মেসি", "ঔষধ", "ঔষধের", "pharmacy", "medicine"],
+            "clothing": ["কাপড়", "গার্মেন্টস", "ফ্যাশন", "clothing", "fashion", "boutique", "বোটিক"],
+            "restaurant": ["রেস্টুরেন্ট", "খাবার", "খাবারের", "restaurant", "cafe", "ক্যাফে"],
+            "electronics": ["ইলেকট্রনিক্স", "মোবাইল", "কম্পিউটার", "electronics", "mobile shop"]
+        }
+        for b_type, keywords in business_map.items():
+            if any(k in lowered for k in keywords):
+                return b_type.title() + " Shop"
+        return None
+
+    @staticmethod
     def classify_intent(text: str) -> str:
         """Sync fallback classifier."""
         lowered = text.lower()
@@ -71,9 +88,10 @@ class LeadExtractorService:
     ) -> Lead | None:
         """Process incoming chat message to automatically extract lead details & save to database."""
         extracted_email, extracted_phone = self.extract_contact_info(user_text)
+        extracted_biz = self.extract_business_type(user_text)
         intent = await self.classify_intent_async(user_text, db=db)
         
-        is_valuable_lead = bool(extracted_email or extracted_phone or intent in ["High Interest", "Price Inquiry", "Booking Request"])
+        is_valuable_lead = bool(extracted_email or extracted_phone or extracted_biz or intent in ["High Interest", "Price Inquiry", "Booking Request"])
 
         if not is_valuable_lead:
             return None
@@ -90,6 +108,8 @@ class LeadExtractorService:
                 lead.phone = extracted_phone
             if sender_name and not lead.customer_name:
                 lead.customer_name = sender_name
+            if extracted_biz and hasattr(lead, "business_type") and not lead.business_type:
+                lead.business_type = extracted_biz
             
             lead.intent = intent
             lead.last_message = user_text
