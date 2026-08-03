@@ -360,12 +360,27 @@ class AIService:
             elif resp_len == "long":
                 sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nবিস্তারিত উত্তর প্রদান করো।"
 
+            clean_q = user_message.strip().lower()
             kb_text, kb_hash, selected_entries, search_method = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [], "none")
+
+            cache_key = hashlib.md5(f"{clean_q}:{kb_hash}".encode("utf-8")).hexdigest()
+            if db and not booking_action_info:
+                stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
+                res_c = await db.execute(stmt_c)
+                cached = res_c.scalar_one_or_none()
+                if cached and cached.ai_response:
+                    return cached.ai_response, True, {
+                        "matched_count": len(selected_entries),
+                        "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
+                        "search_method": search_method,
+                        "model_used": model_name + " (Cached)",
+                        "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                    }
 
             hist_txt = ""
             if history:
                 h_lines = []
-                for msg in history[-6:]:
+                for msg in history[-4:]:
                     if isinstance(msg, dict):
                         role = msg.get("role")
                         content = msg.get("content")
@@ -383,20 +398,6 @@ class AIService:
             if booking_action_info:
                 full_prompt += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
             full_prompt += f"## CUSTOMER QUERY:\n{user_message}"
-
-            clean_q = user_message.strip().lower()
-            cache_key = hashlib.md5(f"{clean_q}:{kb_hash}".encode("utf-8")).hexdigest()
-            stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
-            res_c = await db.execute(stmt_c)
-            cached = res_c.scalar_one_or_none()
-            if cached and cached.ai_response:
-                return cached.ai_response, True, {
-                    "matched_count": len(selected_entries),
-                    "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
-                    "search_method": search_method,
-                    "model_used": model_name + " (Cached)",
-                    "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-                }
 
             # Direct model call with simple fallback (no list_models per message)
             models_to_try = [model_name]

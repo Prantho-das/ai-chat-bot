@@ -661,6 +661,37 @@ async def clear_cache(request: Request, db: AsyncSession = Depends(get_db)):
         redirect_url = f"{redirect_url}{separator}saved=1"
     return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
+@router.get("/cache-entries")
+async def view_cache_entries(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    from app.models import CacheEntry
+    from sqlalchemy import select
+    stmt = select(CacheEntry).order_by(CacheEntry.created_at.desc()).limit(200)
+    res = await db.execute(stmt)
+    caches = res.scalars().all()
+
+    return await render_admin_page("cache_entries.html", request, db, {
+        "caches": caches
+    })
+
+@router.post("/delete-cache-entry/{entry_id}")
+async def delete_single_cache_entry(entry_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    from app.models import CacheEntry
+    from sqlalchemy import delete
+    try:
+        await db.execute(delete(CacheEntry).where(CacheEntry.id == entry_id))
+        await db.commit()
+        await log_service.log("SUCCESS", "System", f"Cache entry #{entry_id} was deleted.")
+    except Exception as e:
+        await log_service.log("ERROR", "System", f"Failed to delete cache entry #{entry_id}: {e}")
+
+    return RedirectResponse(url="/admin/cache-entries?saved=1", status_code=status.HTTP_302_FOUND)
+
 @router.get("/api/logs")
 async def get_live_logs_api(request: Request, db: AsyncSession = Depends(get_db)):
     if not is_authenticated(request):

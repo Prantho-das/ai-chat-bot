@@ -170,15 +170,21 @@
 
         <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
             <div>
-                <h5 class="text-xs font-bold text-slate-800">🧹 এআই রেসপন্স ক্যাশ মেমোরি (Clear AI Cache)</h5>
-                <p class="text-[10px] text-slate-500">বটের উত্তর ভেঙে ভেঙে আসলে বা পুরনো ক্যাশ করা ভুল উত্তর আসতে থাকলে এখান থেকে ক্যাশ সম্পূর্ণ পরিষ্কার করুন।</p>
+                <h5 class="text-xs font-bold text-slate-800">🧹 এআই রেসপন্স ক্যাশ মেমোরি (AI Response Cache)</h5>
+                <p class="text-[10px] text-slate-500">বটের ক্যাশড হওয়া প্রশ্ন ও উত্তরগুলো দেখুন অথবা ক্যাশ সম্পূর্ণ পরিষ্কার করুন।</p>
             </div>
-            <form action="/admin/clear-cache" method="POST" onsubmit="return confirm('আপনি কি নিশ্চিত যে এআই রেসপন্স ক্যাশ মেমোরি ক্লিয়ার করতে চান?');">
-                <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1">
-                    <span>🗑️</span>
-                    <span>ক্যাশ ক্লিয়ার করুন (Clear Cache)</span>
-                </button>
-            </form>
+            <div class="flex items-center space-x-2">
+                <a href="/admin/cache-entries" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1">
+                    <span>👁️</span>
+                    <span>ক্যাশ দেখুন (View Cache)</span>
+                </a>
+                <form action="/admin/clear-cache" method="POST" onsubmit="return confirm('আপনি কি নিশ্চিত যে এআই রেসপন্স ক্যাশ মেমোরি ক্লিয়ার করতে চান?');">
+                    <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1">
+                        <span>🗑️</span>
+                        <span>ক্যাশ ক্লিয়ার করুন (Clear Cache)</span>
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
