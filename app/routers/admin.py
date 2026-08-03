@@ -448,8 +448,6 @@ async def update_settings(
     response_length: str = Form(None),
     fallback_message: str = Form(None),
     max_history_turns: str = Form(None),
-    static_greeting_keywords: str = Form(None),
-    static_greeting_reply: str = Form(None),
     booking_keywords: str = Form(None),
     detail_keywords: str = Form(None),
     gemini_api_key: str = Form(None),
@@ -494,10 +492,6 @@ async def update_settings(
             await upsert_bot_setting(db, "fallback_message", fallback_message.strip())
         if max_history_turns is not None:
             await upsert_bot_setting(db, "max_history_turns", max_history_turns.strip())
-        if static_greeting_keywords is not None:
-            await upsert_bot_setting(db, "static_greeting_keywords", static_greeting_keywords.strip())
-        if static_greeting_reply is not None:
-            await upsert_bot_setting(db, "static_greeting_reply", static_greeting_reply.strip())
         await upsert_bot_setting(db, "simplified_client_mode", "true" if simplified_client_mode == "true" else "false")
         await db.commit()
 

@@ -325,17 +325,11 @@ class AIService:
         try:
             clean_raw = user_message.strip().lower()
 
-            # 1. Static Greeting Bypass (0 Tokens, Instant Reply - Dynamic DB Controlled)
-            default_greetings = "hi, hello, hey, হাই, হ্যালো, হে, হেই, assalamu alaikum, assalamualaikum, সালামু আলাইকুম, আসসালামু আলাইকুম, কেমন আছেন, kemon achen, kemon asen"
-            default_greeting_reply = "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি? আমাদের সফটওয়্যার বা সার্ভিস সম্পর্কে বিস্তারিত জানতে কোনো প্রশ্ন থাকলে বলতে পারেন।"
-
-            db_greetings_str = await get_bot_setting(db, "static_greeting_keywords", default_greetings) if db else default_greetings
-            db_greeting_reply = await get_bot_setting(db, "static_greeting_reply", default_greeting_reply) if db else default_greeting_reply
-
-            simple_greetings = {k.strip().lower() for k in db_greetings_str.split(",") if k.strip()}
-
+            # 1. Static Greeting Bypass (0 Tokens, Instant Reply)
+            simple_greetings = {"hi", "hello", "hey", "হাই", "হ্যালো", "হে", "হেই", "assalamu alaikum", "assalamualaikum", "সালামু আলাইকুম", "আসসালামু আলাইকুম", "কেমন আছেন", "kemon achen", "kemon asen"}
             if clean_raw in simple_greetings:
-                return db_greeting_reply, True, {
+                greeting_reply = "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি? আমাদের সফটওয়্যার বা সার্ভিস সম্পর্কে বিস্তারিত জানতে কোনো প্রশ্ন থাকলে বলতে পারেন।"
+                return greeting_reply, True, {
                     "matched_count": 0,
                     "matched_titles": [],
                     "search_method": "static_rule",
@@ -385,59 +379,18 @@ class AIService:
             kb_text, kb_hash, selected_entries, search_method = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [], "none")
 
             cache_key = hashlib.md5(f"{clean_q}:{kb_hash}".encode("utf-8")).hexdigest()
-            query_emb_json = None
             if db and not booking_action_info:
-                try:
-                    # 2a. Exact Hash Match
-                    stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
-                    res_c = await db.execute(stmt_c)
-                    cached = res_c.scalar_one_or_none()
-                    if cached and cached.ai_response:
-                        return cached.ai_response, True, {
-                            "matched_count": len(selected_entries),
-                            "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
-                            "search_method": search_method,
-                            "model_used": model_name + " (Exact Cache)",
-                            "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-                        }
-
-                    # 2b. Semantic Vector Cache Match (85%+ Cosine Similarity on Previous Unique Questions)
-                    query_emb_json = await self.generate_embedding(clean_q, db=db)
-                    if query_emb_json and hasattr(CacheEntry, 'embedding_json'):
-                        try:
-                            q_vec = json.loads(query_emb_json)
-                            stmt_all_cache = select(CacheEntry).where(CacheEntry.embedding_json.is_not(None)).order_by(CacheEntry.id.desc()).limit(100)
-                            all_caches = (await db.execute(stmt_all_cache)).scalars().all()
-
-                            best_sim = 0.0
-                            best_cached_resp = None
-                            for c_entry in all_caches:
-                                if c_entry.embedding_json:
-                                    c_vec = json.loads(c_entry.embedding_json)
-                                    dot = sum(qv * cv for qv, cv in zip(q_vec, c_vec))
-                                    norm_q = math.sqrt(sum(qv * qv for qv in q_vec))
-                                    norm_c = math.sqrt(sum(cv * cv for cv in c_vec))
-                                    sim = dot / (norm_q * norm_c) if (norm_q * norm_c) > 0 else 0
-                                    if sim > best_sim:
-                                        best_sim = sim
-                                        best_cached_resp = c_entry.ai_response
-
-                            if best_sim >= 0.86 and best_cached_resp:
-                                return best_cached_resp, True, {
-                                    "matched_count": len(selected_entries),
-                                    "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
-                                    "search_method": f"semantic_cache_{int(best_sim*100)}%",
-                                    "model_used": model_name + f" (Semantic Cache {int(best_sim*100)}%)",
-                                    "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-                                }
-                        except Exception as sem_err:
-                            print(f"[SEMANTIC CACHE WARNING] {sem_err}")
-                except Exception as cache_err:
-                    print(f"[CACHE LOOKUP DB ERROR] {cache_err}")
-                    try:
-                        await db.rollback()
-                    except Exception:
-                        pass
+                stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
+                res_c = await db.execute(stmt_c)
+                cached = res_c.scalar_one_or_none()
+                if cached and cached.ai_response:
+                    return cached.ai_response, True, {
+                        "matched_count": len(selected_entries),
+                        "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
+                        "search_method": search_method,
+                        "model_used": model_name + " (Cached)",
+                        "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                    }
 
             hist_limit_val = await get_bot_setting(db, "max_history_turns") if db else "4"
             try:
@@ -468,10 +421,8 @@ class AIService:
             full_prompt += f"## CUSTOMER QUERY:\n{user_message}"
 
             models_to_try = [model_name]
-            fallback_list = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-2.0-flash"]
-            for m in fallback_list:
-                if m not in models_to_try:
-                    models_to_try.append(m)
+            if model_name != "gemini-2.0-flash":
+                models_to_try.append("gemini-2.0-flash")
 
             response = None
             ai_text = None
@@ -536,6 +487,9 @@ class AIService:
 
             if db and ai_text != fallback_msg:
                 try:
+                    if not query_emb_json:
+                        query_emb_json = await self.generate_embedding(clean_q, db=db)
+
                     new_cache = CacheEntry(
                         prompt_hash=cache_key,
                         user_query=user_message[:200],
@@ -544,8 +498,8 @@ class AIService:
                     )
                     db.add(new_cache)
                     await db.commit()
-                except Exception:
-                    pass
+                except Exception as save_err:
+                    print(f"[CACHE SAVE ERROR] {save_err}")
 
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
                 token_stats["prompt_tokens"] = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0

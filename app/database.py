@@ -31,12 +31,3 @@ async def get_db():
             yield session
         finally:
             await session.close()
-
-async def init_db():
-    from sqlalchemy import text
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        try:
-            await conn.execute(text("ALTER TABLE cache_entries ADD COLUMN IF NOT EXISTS embedding_json TEXT;"))
-        except Exception:
-            pass

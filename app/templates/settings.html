@@ -1,598 +1,1236 @@
-{% extends "base.html" %}
-{% block title %}Bot Settings - MarketFlow Admin{% endblock %}
-{% block header_title %}Settings & Integrations{% endblock %}
-
-{% block content %}
-<div class="space-y-6 max-w-4xl" x-data="{ activeTab: new URLSearchParams(window.location.search).get('tab') || 'general' }">
-    <div class="flex items-center justify-between">
-        <div>
-            <h3 class="text-lg font-bold text-slate-900">Bot Settings & Integrations</h3>
-            <p class="text-xs text-slate-500 font-medium">সহজ চ্যাটবট, সোশ্যাল ও মার্কেটিং টুলস সেটআপ করুন</p>
-        </div>
-        <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1.5 rounded-full border border-indigo-100 flex items-center space-x-1.5">
-            <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
-            <span>Easy Setup Manager</span>
-        </span>
+{% extends "base.html" %} {% block title %}Bot Settings - MarketFlow Admin{%
+endblock %} {% block header_title %}Settings & Integrations{% endblock %} {%
+block content %}
+<div
+  class="space-y-6 max-w-4xl"
+  x-data="{ activeTab: new URLSearchParams(window.location.search).get('tab') || 'general' }"
+>
+  <div class="flex items-center justify-between">
+    <div>
+      <h3 class="text-lg font-bold text-slate-900">
+        Bot Settings & Integrations
+      </h3>
+      <p class="text-xs text-slate-500 font-medium">
+        সহজ চ্যাটবট, সোশ্যাল ও মার্কেটিং টুলস সেটআপ করুন
+      </p>
     </div>
+    <span
+      class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1.5 rounded-full border border-indigo-100 flex items-center space-x-1.5"
+    >
+      <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+      <span>Easy Setup Manager</span>
+    </span>
+  </div>
 
-    {% if request.query_params.get('msg') == 'migration_success' %}
-    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
-        <div class="flex items-center space-x-2">
-            <span>✅</span>
-            <span>ডাটাবেস মাইগ্রেশন সফলভাবে সম্পন্ন হয়েছে! (Database Schema Sync Complete)</span>
-        </div>
+  {% if request.query_params.get('msg') == 'migration_success' %}
+  <div
+    class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in"
+  >
+    <div class="flex items-center space-x-2">
+      <span>✅</span>
+      <span
+        >ডাটাবেস মাইগ্রেশন সফলভাবে সম্পন্ন হয়েছে! (Database Schema Sync
+        Complete)</span
+      >
     </div>
-    {% endif %}
+  </div>
+  {% endif %} {% if request.query_params.get('saved') or message %}
+  <div
+    class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in"
+  >
+    <div class="flex items-center space-x-2">
+      <span>✅</span>
+      <span
+        >সেটিংস সফলভাবে সংরক্ষিত ও আপডেট করা হয়েছে! (Settings Saved
+        Successfully)</span
+      >
+    </div>
+  </div>
+  {% endif %} {% if not simplified_client_mode %}
+  <div
+    class="p-4 bg-slate-900 text-white rounded-2xl flex items-center justify-between shadow-md"
+  >
+    <div class="flex items-center space-x-3">
+      <div class="p-2.5 bg-slate-800 rounded-xl text-indigo-400">⚡</div>
+      <div>
+        <h4 class="text-xs font-bold">Database Schema Migration</h4>
+        <p class="text-[11px] text-slate-400">
+          কোডবেসে নতুন কোনো SQL ফিল্ড বা মডেল যুক্ত হলে ডাটাবেস সিঙ্ক করতে এই
+          বাটন চাপুন।
+        </p>
+      </div>
+    </div>
+    <form action="/admin/migrate-db" method="POST">
+      <button
+        type="submit"
+        onclick="
+          return confirm('আপনি কি নিশ্চিত যে ডাটাবেস মাইগ্রেট করতে চান?');
+        "
+        class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center space-x-1.5"
+      >
+        <span>🔄 Sync Database Schema</span>
+      </button>
+    </form>
+  </div>
+  {% endif %}
 
-    {% if request.query_params.get('saved') or message %}
-    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
-        <div class="flex items-center space-x-2">
-            <span>✅</span>
-            <span>সেটিংস সফলভাবে সংরক্ষিত ও আপডেট করা হয়েছে! (Settings Saved Successfully)</span>
-        </div>
-    </div>
-    {% endif %}
+  <div
+    class="grid {% if simplified_client_mode %}grid-cols-1 max-w-xs{% else %}grid-cols-2 sm:grid-cols-5{% endif %} gap-3"
+  >
+    <button
+      @click="activeTab = 'general'"
+      :class="activeTab === 'general' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+      class="p-3.5 rounded-2xl text-left transition-all"
+    >
+      <div class="text-lg mb-1">🤖</div>
+      <div class="text-xs font-bold">Step 1: AI Persona</div>
+      <div class="text-[10px] opacity-80 font-medium">বটের উত্তর ও সাইজ</div>
+    </button>
 
     {% if not simplified_client_mode %}
-    <div class="p-4 bg-slate-900 text-white rounded-2xl flex items-center justify-between shadow-md">
-        <div class="flex items-center space-x-3">
-            <div class="p-2.5 bg-slate-800 rounded-xl text-indigo-400">⚡</div>
-            <div>
-                <h4 class="text-xs font-bold">Database Schema Migration</h4>
-                <p class="text-[11px] text-slate-400">কোডবেসে নতুন কোনো SQL ফিল্ড বা মডেল যুক্ত হলে ডাটাবেস সিঙ্ক করতে এই বাটন চাপুন।</p>
-            </div>
-        </div>
-        <form action="/admin/migrate-db" method="POST">
-            <button type="submit" onclick="return confirm('আপনি কি নিশ্চিত যে ডাটাবেস মাইগ্রেট করতে চান?');" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center space-x-1.5">
-                <span>🔄 Sync Database Schema</span>
-            </button>
-        </form>
-    </div>
+    <button
+      @click="activeTab = 'credentials'"
+      :class="activeTab === 'credentials' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+      class="p-3.5 rounded-2xl text-left transition-all"
+    >
+      <div class="text-lg mb-1">🔑</div>
+      <div class="text-xs font-bold">Step 2: Social APIs</div>
+      <div class="text-[10px] opacity-80 font-medium">FB, WA & Gemini Keys</div>
+    </button>
+
+    <button
+      @click="activeTab = 'calendar'"
+      :class="activeTab === 'calendar' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+      class="p-3.5 rounded-2xl text-left transition-all"
+    >
+      <div class="text-lg mb-1">📅</div>
+      <div class="text-xs font-bold">Step 3: Calendar</div>
+      <div class="text-[10px] opacity-80 font-medium">
+        Google Calendar Setup
+      </div>
+    </button>
+
+    <button
+      @click="activeTab = 'marketing'"
+      :class="activeTab === 'marketing' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+      class="p-3.5 rounded-2xl text-left transition-all"
+    >
+      <div class="text-lg mb-1">🚀</div>
+      <div class="text-xs font-bold">Step 4: Marketing</div>
+      <div class="text-[10px] opacity-80 font-medium">
+        Mailchimp, Push, Sheets
+      </div>
+    </button>
+
+    <button
+      @click="activeTab = 'keywords'"
+      :class="activeTab === 'keywords' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+      class="p-3.5 rounded-2xl text-left transition-all"
+    >
+      <div class="text-lg mb-1">📌</div>
+      <div class="text-xs font-bold">Step 5: Keywords</div>
+      <div class="text-[10px] opacity-80 font-medium">
+        স্পেশাল ট্র্রিগার ম্যানেজার
+      </div>
+    </button>
     {% endif %}
+  </div>
 
-    <div class="grid {% if simplified_client_mode %}grid-cols-1 max-w-xs{% else %}grid-cols-2 sm:grid-cols-5{% endif %} gap-3">
-        <button @click="activeTab = 'general'" :class="activeTab === 'general' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
-            <div class="text-lg mb-1">🤖</div>
-            <div class="text-xs font-bold">Step 1: AI Persona</div>
-            <div class="text-[10px] opacity-80 font-medium">বটের উত্তর ও সাইজ</div>
-        </button>
-
-        {% if not simplified_client_mode %}
-        <button @click="activeTab = 'credentials'" :class="activeTab === 'credentials' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
-            <div class="text-lg mb-1">🔑</div>
-            <div class="text-xs font-bold">Step 2: Social APIs</div>
-            <div class="text-[10px] opacity-80 font-medium">FB, WA & Gemini Keys</div>
-        </button>
-
-        <button @click="activeTab = 'calendar'" :class="activeTab === 'calendar' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
-            <div class="text-lg mb-1">📅</div>
-            <div class="text-xs font-bold">Step 3: Calendar</div>
-            <div class="text-[10px] opacity-80 font-medium">Google Calendar Setup</div>
-        </button>
-
-        <button @click="activeTab = 'marketing'" :class="activeTab === 'marketing' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
-            <div class="text-lg mb-1">🚀</div>
-            <div class="text-xs font-bold">Step 4: Marketing</div>
-            <div class="text-[10px] opacity-80 font-medium">Mailchimp, Push, Sheets</div>
-        </button>
-
-        <button @click="activeTab = 'keywords'" :class="activeTab === 'keywords' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'" class="p-3.5 rounded-2xl text-left transition-all">
-            <div class="text-lg mb-1">📌</div>
-            <div class="text-xs font-bold">Step 5: Keywords</div>
-            <div class="text-[10px] opacity-80 font-medium">স্পেশাল ট্র্রিগার ম্যানেজার</div>
-        </button>
-        {% endif %}
+  <!-- Step 1: AI Prompt & Response Length Setup Panel -->
+  <div
+    x-show="activeTab === 'general'"
+    class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6"
+  >
+    <div
+      class="flex items-center justify-between border-b border-slate-100 pb-3"
+    >
+      <div>
+        <h4 class="text-sm font-bold text-slate-900">
+          🤖 AI Bot Persona & Response Setup Panel
+        </h4>
+        <p class="text-xs text-slate-500">
+          বটের উত্তরের দৈর্ঘ্য (ছোট/মাঝারি/বড়), ফলব্যাক মেসেজ এবং কথা বলার
+          স্টাইল নির্বাচন করুন
+        </p>
+      </div>
     </div>
+    <form action="/admin/settings" method="POST" class="space-y-5">
+      <input type="hidden" name="form_type" value="prompt" />
 
-    <!-- Step 1: AI Prompt & Response Length Setup Panel -->
-    <div x-show="activeTab === 'general'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <!-- Company / Business Name Input Field -->
+      <div
+        class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 space-y-2"
+      >
+        <label
+          class="block text-xs font-bold text-indigo-900 flex items-center space-x-1.5"
+        >
+          <span>🏢</span>
+          <span>কোম্পানি বা ব্র্যান্ডের নাম (Company / Brand Name)</span>
+        </label>
+        <input
+          type="text"
+          name="company_name"
+          value="{{ creds.company_name }}"
+          class="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10"
+          placeholder="যেমন: POSTech Live, My Shop, MarketFlow..."
+        />
+        <p class="text-[10px] text-indigo-700 font-medium">
+          💡 গ্রাহক যখন "হাই", "হ্যালো" বা "কেউ আছেন" বলবে, তখন এই নামটি স্বাগত
+          বার্তায় দেখাবে।
+        </p>
+      </div>
+
+      <!-- Chatbot Response Length Selection Panel -->
+      <div
+        class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3"
+      >
+        <label class="block text-xs font-bold text-slate-800"
+          >📏 চ্যাটবট রেসপন্স সাইজ কন্ট্রোল (Bot Response Length Mode)</label
+        >
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <label
+            class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-500 transition-all"
+          >
+            <input
+              type="radio"
+              name="response_length"
+              value="short"
+              {%
+              if
+              creds.response_length=""
+              ="short"
+              or
+              not
+              creds.response_length
+              %}checked{%
+              endif
+              %}
+              class="text-indigo-600 focus:ring-indigo-500"
+            />
             <div>
-                <h4 class="text-sm font-bold text-slate-900">🤖 AI Bot Persona & Response Setup Panel</h4>
-                <p class="text-xs text-slate-500">বটের উত্তরের দৈর্ঘ্য (ছোট/মাঝারি/বড়), ফলব্যাক মেসেজ এবং কথা বলার স্টাইল নির্বাচন করুন</p>
+              <div class="text-xs font-bold text-slate-900">
+                ⚡ সংক্ষিপ্ত (Short)
+              </div>
+              <div class="text-[10px] text-slate-500">
+                ২-৩ বাক্যের মধ্যে সংক্ষেপে উত্তর দেবে।
+              </div>
             </div>
+          </label>
+
+          <label
+            class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-500 transition-all"
+          >
+            <input
+              type="radio"
+              name="response_length"
+              value="medium"
+              {%
+              if
+              creds.response_length=""
+              ="medium"
+              %}checked{%
+              endif
+              %}
+              class="text-indigo-600 focus:ring-indigo-500"
+            />
+            <div>
+              <div class="text-xs font-bold text-slate-900">
+                ⚖️ পরিমিত (Medium)
+              </div>
+              <div class="text-[10px] text-slate-500">
+                মাঝারি দৈর্ঘ্যের ব্যালেন্সড উত্তর দেবে।
+              </div>
+            </div>
+          </label>
+
+          <label
+            class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-500 transition-all"
+          >
+            <input
+              type="radio"
+              name="response_length"
+              value="long"
+              {%
+              if
+              creds.response_length=""
+              ="long"
+              %}checked{%
+              endif
+              %}
+              class="text-indigo-600 focus:ring-indigo-500"
+            />
+            <div>
+              <div class="text-xs font-bold text-slate-900">
+                📖 বিস্তারিত (Long)
+              </div>
+              <div class="text-[10px] text-slate-500">
+                পূর্ণাঙ্গ তথ্যসহ বড় ও বিস্তারিত উত্তর দেবে।
+              </div>
+            </div>
+          </label>
         </div>
-        <form action="/admin/settings" method="POST" class="space-y-5">
-            <input type="hidden" name="form_type" value="prompt">
-            
-            <!-- Company / Business Name Input Field -->
-            <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 space-y-2">
-                <label class="block text-xs font-bold text-indigo-900 flex items-center space-x-1.5">
-                    <span>🏢</span>
-                    <span>কোম্পানি বা ব্র্যান্ডের নাম (Company / Brand Name)</span>
-                </label>
-                <input type="text" name="company_name" value="{{ creds.company_name }}" class="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10" placeholder="যেমন: POSTech Live, My Shop, MarketFlow...">
-                <p class="text-[10px] text-indigo-700 font-medium">💡 গ্রাহক যখন "হাই", "হ্যালো" বা "কেউ আছেন" বলবে, তখন এই নামটি স্বাগত বার্তায় দেখাবে।</p>
-            </div>
+      </div>
 
-            <!-- Chatbot Response Length Selection Panel -->
-            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
-                <label class="block text-xs font-bold text-slate-800">📏 চ্যাটবট রেসপন্স সাইজ কন্ট্রোল (Bot Response Length Mode)</label>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <label class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-500 transition-all">
-                        <input type="radio" name="response_length" value="short" {% if creds.response_length == 'short' or not creds.response_length %}checked{% endif %} class="text-indigo-600 focus:ring-indigo-500">
-                        <div>
-                            <div class="text-xs font-bold text-slate-900">⚡ সংক্ষিপ্ত (Short)</div>
-                            <div class="text-[10px] text-slate-500">২-৩ বাক্যের মধ্যে সংক্ষেপে উত্তর দেবে।</div>
-                        </div>
-                    </label>
+      <!-- Dynamic Chat History Limit Setting -->
+      <div
+        class="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 space-y-2"
+      >
+        <label
+          class="block text-xs font-bold text-indigo-900 flex items-center space-x-1.5"
+        >
+          <span>💬</span>
+          <span>এআই চ্যাট হিস্ট্রি লিমিট (Dynamic History Limit)</span>
+        </label>
+        <div class="flex items-center space-x-3">
+          <input
+            type="number"
+            min="2"
+            max="20"
+            name="max_history_turns"
+            value="{{ creds.max_history_turns or '4' }}"
+            class="w-32 bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600"
+          />
+          <span class="text-xs text-slate-500"
+            >টি সাম্প্রতিক মেসেজ এআই-তে ইনপুট হিসেবে যাবে (ডিফল্ট: ৪টি)</span
+          >
+        </div>
+        <p class="text-[10px] text-indigo-700">
+          💡 সংখ্যা যত কমাবেন, ইনপুট টোকেন খরচ তত কমবে ও স্পিড বাড়বে।
+        </p>
+      </div>
 
-                    <label class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-500 transition-all">
-                        <input type="radio" name="response_length" value="medium" {% if creds.response_length == 'medium' %}checked{% endif %} class="text-indigo-600 focus:ring-indigo-500">
-                        <div>
-                            <div class="text-xs font-bold text-slate-900">⚖️ পরিমিত (Medium)</div>
-                            <div class="text-[10px] text-slate-500">মাঝারি দৈর্ঘ্যের ব্যালেন্সড উত্তর দেবে।</div>
-                        </div>
-                    </label>
+      <!-- Custom AI Fallback Response Message Box -->
+      <div
+        class="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/70 space-y-2"
+      >
+        <label
+          class="block text-xs font-bold text-amber-900 flex items-center space-x-1.5"
+        >
+          <span>⚠️</span>
+          <span>এআই ফলব্যাক মেসেজ (Custom Fallback Response Message)</span>
+        </label>
+        <textarea
+          name="fallback_message"
+          rows="3"
+          class="w-full bg-white border border-amber-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/10 leading-relaxed"
+          placeholder="দুঃখিত, এই মুহূর্তে উত্তর তৈরিতে সামান্য সমস্যা হচ্ছে। খুব দ্রুত আমাদের একজন প্রতিনিধি আপনার সাথে যোগাযোগ করবেন।"
+        >
+{{ fallback_message }}</textarea
+        >
+        <p class="text-[10px] text-amber-700 font-medium">
+          💡 এআই এপিআই রেসপন্স না দিলে বা কোনো সার্ভার ত্রুটি হলে গ্রাহক এই
+          কাস্টম বার্তাটি দেখতে পাবেন।
+        </p>
+      </div>
 
-                    <label class="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-indigo-500 transition-all">
-                        <input type="radio" name="response_length" value="long" {% if creds.response_length == 'long' %}checked{% endif %} class="text-indigo-600 focus:ring-indigo-500">
-                        <div>
-                            <div class="text-xs font-bold text-slate-900">📖 বিস্তারিত (Long)</div>
-                            <div class="text-[10px] text-slate-500">পূর্ণাঙ্গ তথ্যসহ বড় ও বিস্তারিত উত্তর দেবে।</div>
-                        </div>
-                    </label>
-                </div>
-            </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1.5"
+          >System Instruction Prompt</label
+        >
+        <textarea
+          name="system_prompt"
+          rows="5"
+          class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed"
+        >
+{{ system_prompt }}</textarea
+        >
+      </div>
 
-            <!-- Dynamic Chat History Limit Setting -->
-            <div class="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 space-y-2">
-                <label class="block text-xs font-bold text-indigo-900 flex items-center space-x-1.5">
-                    <span>💬</span>
-                    <span>এআই চ্যাট হিস্ট্রি লিমিট (Dynamic History Limit)</span>
-                </label>
-                <div class="flex items-center space-x-3">
-                    <input type="number" min="2" max="20" name="max_history_turns" value="{{ creds.max_history_turns or '4' }}" class="w-32 bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600">
-                    <span class="text-xs text-slate-500">টি সাম্প্রতিক মেসেজ এআই-তে ইনপুট হিসেবে যাবে (ডিফল্ট: ৪টি)</span>
-                </div>
-                <p class="text-[10px] text-indigo-700">💡 সংখ্যা যত কমাবেন, ইনপুট টোকেন খরচ তত কমবে ও স্পিড বাড়বে।</p>
-            </div>
+      <div
+        class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl space-y-2"
+      >
+        <label
+          class="block text-xs font-bold text-indigo-900 flex items-center space-x-1.5"
+        >
+          <span>⚙️</span>
+          <span>সফটওয়্যার প্রদর্শন মোড (Simplified Client Mode)</span>
+        </label>
+        <label class="flex items-center space-x-3 cursor-pointer">
+          <input
+            type="checkbox"
+            name="simplified_client_mode"
+            value="true"
+            {%
+            if
+            simplified_client_mode
+            %}checked{%
+            endif
+            %}
+            class="text-indigo-600 focus:ring-indigo-500 rounded border-slate-300"
+          />
+          <span class="text-xs text-slate-700 font-bold"
+            >ক্লয়েন্ট মোড চালু করুন (ডেভেলপার সেটিংস ও জটিল মেনু হাইড
+            করতে)</span
+          >
+        </label>
+      </div>
 
-            <!-- Custom AI Fallback Response Message Box -->
-            <div class="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/70 space-y-2">
-                <label class="block text-xs font-bold text-amber-900 flex items-center space-x-1.5">
-                    <span>⚠️</span>
-                    <span>এআই ফলব্যাক মেসেজ (Custom Fallback Response Message)</span>
-                </label>
-                <textarea name="fallback_message" rows="3" class="w-full bg-white border border-amber-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/10 leading-relaxed" placeholder="দুঃখিত, এই মুহূর্তে উত্তর তৈরিতে সামান্য সমস্যা হচ্ছে। খুব দ্রুত আমাদের একজন প্রতিনিধি আপনার সাথে যোগাযোগ করবেন।">{{ fallback_message }}</textarea>
-                <p class="text-[10px] text-amber-700 font-medium">💡 এআই এপিআই রেসপন্স না দিলে বা কোনো সার্ভার ত্রুটি হলে গ্রাহক এই কাস্টম বার্তাটি দেখতে পাবেন।</p>
-            </div>
+      <div class="flex items-center space-x-3 pt-3 border-t border-slate-100">
+        <button
+          type="submit"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
+        >
+          Save Prompt Settings
+        </button>
+      </div>
+    </form>
 
-            <!-- Dynamic Static Greetings Bypass Options -->
-            <div class="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200/70 space-y-3">
-                <label class="block text-xs font-bold text-emerald-900 flex items-center space-x-1.5">
-                    <span>⚡</span>
-                    <span>স্ট্যাটিক গ্রিটিং ও অটো-রিপ্লাই (0 Token Greeting Rule)</span>
-                </label>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-700 mb-1">গ্রিটিং কি-ওয়ার্ডসমূহ (কমা দিয়ে আলাদা করুন):</label>
-                    <input type="text" name="static_greeting_keywords" value="{{ creds.static_greeting_keywords or 'hi, hello, hey, হাই, হ্যালো, হে, হেই, assalamu alaikum, assalamualaikum, সালামু আলাইকুম, আসসালামু আলাইকুম, কেমন আছেন, kemon achen, kemon asen' }}" class="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-emerald-600">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-700 mb-1">গ্রিটিং অটো-রিপ্লাই উত্তর (Static Reply):</label>
-                    <textarea name="static_greeting_reply" rows="2" class="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-emerald-600">{{ creds.static_greeting_reply or 'হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি? আমাদের সফটওয়্যার বা সার্ভিস সম্পর্কে বিস্তারিত জানতে কোনো প্রশ্ন থাকলে বলতে পারেন।' }}</textarea>
-                </div>
-                <p class="text-[10px] text-emerald-700">💡 এই শব্দগুলোর জন্য সরাসরি আপনার পছন্দমতো এই রিপ্লাইটি চলে যাবে (কোনো এপিআই টোকেন খরচ হবে না)।</p>
-            </div>
-
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">System Instruction Prompt</label>
-                <textarea name="system_prompt" rows="5" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed">{{ system_prompt }}</textarea>
-            </div>
-
-            <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl space-y-2">
-                <label class="block text-xs font-bold text-indigo-900 flex items-center space-x-1.5">
-                    <span>⚙️</span>
-                    <span>সফটওয়্যার প্রদর্শন মোড (Simplified Client Mode)</span>
-                </label>
-                <label class="flex items-center space-x-3 cursor-pointer">
-                    <input type="checkbox" name="simplified_client_mode" value="true" {% if simplified_client_mode %}checked{% endif %} class="text-indigo-600 focus:ring-indigo-500 rounded border-slate-300">
-                    <span class="text-xs text-slate-700 font-bold">ক্লয়েন্ট মোড চালু করুন (ডেভেলপার সেটিংস ও জটিল মেনু হাইড করতে)</span>
-                </label>
-            </div>
-
-            <div class="flex items-center space-x-3 pt-3 border-t border-slate-100">
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20">
-                    Save Prompt Settings
-                </button>
-            </div>
+    <div
+      class="pt-4 border-t border-slate-100 flex items-center justify-between"
+    >
+      <div>
+        <h5 class="text-xs font-bold text-slate-800">
+          🧹 এআই রেসপন্স ক্যাশ মেমোরি (AI Response Cache)
+        </h5>
+        <p class="text-[10px] text-slate-500">
+          বটের ক্যাশড হওয়া প্রশ্ন ও উত্তরগুলো দেখুন অথবা ক্যাশ সম্পূর্ণ পরিষ্কার
+          করুন।
+        </p>
+      </div>
+      <div class="flex items-center space-x-2">
+        <a
+          href="/admin/cache-entries"
+          class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1"
+        >
+          <span>👁️</span>
+          <span>ক্যাশ দেখুন (View Cache)</span>
+        </a>
+        <form
+          action="/admin/clear-cache"
+          method="POST"
+          onsubmit="
+            return confirm(
+              'আপনি কি নিশ্চিত যে এআই রেসপন্স ক্যাশ মেমোরি ক্লিয়ার করতে চান?',
+            );
+          "
+        >
+          <button
+            type="submit"
+            class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1"
+          >
+            <span>🗑️</span>
+            <span>ক্যাশ ক্লিয়ার করুন (Clear Cache)</span>
+          </button>
         </form>
-
-        <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
-            <div>
-                <h5 class="text-xs font-bold text-slate-800">🧹 এআই রেসপন্স ক্যাশ মেমোরি (AI Response Cache)</h5>
-                <p class="text-[10px] text-slate-500">বটের ক্যাশড হওয়া প্রশ্ন ও উত্তরগুলো দেখুন অথবা ক্যাশ সম্পূর্ণ পরিষ্কার করুন।</p>
-            </div>
-            <div class="flex items-center space-x-2">
-                <a href="/admin/cache-entries" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1">
-                    <span>👁️</span>
-                    <span>ক্যাশ দেখুন (View Cache)</span>
-                </a>
-                <form action="/admin/clear-cache" method="POST" onsubmit="return confirm('আপনি কি নিশ্চিত যে এআই রেসপন্স ক্যাশ মেমোরি ক্লিয়ার করতে চান?');">
-                    <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1">
-                        <span>🗑️</span>
-                        <span>ক্যাশ ক্লিয়ার করুন (Clear Cache)</span>
-                    </button>
-                </form>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
 
+  <!-- Step 2: API Keys Management -->
+  <div
+    x-show="activeTab === 'credentials'"
+    class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm"
+  >
+    <form action="/admin/settings" method="POST" class="space-y-6">
+      <input type="hidden" name="form_type" value="credentials" />
 
-    <!-- Step 2: API Keys Management -->
-    <div x-show="activeTab === 'credentials'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-        <form action="/admin/settings" method="POST" class="space-y-6">
-            <input type="hidden" name="form_type" value="credentials">
-            
-            <!-- Gemini Key Card -->
-            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-4">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">✨ Google Gemini AI</span>
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[11px] text-indigo-600 hover:underline font-semibold">কীভাবে Key পাবেন? →</a>
-                </div>
+      <!-- Gemini Key Card -->
+      <div
+        class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-4"
+      >
+        <div class="flex items-center justify-between">
+          <span
+            class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100"
+            >✨ Google Gemini AI</span
+          >
+          <a
+            href="https://aistudio.google.com/app/apikey"
+            target="_blank"
+            class="text-[11px] text-indigo-600 hover:underline font-semibold"
+            >কীভাবে Key পাবেন? →</a
+          >
+        </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Gemini Model Selection (API থেকে স্বয়ংক্রিয়ভাবে প্রাপ্ত)</label>
-                        <select name="gemini_model" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-600">
-                            {% for m in available_models %}
-                            <option value="{{ m.id }}" {% if creds.gemini_model == m.id or (not creds.gemini_model and loop.first) %}selected{% endif %}>
-                                {{ m.name }} ({{ m.id }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                        <p class="text-[10px] text-slate-400 mt-1">💡 আপনার Gemini API Key দিয়ে গুগল সার্ভিস থেকে সমস্ত এভেলেবল মডেলের ড্রপডাউন অটোমেটিক তৈরি হয়ে যাবে।</p>
-                    </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >Gemini Model Selection (API থেকে স্বয়ংক্রিয়ভাবে প্রাপ্ত)</label
+            >
+            <select
+              name="gemini_model"
+              class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-600"
+            >
+              {% for m in available_models %}
+              <option
+                value="{{ m.id }}"
+                {%
+                if
+                creds.gemini_model=""
+                ="m.id"
+                or
+                (not
+                creds.gemini_model
+                and
+                loop.first)
+                %}selected{%
+                endif
+                %}
+              >
+                {{ m.name }} ({{ m.id }})
+              </option>
+              {% endfor %}
+            </select>
+            <p class="text-[10px] text-slate-400 mt-1">
+              💡 আপনার Gemini API Key দিয়ে গুগল সার্ভিস থেকে সমস্ত এভেলেবল
+              মডেলের ড্রপডাউন অটোমেটিক তৈরি হয়ে যাবে।
+            </p>
+          </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Gemini API Key</label>
-                        <div x-data="{ show: false }" class="relative">
-                            <input :type="show ? 'text' : 'password'" name="gemini_api_key" value="{{ creds.gemini_api_key }}" placeholder="AIzaSy..." class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
-                            <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
-                                <span x-show="!show" title="Show Token">👁️</span>
-                                <span x-show="show" title="Hide Token" style="display: none;">🙈</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >Gemini API Key</label
+            >
+            <div x-data="{ show: false }" class="relative">
+              <input
+                :type="show ? 'text' : 'password'"
+                name="gemini_api_key"
+                value="{{ creds.gemini_api_key }}"
+                placeholder="AIzaSy..."
+                class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"
+              />
+              <button
+                type="button"
+                @click="show = !show"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none"
+              >
+                <span x-show="!show" title="Show Token">👁️</span>
+                <span x-show="show" title="Hide Token" style="display: none"
+                  >🙈</span
+                >
+              </button>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <!-- FB Settings Card -->
-            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">📘 Facebook Messenger & Comments</span>
-                    <span class="text-[11px] text-slate-400 font-medium">Graph API v19.0</span>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Page Access Token</label>
-                        <div x-data="{ show: false }" class="relative">
-                            <input :type="show ? 'text' : 'password'" name="fb_page_access_token" value="{{ creds.fb_page_access_token }}" placeholder="EAA..." class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
-                            <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
-                                <span x-show="!show" title="Show Token">👁️</span>
-                                <span x-show="show" title="Hide Token" style="display: none;">🙈</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Verify Token (পছন্দমতো যেকোনো শব্দ)</label>
-                        <div x-data="{ show: false }" class="relative">
-                            <input :type="show ? 'text' : 'password'" name="fb_verify_token" value="{{ creds.fb_verify_token }}" placeholder="my_secret_verify_token_123" class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
-                            <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
-                                <span x-show="!show" title="Show Token">👁️</span>
-                                <span x-show="show" title="Hide Token" style="display: none;">🙈</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+      <!-- FB Settings Card -->
+      <div
+        class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3"
+      >
+        <div class="flex items-center justify-between">
+          <span
+            class="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100"
+            >📘 Facebook Messenger & Comments</span
+          >
+          <span class="text-[11px] text-slate-400 font-medium"
+            >Graph API v19.0</span
+          >
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >Page Access Token</label
+            >
+            <div x-data="{ show: false }" class="relative">
+              <input
+                :type="show ? 'text' : 'password'"
+                name="fb_page_access_token"
+                value="{{ creds.fb_page_access_token }}"
+                placeholder="EAA..."
+                class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"
+              />
+              <button
+                type="button"
+                @click="show = !show"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none"
+              >
+                <span x-show="!show" title="Show Token">👁️</span>
+                <span x-show="show" title="Hide Token" style="display: none"
+                  >🙈</span
+                >
+              </button>
             </div>
-
-            <!-- WhatsApp Settings Card -->
-            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">🟢 WhatsApp Cloud API</span>
-                    <span class="text-[11px] text-slate-400 font-medium">Meta Cloud API</span>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Access Token</label>
-                        <div x-data="{ show: false }" class="relative">
-                            <input :type="show ? 'text' : 'password'" name="wa_access_token" value="{{ creds.wa_access_token }}" placeholder="EAA..." class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
-                            <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
-                                <span x-show="!show" title="Show Token">👁️</span>
-                                <span x-show="show" title="Hide Token" style="display: none;">🙈</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number ID</label>
-                        <div x-data="{ show: false }" class="relative">
-                            <input :type="show ? 'text' : 'password'" name="wa_phone_number_id" value="{{ creds.wa_phone_number_id }}" placeholder="1029384756..." class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
-                            <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
-                                <span x-show="!show" title="Show Token">👁️</span>
-                                <span x-show="show" title="Hide Token" style="display: none;">🙈</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Verify Token</label>
-                    <div x-data="{ show: false }" class="relative">
-                        <input :type="show ? 'text' : 'password'" name="wa_verify_token" value="{{ creds.wa_verify_token }}" placeholder="my_wa_verify_token_123" class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
-                        <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
-                            <span x-show="!show" title="Show Token">👁️</span>
-                            <span x-show="show" title="Hide Token" style="display: none;">🙈</span>
-                        </button>
-                    </div>
-                </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >Verify Token (পছন্দমতো যেকোনো শব্দ)</label
+            >
+            <div x-data="{ show: false }" class="relative">
+              <input
+                :type="show ? 'text' : 'password'"
+                name="fb_verify_token"
+                value="{{ creds.fb_verify_token }}"
+                placeholder="my_secret_verify_token_123"
+                class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"
+              />
+              <button
+                type="button"
+                @click="show = !show"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none"
+              >
+                <span x-show="!show" title="Show Token">👁️</span>
+                <span x-show="show" title="Hide Token" style="display: none"
+                  >🙈</span
+                >
+              </button>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20 w-full sm:w-auto">
-                Save All Credentials
+      <!-- WhatsApp Settings Card -->
+      <div
+        class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3"
+      >
+        <div class="flex items-center justify-between">
+          <span
+            class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100"
+            >🟢 WhatsApp Cloud API</span
+          >
+          <span class="text-[11px] text-slate-400 font-medium"
+            >Meta Cloud API</span
+          >
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >WhatsApp Access Token</label
+            >
+            <div x-data="{ show: false }" class="relative">
+              <input
+                :type="show ? 'text' : 'password'"
+                name="wa_access_token"
+                value="{{ creds.wa_access_token }}"
+                placeholder="EAA..."
+                class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"
+              />
+              <button
+                type="button"
+                @click="show = !show"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none"
+              >
+                <span x-show="!show" title="Show Token">👁️</span>
+                <span x-show="show" title="Hide Token" style="display: none"
+                  >🙈</span
+                >
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >Phone Number ID</label
+            >
+            <div x-data="{ show: false }" class="relative">
+              <input
+                :type="show ? 'text' : 'password'"
+                name="wa_phone_number_id"
+                value="{{ creds.wa_phone_number_id }}"
+                placeholder="1029384756..."
+                class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"
+              />
+              <button
+                type="button"
+                @click="show = !show"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none"
+              >
+                <span x-show="!show" title="Show Token">👁️</span>
+                <span x-show="show" title="Hide Token" style="display: none"
+                  >🙈</span
+                >
+              </button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"
+            >WhatsApp Verify Token</label
+          >
+          <div x-data="{ show: false }" class="relative">
+            <input
+              :type="show ? 'text' : 'password'"
+              name="wa_verify_token"
+              value="{{ creds.wa_verify_token }}"
+              placeholder="my_wa_verify_token_123"
+              class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"
+            />
+            <button
+              type="button"
+              @click="show = !show"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none"
+            >
+              <span x-show="!show" title="Show Token">👁️</span>
+              <span x-show="show" title="Hide Token" style="display: none"
+                >🙈</span
+              >
             </button>
-        </form>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20 w-full sm:w-auto"
+      >
+        Save All Credentials
+      </button>
+    </form>
+  </div>
+
+  <!-- Step 3: Google Calendar Integration Panel -->
+  <div
+    x-show="activeTab === 'calendar'"
+    class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6"
+  >
+    <div
+      class="flex items-center justify-between border-b border-slate-100 pb-3"
+    >
+      <div>
+        <h4 class="text-sm font-bold text-slate-900">
+          📅 Google Calendar Integration (n8n Super Easy Flow)
+        </h4>
+        <p class="text-xs text-slate-500">
+          n8n-এর মতো ১-ক্লিকে সার্ভিস একাউন্ট JSON ফাইল আপলোড করে ইন্সট্যান্ট
+          কানেক্ট করুন
+        </p>
+      </div>
+      {% if creds.google_calendar_token or creds.google_refresh_token %}
+      <span
+        class="text-xs bg-emerald-50 text-emerald-700 font-bold px-3 py-1.5 rounded-full border border-emerald-100 flex items-center space-x-1.5"
+      >
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>Connected & Active</span>
+      </span>
+      {% else %}
+      <span
+        class="text-xs bg-amber-50 text-amber-700 font-bold px-3 py-1.5 rounded-full border border-amber-100"
+      >
+        ⚠️ Not Connected
+      </span>
+      {% endif %}
     </div>
 
-    <!-- Step 3: Google Calendar Integration Panel -->
-    <div x-show="activeTab === 'calendar'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-                <h4 class="text-sm font-bold text-slate-900">📅 Google Calendar Integration (n8n Super Easy Flow)</h4>
-                <p class="text-xs text-slate-500">n8n-এর মতো ১-ক্লিকে সার্ভিস একাউন্ট JSON ফাইল আপলোড করে ইন্সট্যান্ট কানেক্ট করুন</p>
-            </div>
-            {% if creds.google_calendar_token or creds.google_refresh_token %}
-            <span class="text-xs bg-emerald-50 text-emerald-700 font-bold px-3 py-1.5 rounded-full border border-emerald-100 flex items-center space-x-1.5">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Connected & Active</span>
-            </span>
-            {% else %}
-            <span class="text-xs bg-amber-50 text-amber-700 font-bold px-3 py-1.5 rounded-full border border-amber-100">
-                ⚠️ Not Connected
-            </span>
-            {% endif %}
+    <!-- 1-Click File Upload Box (n8n Style) -->
+    <div
+      class="bg-indigo-50/70 border-2 border-dashed border-indigo-200 p-5 rounded-2xl text-center space-y-3"
+    >
+      <div class="text-3xl">📁</div>
+      <div>
+        <h5 class="text-xs font-bold text-indigo-950">
+          ১-ক্লিক সার্ভিস একাউন্ট JSON ফাইল আপলোড (Easy Upload)
+        </h5>
+        <p class="text-[11px] text-slate-500 mt-0.5">
+          Google Cloud থেকে ডাউনলোড করা `.json` ফাইলটি কম্পিউটার থেকে সিলেক্ট
+          করুন
+        </p>
+      </div>
+      <form
+        action="/admin/calendar/upload-json"
+        method="POST"
+        enctype="multipart/form-data"
+        class="flex flex-col sm:flex-row items-center justify-center gap-3"
+      >
+        <input
+          type="file"
+          name="file"
+          accept=".json"
+          required
+          class="block w-full max-w-xs text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
+        />
+        <button
+          type="submit"
+          class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-md"
+        >
+          Upload & Connect Instant
+        </button>
+      </form>
+    </div>
+
+    <form action="/admin/settings" method="POST" class="space-y-4 pt-2">
+      <input type="hidden" name="form_type" value="calendar" />
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"
+            >Google Client ID</label
+          >
+          <input
+            type="text"
+            name="google_client_id"
+            value="{{ creds.google_client_id }}"
+            placeholder="xxxxxx.apps.googleusercontent.com"
+            class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"
+          />
         </div>
-        
-        <!-- 1-Click File Upload Box (n8n Style) -->
-        <div class="bg-indigo-50/70 border-2 border-dashed border-indigo-200 p-5 rounded-2xl text-center space-y-3">
-            <div class="text-3xl">📁</div>
-            <div>
-                <h5 class="text-xs font-bold text-indigo-950">১-ক্লিক সার্ভিস একাউন্ট JSON ফাইল আপলোড (Easy Upload)</h5>
-                <p class="text-[11px] text-slate-500 mt-0.5">Google Cloud থেকে ডাউনলোড করা `.json` ফাইলটি কম্পিউটার থেকে সিলেক্ট করুন</p>
-            </div>
-            <form action="/admin/calendar/upload-json" method="POST" enctype="multipart/form-data" class="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <input type="file" name="file" accept=".json" required class="block w-full max-w-xs text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
-                <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-md">
-                    Upload & Connect Instant
-                </button>
-            </form>
-        </div>
 
-        <form action="/admin/settings" method="POST" class="space-y-4 pt-2">
-            <input type="hidden" name="form_type" value="calendar">
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Google Client ID</label>
-                    <input type="text" name="google_client_id" value="{{ creds.google_client_id }}" placeholder="xxxxxx.apps.googleusercontent.com" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Google Client Secret</label>
-                    <div x-data="{ show: false }" class="relative">
-                        <input :type="show ? 'text' : 'password'" name="google_client_secret" value="{{ creds.google_client_secret }}" placeholder="GOCSPX-..." class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
-                        <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
-                            <span x-show="!show" title="Show Token">👁️</span>
-                            <span x-show="show" title="Hide Token" style="display: none;">🙈</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Google Refresh Token</label>
-                    <div x-data="{ show: false }" class="relative">
-                        <input :type="show ? 'text' : 'password'" name="google_refresh_token" value="{{ creds.google_refresh_token }}" placeholder="1//04..." class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
-                        <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
-                            <span x-show="!show" title="Show Token">👁️</span>
-                            <span x-show="show" title="Hide Token" style="display: none;">🙈</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Calendar ID</label>
-                    <input type="text" name="google_calendar_id" value="{{ creds.google_calendar_id }}" placeholder="primary" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">অথবা, Google Service Account Credentials (JSON Format)</label>
-                <textarea name="google_calendar_token" rows="4" placeholder="আপনার Service Account JSON কী ফাইল বা অথারাইজড টোকেন জেসন এখানে পেস্ট করুন" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 leading-relaxed">{{ creds.google_calendar_token }}</textarea>
-                <p class="text-[11px] text-slate-400 mt-1.5">💡 আপনার যদি Service Account JSON থাকে, তবে পুরো JSON ফাইল টেক্সট কপি করে এখানে বসান অথবা উপরে Refresh Token দিন।</p>
-            </div>
-
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20">
-                Save Calendar Credentials
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"
+            >Google Client Secret</label
+          >
+          <div x-data="{ show: false }" class="relative">
+            <input
+              :type="show ? 'text' : 'password'"
+              name="google_client_secret"
+              value="{{ creds.google_client_secret }}"
+              placeholder="GOCSPX-..."
+              class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"
+            />
+            <button
+              type="button"
+              @click="show = !show"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none"
+            >
+              <span x-show="!show" title="Show Token">👁️</span>
+              <span x-show="show" title="Hide Token" style="display: none"
+                >🙈</span
+              >
             </button>
-        </form>
-
-        <!-- Docs guide inline inside Calendar section -->
-        <div class="p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl space-y-2 text-xs text-slate-700">
-            <h5 class="font-bold text-indigo-900">📚 Google Calendar কিভাবে সেটআপ করবেন? (docs guide)</h5>
-            <ol class="list-decimal list-inside space-y-1 text-[11px] leading-relaxed">
-                <li><a href="https://console.cloud.google.com/" target="_blank" class="text-indigo-600 underline font-bold">Google Cloud Console</a>-এ গিয়ে নতুন প্রজেক্ট তৈরি করুন।</li>
-                <li><strong>APIs & Services > Library</strong> থেকে <strong>Google Calendar API</strong> এনাবল করুন।</li>
-                <li><strong>Credentials > Create Credentials</strong> থেকে Service Account অথবা OAuth 2.0 Client ID সিলেক্ট করুন।</li>
-                <li>Service Account তৈরির পর Keys অপশন থেকে JSON Key ডাউনলোড করে টেক্সট কপি করে <strong>"Service Account Credentials"</strong> বক্সে দিন।</li>
-                <li>অথবা OAuth Client ID ও Secret বসিয়ে Refresh Token জেনারেট করে যুক্ত করুন।</li>
-            </ol>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <!-- Step 4: Marketing Integrations Panel -->
-    <div x-show="activeTab === 'marketing'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-                <h4 class="text-sm font-bold text-slate-900">🚀 Marketing & Automation Hub</h4>
-                <p class="text-xs text-slate-500">Mailchimp, Google Sheets, Instagram DM, FCM, এবং Web Push Notifications ইন্টিগ্রেশন</p>
-            </div>
-            <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1.5 rounded-full border border-indigo-100">
-                5 Active Integrations
-            </span>
-        </div>
-
-        <form action="/admin/settings" method="POST" class="space-y-6">
-            <input type="hidden" name="form_type" value="marketing">
-
-            <!-- Mailchimp API Card -->
-            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">📧 Mailchimp API (Email Campaigns)</span>
-                    <a href="https://admin.mailchimp.com/account/api/" target="_blank" class="text-[11px] text-amber-700 hover:underline font-semibold">API Key তৈরি করুন →</a>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Mailchimp API Key</label>
-                        <input type="text" name="mailchimp_api_key" value="{{ creds.mailchimp_api_key }}" placeholder="xxxxxx-us21" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Audience List ID</label>
-                        <input type="text" name="mailchimp_list_id" value="{{ creds.mailchimp_list_id }}" placeholder="a1b2c3d4" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Server Prefix (e.g. us21)</label>
-                        <input type="text" name="mailchimp_server_prefix" value="{{ creds.mailchimp_server_prefix }}" placeholder="us21" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Instagram DM Card -->
-            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-pink-700 bg-pink-50 px-2.5 py-1 rounded-lg border border-pink-200">📸 Instagram Direct Message (DM)</span>
-                    <span class="text-[11px] text-slate-400">FB Graph API Extension</span>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Instagram Page Access Token</label>
-                        <input type="text" name="ig_access_token" value="{{ creds.ig_access_token }}" placeholder="FB Page Token দিয়ে কাজ করবে" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Instagram Verify Token</label>
-                        <input type="text" name="ig_verify_token" value="{{ creds.ig_verify_token }}" placeholder="verify_token_123" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Google Sheets Card -->
-            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">📊 Google Sheets Lead Database</span>
-                    <span class="text-[11px] text-slate-400">Auto Lead Logging</span>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Google Spreadsheet URL / ID</label>
-                    <input type="text" name="google_sheets_spreadsheet_id" value="{{ creds.google_sheets_spreadsheet_id }}" placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0.../edit বা সরাসরি ID" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                    <p class="text-[10px] text-slate-400 mt-1">💡 আপনার Google Sheet-এর পুরো Link এখানে পেস্ট করলেও হবে, সিস্টেম অটোমেটিক ID চিনে নেবে।</p>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Google Service Account JSON Key</label>
-                    <textarea name="google_sheets_token_json" rows="3" placeholder="Google Calendar-এর মতো একই JSON key ফাইল পেস্ট করুন" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono">{{ creds.google_sheets_token_json }}</textarea>
-                </div>
-            </div>
-
-            <!-- Gmail SMTP Card -->
-            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-red-700 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200">✉️ Gmail SMTP Email Sender</span>
-                    <a href="https://myaccount.google.com/apppasswords" target="_blank" class="text-[11px] text-red-600 hover:underline font-semibold">App Password তৈরি করুন →</a>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Gmail Sender Address</label>
-                        <input type="email" name="gmail_sender_email" value="{{ creds.gmail_sender_email }}" placeholder="yourbrand@gmail.com" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Gmail 16-Digit App Password</label>
-                        <input type="password" name="gmail_app_password" value="{{ creds.gmail_app_password }}" placeholder="xxxx xxxx xxxx xxxx" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Push Notifications Card -->
-            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">🔔 Push Notifications (1-Click Notification)</span>
-                    <span class="text-[11px] text-emerald-600 font-semibold">Zero Config Ready ✅</span>
-                </div>
-                <p class="text-xs text-slate-600">ব্রাউজার নোটিফিকেশনের জন্য কোনো কি (Key) দেওয়ার প্রয়োজন নেই! (ডিফল্টভাবে চালু রয়েছে)। শুধুমাত্র Firebase App-এর জন্য থাকলে নিচে Server Key দিন:</p>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">FCM Server Key (Firebase - অপশনাল)</label>
-                    <input type="text" name="fcm_server_key" value="{{ creds.fcm_server_key }}" placeholder="AAAA... (অপশনাল)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs">
-                </div>
-            </div>
-
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md">
-                Save All Marketing Credentials
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"
+            >Google Refresh Token</label
+          >
+          <div x-data="{ show: false }" class="relative">
+            <input
+              :type="show ? 'text' : 'password'"
+              name="google_refresh_token"
+              value="{{ creds.google_refresh_token }}"
+              placeholder="1//04..."
+              class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"
+            />
+            <button
+              type="button"
+              @click="show = !show"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none"
+            >
+              <span x-show="!show" title="Show Token">👁️</span>
+              <span x-show="show" title="Hide Token" style="display: none"
+                >🙈</span
+              >
             </button>
-        </form>
-    </div>
-
-    <!-- Step 5: Special Intent & Booking Keywords Manager Panel -->
-    <div x-show="activeTab === 'keywords'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-                <h4 class="text-sm font-bold text-slate-900">📌 Special Intent & Lead Keywords Manager</h4>
-                <p class="text-xs text-slate-500">চ্যাটবটের জন্য High Interest, Price Inquiry ও Booking কিওয়ার্ড তালিকা পরিবর্তন ও আপডেট করুন</p>
-            </div>
-            <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full border border-indigo-100">
-                Live Dynamic Keywords
-            </span>
+          </div>
         </div>
 
-        <form action="/admin/settings" method="POST" class="space-y-5">
-            <input type="hidden" name="form_type" value="keywords">
-            
-            <!-- High Interest Keywords Field -->
-            <div class="space-y-2">
-                <label class="block text-xs font-bold text-rose-700 flex items-center space-x-1.5">
-                    <span>🔥</span>
-                    <span>হাই ইন্টারেস্ট কিওয়ার্ড (High Interest Keywords)</span>
-                </label>
-                <textarea name="high_interest_keywords" rows="3" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed" placeholder="কিনব, নিব, নিতে চাই, অর্ডার, order, buy, purchase, interested, আগ্রহী, কনফার্ম, lage, লাগে, দরকার, dorkar, nibo, kinbo, lagbe, চাই, chai, software lage, software lagbe">{{ creds.high_interest_keywords if creds.high_interest_keywords else 'কিনব, নিব, নিতে চাই, অর্ডার, order, buy, purchase, interested, আগ্রহী, কনফার্ম, lage, লাগে, দরকার, dorkar, nibo, kinbo, lagbe, চাই, chai, dorkar ache, lagbe amar, software lage, software lagbe, software chai' }}</textarea>
-                <p class="text-[11px] text-slate-500 font-medium">
-                    💡 চ্যাটে গ্রাহক এই শব্দগুলো লিখলে সিস্টেম অটোমেটিক <strong>🔥 High Interest</strong> ট্যাগ পিল সেট করবে।
-                </p>
-            </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"
+            >Calendar ID</label
+          >
+          <input
+            type="text"
+            name="google_calendar_id"
+            value="{{ creds.google_calendar_id }}"
+            placeholder="primary"
+            class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"
+          />
+        </div>
+      </div>
 
-            <!-- Price Inquiry Keywords Field -->
-            <div class="space-y-2">
-                <label class="block text-xs font-bold text-amber-700 flex items-center space-x-1.5">
-                    <span>💰</span>
-                    <span>প্রাইস ইনকোয়ারি কিওয়ার্ড (Price Inquiry Keywords)</span>
-                </label>
-                <textarea name="price_keywords" rows="3" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed" placeholder="দাম, কতো, কত, price, cost, pkg, package, rate, ফি, fee, কত টাকা, চার্জ, koto, dam, daam, taka, rate koto, dam koto, price koto">{{ creds.price_keywords if creds.price_keywords else 'দাম, কতো, কত, price, cost, pkg, package, rate, ফি, fee, কত টাকা, চার্জ, koto, dam, daam, taka, rate koto, dam koto, price koto, charge' }}</textarea>
-                <p class="text-[11px] text-slate-500 font-medium">
-                    💡 চ্যাটে গ্রাহক এই শব্দগুলো লিখলে সিস্টেম অটোমেটিক <strong>💰 Price Inquiry</strong> ট্যাগ পিল সেট করবে।
-                </p>
-            </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1.5"
+          >অথবা, Google Service Account Credentials (JSON Format)</label
+        >
+        <textarea
+          name="google_calendar_token"
+          rows="4"
+          placeholder="আপনার Service Account JSON কী ফাইল বা অথারাইজড টোকেন জেসন এখানে পেস্ট করুন"
+          class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 leading-relaxed"
+        >
+{{ creds.google_calendar_token }}</textarea
+        >
+        <p class="text-[11px] text-slate-400 mt-1.5">
+          💡 আপনার যদি Service Account JSON থাকে, তবে পুরো JSON ফাইল টেক্সট কপি
+          করে এখানে বসান অথবা উপরে Refresh Token দিন।
+        </p>
+      </div>
 
-            <!-- Booking Request Keywords Field -->
-            <div class="space-y-2">
-                <label class="block text-xs font-bold text-indigo-700 flex items-center space-x-1.5">
-                    <span>📅</span>
-                    <span>ক্যালেন্ডার বুকিং কিওয়ার্ড (Booking Request Keywords)</span>
-                </label>
-                <textarea name="booking_keywords" rows="3" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed" placeholder="meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, ডেমো, ট্রায়াল, তারিখ, সময়, call">{{ creds.booking_keywords if creds.booking_keywords else 'meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, ডেমো, ট্রায়াল, তারিখ, সময়, call, demo, trial' }}</textarea>
-                <p class="text-[11px] text-slate-500 font-medium">
-                    💡 চ্যাটে গ্রাহক এই শব্দগুলো লিখলে এআই স্বয়ংক্রিয়ভাবে ক্যালেন্ডার বুকিং ট্রিগার করবে।
-                </p>
-            </div>
+      <button
+        type="submit"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
+      >
+        Save Calendar Credentials
+      </button>
+    </form>
 
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20">
-                Save All Intent Keywords
-            </button>
-        </form>
+    <!-- Docs guide inline inside Calendar section -->
+    <div
+      class="p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl space-y-2 text-xs text-slate-700"
+    >
+      <h5 class="font-bold text-indigo-900">
+        📚 Google Calendar কিভাবে সেটআপ করবেন? (docs guide)
+      </h5>
+      <ol
+        class="list-decimal list-inside space-y-1 text-[11px] leading-relaxed"
+      >
+        <li>
+          <a
+            href="https://console.cloud.google.com/"
+            target="_blank"
+            class="text-indigo-600 underline font-bold"
+            >Google Cloud Console</a
+          >-এ গিয়ে নতুন প্রজেক্ট তৈরি করুন।
+        </li>
+        <li>
+          <strong>APIs & Services > Library</strong> থেকে
+          <strong>Google Calendar API</strong> এনাবল করুন।
+        </li>
+        <li>
+          <strong>Credentials > Create Credentials</strong> থেকে Service Account
+          অথবা OAuth 2.0 Client ID সিলেক্ট করুন।
+        </li>
+        <li>
+          Service Account তৈরির পর Keys অপশন থেকে JSON Key ডাউনলোড করে টেক্সট
+          কপি করে <strong>"Service Account Credentials"</strong> বক্সে দিন।
+        </li>
+        <li>
+          অথবা OAuth Client ID ও Secret বসিয়ে Refresh Token জেনারেট করে যুক্ত
+          করুন।
+        </li>
+      </ol>
     </div>
-{% endblock %}
+  </div>
+
+  <!-- Step 4: Marketing Integrations Panel -->
+  <div
+    x-show="activeTab === 'marketing'"
+    class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6"
+  >
+    <div
+      class="flex items-center justify-between border-b border-slate-100 pb-3"
+    >
+      <div>
+        <h4 class="text-sm font-bold text-slate-900">
+          🚀 Marketing & Automation Hub
+        </h4>
+        <p class="text-xs text-slate-500">
+          Mailchimp, Google Sheets, Instagram DM, FCM, এবং Web Push
+          Notifications ইন্টিগ্রেশন
+        </p>
+      </div>
+      <span
+        class="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1.5 rounded-full border border-indigo-100"
+      >
+        5 Active Integrations
+      </span>
+    </div>
+
+    <form action="/admin/settings" method="POST" class="space-y-6">
+      <input type="hidden" name="form_type" value="marketing" />
+
+      <!-- Mailchimp API Card -->
+      <div
+        class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3"
+      >
+        <div class="flex items-center justify-between">
+          <span
+            class="text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200"
+            >📧 Mailchimp API (Email Campaigns)</span
+          >
+          <a
+            href="https://admin.mailchimp.com/account/api/"
+            target="_blank"
+            class="text-[11px] text-amber-700 hover:underline font-semibold"
+            >API Key তৈরি করুন →</a
+          >
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >Mailchimp API Key</label
+            >
+            <input
+              type="text"
+              name="mailchimp_api_key"
+              value="{{ creds.mailchimp_api_key }}"
+              placeholder="xxxxxx-us21"
+              class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >Audience List ID</label
+            >
+            <input
+              type="text"
+              name="mailchimp_list_id"
+              value="{{ creds.mailchimp_list_id }}"
+              placeholder="a1b2c3d4"
+              class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >Server Prefix (e.g. us21)</label
+            >
+            <input
+              type="text"
+              name="mailchimp_server_prefix"
+              value="{{ creds.mailchimp_server_prefix }}"
+              placeholder="us21"
+              class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Instagram DM Card -->
+      <div
+        class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3"
+      >
+        <div class="flex items-center justify-between">
+          <span
+            class="text-xs font-bold text-pink-700 bg-pink-50 px-2.5 py-1 rounded-lg border border-pink-200"
+            >📸 Instagram Direct Message (DM)</span
+          >
+          <span class="text-[11px] text-slate-400">FB Graph API Extension</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >Instagram Page Access Token</label
+            >
+            <input
+              type="text"
+              name="ig_access_token"
+              value="{{ creds.ig_access_token }}"
+              placeholder="FB Page Token দিয়ে কাজ করবে"
+              class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >Instagram Verify Token</label
+            >
+            <input
+              type="text"
+              name="ig_verify_token"
+              value="{{ creds.ig_verify_token }}"
+              placeholder="verify_token_123"
+              class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Sheets Card -->
+      <div
+        class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3"
+      >
+        <div class="flex items-center justify-between">
+          <span
+            class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200"
+            >📊 Google Sheets Lead Database</span
+          >
+          <span class="text-[11px] text-slate-400">Auto Lead Logging</span>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"
+            >Google Spreadsheet URL / ID</label
+          >
+          <input
+            type="text"
+            name="google_sheets_spreadsheet_id"
+            value="{{ creds.google_sheets_spreadsheet_id }}"
+            placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0.../edit বা সরাসরি ID"
+            class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+          />
+          <p class="text-[10px] text-slate-400 mt-1">
+            💡 আপনার Google Sheet-এর পুরো Link এখানে পেস্ট করলেও হবে, সিস্টেম
+            অটোমেটিক ID চিনে নেবে।
+          </p>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"
+            >Google Service Account JSON Key</label
+          >
+          <textarea
+            name="google_sheets_token_json"
+            rows="3"
+            placeholder="Google Calendar-এর মতো একই JSON key ফাইল পেস্ট করুন"
+            class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
+          >
+{{ creds.google_sheets_token_json }}</textarea
+          >
+        </div>
+      </div>
+
+      <!-- Gmail SMTP Card -->
+      <div
+        class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3"
+      >
+        <div class="flex items-center justify-between">
+          <span
+            class="text-xs font-bold text-red-700 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200"
+            >✉️ Gmail SMTP Email Sender</span
+          >
+          <a
+            href="https://myaccount.google.com/apppasswords"
+            target="_blank"
+            class="text-[11px] text-red-600 hover:underline font-semibold"
+            >App Password তৈরি করুন →</a
+          >
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >Gmail Sender Address</label
+            >
+            <input
+              type="email"
+              name="gmail_sender_email"
+              value="{{ creds.gmail_sender_email }}"
+              placeholder="yourbrand@gmail.com"
+              class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1"
+              >Gmail 16-Digit App Password</label
+            >
+            <input
+              type="password"
+              name="gmail_app_password"
+              value="{{ creds.gmail_app_password }}"
+              placeholder="xxxx xxxx xxxx xxxx"
+              class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Push Notifications Card -->
+      <div
+        class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-3"
+      >
+        <div class="flex items-center justify-between">
+          <span
+            class="text-xs font-bold text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200"
+            >🔔 Push Notifications (1-Click Notification)</span
+          >
+          <span class="text-[11px] text-emerald-600 font-semibold"
+            >Zero Config Ready ✅</span
+          >
+        </div>
+        <p class="text-xs text-slate-600">
+          ব্রাউজার নোটিফিকেশনের জন্য কোনো কি (Key) দেওয়ার প্রয়োজন নেই!
+          (ডিফল্টভাবে চালু রয়েছে)। শুধুমাত্র Firebase App-এর জন্য থাকলে নিচে
+          Server Key দিন:
+        </p>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1"
+            >FCM Server Key (Firebase - অপশনাল)</label
+          >
+          <input
+            type="text"
+            name="fcm_server_key"
+            value="{{ creds.fcm_server_key }}"
+            placeholder="AAAA... (অপশনাল)"
+            class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+          />
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md"
+      >
+        Save All Marketing Credentials
+      </button>
+    </form>
+  </div>
+
+  <!-- Step 5: Special Intent & Booking Keywords Manager Panel -->
+  <div
+    x-show="activeTab === 'keywords'"
+    class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6"
+  >
+    <div
+      class="flex items-center justify-between border-b border-slate-100 pb-3"
+    >
+      <div>
+        <h4 class="text-sm font-bold text-slate-900">
+          📌 Special Intent & Lead Keywords Manager
+        </h4>
+        <p class="text-xs text-slate-500">
+          চ্যাটবটের জন্য High Interest, Price Inquiry ও Booking কিওয়ার্ড তালিকা
+          পরিবর্তন ও আপডেট করুন
+        </p>
+      </div>
+      <span
+        class="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full border border-indigo-100"
+      >
+        Live Dynamic Keywords
+      </span>
+    </div>
+
+    <form action="/admin/settings" method="POST" class="space-y-5">
+      <input type="hidden" name="form_type" value="keywords" />
+
+      <!-- High Interest Keywords Field -->
+      <div class="space-y-2">
+        <label
+          class="block text-xs font-bold text-rose-700 flex items-center space-x-1.5"
+        >
+          <span>🔥</span>
+          <span>হাই ইন্টারেস্ট কিওয়ার্ড (High Interest Keywords)</span>
+        </label>
+        <textarea
+          name="high_interest_keywords"
+          rows="3"
+          class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed"
+          placeholder="কিনব, নিব, নিতে চাই, অর্ডার, order, buy, purchase, interested, আগ্রহী, কনফার্ম, lage, লাগে, দরকার, dorkar, nibo, kinbo, lagbe, চাই, chai, software lage, software lagbe"
+        >
+{{ creds.high_interest_keywords if creds.high_interest_keywords else 'কিনব, নিব, নিতে চাই, অর্ডার, order, buy, purchase, interested, আগ্রহী, কনফার্ম, lage, লাগে, দরকার, dorkar, nibo, kinbo, lagbe, চাই, chai, dorkar ache, lagbe amar, software lage, software lagbe, software chai' }}</textarea
+        >
+        <p class="text-[11px] text-slate-500 font-medium">
+          💡 চ্যাটে গ্রাহক এই শব্দগুলো লিখলে সিস্টেম অটোমেটিক
+          <strong>🔥 High Interest</strong> ট্যাগ পিল সেট করবে।
+        </p>
+      </div>
+
+      <!-- Price Inquiry Keywords Field -->
+      <div class="space-y-2">
+        <label
+          class="block text-xs font-bold text-amber-700 flex items-center space-x-1.5"
+        >
+          <span>💰</span>
+          <span>প্রাইস ইনকোয়ারি কিওয়ার্ড (Price Inquiry Keywords)</span>
+        </label>
+        <textarea
+          name="price_keywords"
+          rows="3"
+          class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed"
+          placeholder="দাম, কতো, কত, price, cost, pkg, package, rate, ফি, fee, কত টাকা, চার্জ, koto, dam, daam, taka, rate koto, dam koto, price koto"
+        >
+{{ creds.price_keywords if creds.price_keywords else 'দাম, কতো, কত, price, cost, pkg, package, rate, ফি, fee, কত টাকা, চার্জ, koto, dam, daam, taka, rate koto, dam koto, price koto, charge' }}</textarea
+        >
+        <p class="text-[11px] text-slate-500 font-medium">
+          💡 চ্যাটে গ্রাহক এই শব্দগুলো লিখলে সিস্টেম অটোমেটিক
+          <strong>💰 Price Inquiry</strong> ট্যাগ পিল সেট করবে।
+        </p>
+      </div>
+
+      <!-- Booking Request Keywords Field -->
+      <div class="space-y-2">
+        <label
+          class="block text-xs font-bold text-indigo-700 flex items-center space-x-1.5"
+        >
+          <span>📅</span>
+          <span>ক্যালেন্ডার বুকিং কিওয়ার্ড (Booking Request Keywords)</span>
+        </label>
+        <textarea
+          name="booking_keywords"
+          rows="3"
+          class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed"
+          placeholder="meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, ডেমো, ট্রায়াল, তারিখ, সময়, call"
+        >
+{{ creds.booking_keywords if creds.booking_keywords else 'meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, ডেমো, ট্রায়াল, তারিখ, সময়, call, demo, trial' }}</textarea
+        >
+        <p class="text-[11px] text-slate-500 font-medium">
+          💡 চ্যাটে গ্রাহক এই শব্দগুলো লিখলে এআই স্বয়ংক্রিয়ভাবে ক্যালেন্ডার
+          বুকিং ট্রিগার করবে।
+        </p>
+      </div>
+
+      <button
+        type="submit"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
+      >
+        Save All Intent Keywords
+      </button>
+    </form>
+  </div>
+  {% endblock %}
+</div>

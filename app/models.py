@@ -68,7 +68,6 @@ class CacheEntry(Base):
     prompt_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     user_query: Mapped[str] = mapped_column(Text)
     ai_response: Mapped[str] = mapped_column(Text)
-    embedding_json: Mapped[str] = mapped_column(Text, nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

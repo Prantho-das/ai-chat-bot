@@ -9,14 +9,15 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 from app.config import settings
-from app.database import engine, Base, init_db
+from app.database import engine, Base
 from app.routers import webhook_messenger, webhook_whatsapp, webhook_instagram, api_marketing, admin
 
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
 
 app = FastAPI(
