@@ -468,8 +468,10 @@ class AIService:
             full_prompt += f"## CUSTOMER QUERY:\n{user_message}"
 
             models_to_try = [model_name]
-            if model_name != "gemini-2.0-flash":
-                models_to_try.append("gemini-2.0-flash")
+            fallback_list = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-2.0-flash"]
+            for m in fallback_list:
+                if m not in models_to_try:
+                    models_to_try.append(m)
 
             response = None
             ai_text = None
