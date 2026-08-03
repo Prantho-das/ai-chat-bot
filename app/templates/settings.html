@@ -503,12 +503,12 @@
         </form>
     </div>
 
-    <!-- Step 4: Special Intent & Booking Keywords Manager Panel -->
+    <!-- Step 5: Special Intent & Booking Keywords Manager Panel -->
     <div x-show="activeTab === 'keywords'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-                <h4 class="text-sm font-bold text-slate-900">📌 Special Intent & Booking Keywords Manager</h4>
-                <p class="text-xs text-slate-500">চ্যাটবটের জন্য স্পেশাল ট্র্রিগার কিওয়ার্ড তালিকা স্বাধীনভাবে যুক্ত, পরিবর্তন বা মুছে ফেলুন</p>
+                <h4 class="text-sm font-bold text-slate-900">📌 Special Intent & Lead Keywords Manager</h4>
+                <p class="text-xs text-slate-500">চ্যাটবটের জন্য High Interest, Price Inquiry ও Booking কিওয়ার্ড তালিকা পরিবর্তন ও আপডেট করুন</p>
             </div>
             <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full border border-indigo-100">
                 Live Dynamic Keywords
@@ -518,20 +518,45 @@
         <form action="/admin/settings" method="POST" class="space-y-5">
             <input type="hidden" name="form_type" value="keywords">
             
+            <!-- High Interest Keywords Field -->
             <div class="space-y-2">
-                <label class="block text-xs font-bold text-slate-800 flex items-center space-x-1.5">
-                    <span>🔑</span>
-                    <span>এআই ট্র্রিগার কিওয়ার্ড তালিকা (Trigger Keywords List)</span>
+                <label class="block text-xs font-bold text-rose-700 flex items-center space-x-1.5">
+                    <span>🔥</span>
+                    <span>হাই ইন্টারেস্ট কিওয়ার্ড (High Interest Keywords)</span>
                 </label>
-                <textarea name="booking_keywords" rows="6" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed" placeholder="meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, ডেমো, ট্রায়াল, তারিখ, সময়, call">{{ creds.booking_keywords if creds.booking_keywords else 'meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, ডেমো, ট্রায়াল, তারিখ, সময়, call' }}</textarea>
-                <p class="text-[11px] text-slate-500 font-medium leading-relaxed">
-                    💡 <strong>নির্দেশনা:</strong> প্রতিটি কিওয়ার্ড কমা (<code>,</code>) দিয়ে আলাদা করে লিখুন। গ্রাহক চ্যাটে এই শব্দগুলো লিখলে এআই স্বয়ংক্রিয়ভাবে ক্যালেন্ডার বুকিং ট্রিগার করবে এবং ক্যাশ বাইপাস করবে। যেকোনো সময় নতুন কিওয়ার্ড যোগ বা পুরোনো কিওয়ার্ড মুছে দিতে পারেন।
+                <textarea name="high_interest_keywords" rows="3" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed" placeholder="কিনব, নিব, নিতে চাই, অর্ডার, order, buy, purchase, interested, আগ্রহী, কনফার্ম, lage, লাগে, দরকার, dorkar, nibo, kinbo, lagbe, চাই, chai, software lage, software lagbe">{{ creds.high_interest_keywords if creds.high_interest_keywords else 'কিনব, নিব, নিতে চাই, অর্ডার, order, buy, purchase, interested, আগ্রহী, কনফার্ম, lage, লাগে, দরকার, dorkar, nibo, kinbo, lagbe, চাই, chai, dorkar ache, lagbe amar, software lage, software lagbe, software chai' }}</textarea>
+                <p class="text-[11px] text-slate-500 font-medium">
+                    💡 চ্যাটে গ্রাহক এই শব্দগুলো লিখলে সিস্টেম অটোমেটিক <strong>🔥 High Interest</strong> ট্যাগ পিল সেট করবে।
+                </p>
+            </div>
+
+            <!-- Price Inquiry Keywords Field -->
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-amber-700 flex items-center space-x-1.5">
+                    <span>💰</span>
+                    <span>প্রাইস ইনকোয়ারি কিওয়ার্ড (Price Inquiry Keywords)</span>
+                </label>
+                <textarea name="price_keywords" rows="3" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed" placeholder="দাম, কতো, কত, price, cost, pkg, package, rate, ফি, fee, কত টাকা, চার্জ, koto, dam, daam, taka, rate koto, dam koto, price koto">{{ creds.price_keywords if creds.price_keywords else 'দাম, কতো, কত, price, cost, pkg, package, rate, ফি, fee, কত টাকা, চার্জ, koto, dam, daam, taka, rate koto, dam koto, price koto, charge' }}</textarea>
+                <p class="text-[11px] text-slate-500 font-medium">
+                    💡 চ্যাটে গ্রাহক এই শব্দগুলো লিখলে সিস্টেম অটোমেটিক <strong>💰 Price Inquiry</strong> ট্যাগ পিল সেট করবে।
+                </p>
+            </div>
+
+            <!-- Booking Request Keywords Field -->
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-indigo-700 flex items-center space-x-1.5">
+                    <span>📅</span>
+                    <span>ক্যালেন্ডার বুকিং কিওয়ার্ড (Booking Request Keywords)</span>
+                </label>
+                <textarea name="booking_keywords" rows="3" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 leading-relaxed" placeholder="meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, ডেমো, ট্রায়াল, তারিখ, সময়, call">{{ creds.booking_keywords if creds.booking_keywords else 'meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, ডেমো, ট্রায়াল, তারিখ, সময়, call, demo, trial' }}</textarea>
+                <p class="text-[11px] text-slate-500 font-medium">
+                    💡 চ্যাটে গ্রাহক এই শব্দগুলো লিখলে এআই স্বয়ংক্রিয়ভাবে ক্যালেন্ডার বুকিং ট্রিগার করবে।
                 </p>
             </div>
 
             <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20">
-                Save Intent Keywords
+                Save All Intent Keywords
             </button>
         </form>
-</div>
+    </div>
 {% endblock %}

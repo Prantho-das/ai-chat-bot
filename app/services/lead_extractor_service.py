@@ -18,13 +18,23 @@ class LeadExtractorService:
         return email, phone
 
     @staticmethod
-    def classify_intent(text: str) -> str:
-        """Classify user chat intent."""
+    async def classify_intent_async(text: str, db: AsyncSession = None) -> str:
+        """Classify user chat intent dynamically from DB settings or defaults."""
         lowered = text.lower()
         
-        price_keywords = ["দাম", "কতো", "কত", "price", "cost", "pkg", "package", "rate", "ফি", "fee", "কত টাকা", "চার্জ"]
-        high_interest_keywords = ["কিনব", "নিব", "নিতে চাই", "অর্ডার", "order", "buy", "purchase", "interested", "আগ্রহী", "কনফার্ম"]
-        booking_keywords = ["appointment", "meeting", "মিটিং", "বুকিং", "book", "slot", "শিডিউল", "কখন দেখা"]
+        from app.helpers import get_bot_setting
+
+        default_price = "দাম, কতো, কত, price, cost, pkg, package, rate, ফি, fee, কত টাকা, চার্জ, koto, dam, daam, taka, rate koto, dam koto, price koto, charge"
+        default_high = "কিনব, নিব, নিতে চাই, অর্ডার, order, buy, purchase, interested, আগ্রহী, কনফার্ম, lage, লাগে, দরকার, dorkar, nibo, kinbo, lagbe, চাই, chai, dorkar ache, lagbe amar, software lage, software lagbe, software chai"
+        default_booking = "appointment, meeting, মিটিং, বুকিং, book, slot, শিডিউল, কখন দেখা, demo, ডিমো, ডেমো, trial, ট্রায়াল, schedule, fix"
+
+        price_str = await get_bot_setting(db, "price_keywords", default_price) if db else default_price
+        high_str = await get_bot_setting(db, "high_interest_keywords", default_high) if db else default_high
+        booking_str = await get_bot_setting(db, "booking_keywords", default_booking) if db else default_booking
+
+        price_keywords = [k.strip().lower() for k in price_str.split(",") if k.strip()]
+        high_interest_keywords = [k.strip().lower() for k in high_str.split(",") if k.strip()]
+        booking_keywords = [k.strip().lower() for k in booking_str.split(",") if k.strip()]
 
         if any(w in lowered for w in high_interest_keywords):
             return "High Interest"
@@ -33,6 +43,22 @@ class LeadExtractorService:
         if any(w in lowered for w in booking_keywords):
             return "Booking Request"
         
+        return "General Inquiry"
+
+    @staticmethod
+    def classify_intent(text: str) -> str:
+        """Sync fallback classifier."""
+        lowered = text.lower()
+        price_keywords = ["দাম", "কতো", "কত", "price", "cost", "pkg", "package", "rate", "koto", "dam", "taka"]
+        high_interest_keywords = ["কিনব", "নিব", "নিতে চাই", "অর্ডার", "order", "buy", "purchase", "lage", "লাগে", "দরকার", "lagbe", "chai"]
+        booking_keywords = ["appointment", "meeting", "মিটিং", "বুকিং", "book", "slot", "demo", "ডিমো", "ডেমো"]
+
+        if any(w in lowered for w in high_interest_keywords):
+            return "High Interest"
+        if any(w in lowered for w in price_keywords):
+            return "Price Inquiry"
+        if any(w in lowered for w in booking_keywords):
+            return "Booking Request"
         return "General Inquiry"
 
     async def process_chat_lead(
@@ -45,7 +71,7 @@ class LeadExtractorService:
     ) -> Lead | None:
         """Process incoming chat message to automatically extract lead details & save to database."""
         extracted_email, extracted_phone = self.extract_contact_info(user_text)
-        intent = self.classify_intent(user_text)
+        intent = await self.classify_intent_async(user_text, db=db)
         
         is_valuable_lead = bool(extracted_email or extracted_phone or intent in ["High Interest", "Price Inquiry", "Booking Request"])
 

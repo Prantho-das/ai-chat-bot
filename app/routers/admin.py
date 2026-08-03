@@ -410,6 +410,8 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
         "response_length": settings_dict.get("response_length", getattr(settings, "RESPONSE_LENGTH", "short")),
         "company_name": settings_dict.get("company_name", ""),
         "booking_keywords": settings_dict.get("booking_keywords", ""),
+        "high_interest_keywords": settings_dict.get("high_interest_keywords", ""),
+        "price_keywords": settings_dict.get("price_keywords", ""),
         "detail_keywords": settings_dict.get("detail_keywords", getattr(settings, "DETAIL_KEYWORDS", "")),
         "fallback_message": settings_dict.get("fallback_message", DEFAULT_FALLBACK_MESSAGE),
         "mailchimp_api_key": settings_dict.get("mailchimp_api_key", getattr(settings, "MAILCHIMP_API_KEY", "")),
@@ -524,6 +526,12 @@ async def update_settings(
     elif form_type == "keywords":
         if booking_keywords is not None:
             await upsert_bot_setting(db, "booking_keywords", booking_keywords.strip())
+        if request.form:
+            form_data = await request.form()
+            if "high_interest_keywords" in form_data:
+                await upsert_bot_setting(db, "high_interest_keywords", form_data["high_interest_keywords"].strip())
+            if "price_keywords" in form_data:
+                await upsert_bot_setting(db, "price_keywords", form_data["price_keywords"].strip())
         if detail_keywords is not None:
             await upsert_bot_setting(db, "detail_keywords", detail_keywords.strip())
         await db.commit()
