@@ -55,14 +55,20 @@ class AIService:
             clean_key = api_key.strip().strip('"').strip("'")
             self._ensure_genai_configured(clean_key)
             
-            result = genai.embed_content(
-                model="text-embedding-004",
-                content=text[:2000],
-                task_type="retrieval_document"
-            )
-            if result and "embedding" in result:
-                print(f"[EMBEDDING SUCCESS] Successfully generated vector embedding ({len(result['embedding'])} dims)")
-                return json.dumps(result["embedding"])
+            models_to_try = ["models/text-embedding-004", "models/embedding-001"]
+            for model_name in models_to_try:
+                try:
+                    result = genai.embed_content(
+                        model=model_name,
+                        content=text[:2000],
+                        task_type="retrieval_document"
+                    )
+                    if result and "embedding" in result:
+                        print(f"[EMBEDDING SUCCESS] Successfully generated vector embedding with {model_name} ({len(result['embedding'])} dims)")
+                        return json.dumps(result["embedding"])
+                except Exception as model_err:
+                    print(f"[EMBEDDING DIAGNOSTIC] Failed with {model_name}: {model_err}")
+                    continue
         except Exception as e:
             print(f"[EMBEDDING ERROR] Failed to generate embedding: {e}")
             try:
