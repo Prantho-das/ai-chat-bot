@@ -439,26 +439,53 @@ class AIService:
                     "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
                 }
 
-            model = genai.GenerativeModel(model_name)
-            
-            try:
-                response = await model.generate_content_async(full_prompt)
-                ai_text = response.text.strip() if response and hasattr(response, 'text') else fallback_msg
-                
-                if ai_text and ai_text != fallback_msg and db:
-                    new_cache = CacheEntry(prompt_hash=cache_key, user_query=user_message[:200], ai_response=ai_text)
-                    db.add(new_cache)
-                    await db.commit()
-            except Exception as gem_err:
-                err_text = f"Gemini API Exception ({type(gem_err).__name__}): {gem_err}"
-                print(f"[GEMINI API ERROR DIAGNOSIS] {err_text}")
-                await log_service.log("ERROR", "AI Engine Error", err_text, f"Model: {model_name}")
+            models_to_try = [model_name]
+            if model_name != "gemini-2.0-flash":
+                models_to_try.append("gemini-2.0-flash")
+            if "gemini-1.5-flash" not in models_to_try:
+                models_to_try.append("gemini-1.5-flash")
+
+            response = None
+            ai_text = None
+
+            for m_name in models_to_try:
+                try:
+                    model = genai.GenerativeModel(m_name)
+                    res = await model.generate_content_async(full_prompt)
+                    if res:
+                        t = None
+                        try:
+                            t = res.text.strip() if hasattr(res, 'text') else None
+                        except ValueError:
+                            if hasattr(res, 'candidates') and res.candidates:
+                                parts = res.candidates[0].content.parts
+                                t = "".join([p.text for p in parts if hasattr(p, 'text') and p.text]).strip()
+                        if t:
+                            ai_text = t
+                            response = res
+                            model_name = m_name
+                            break
+                except Exception as gem_err:
+                    err_text = f"Gemini API Exception for {m_name} ({type(gem_err).__name__}): {gem_err}"
+                    print(f"[GEMINI API ERROR DIAGNOSIS] {err_text}")
+                    await log_service.log("ERROR", "AI Engine Error", err_text, f"Model: {m_name}")
+                    continue
+
+            if not ai_text:
                 return fallback_msg, False, {
                     "matched_count": len(selected_entries),
                     "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
                     "model_used": model_name,
                     "tokens": token_stats
                 }
+
+            if db and ai_text != fallback_msg:
+                try:
+                    new_cache = CacheEntry(prompt_hash=cache_key, user_query=user_message[:200], ai_response=ai_text)
+                    db.add(new_cache)
+                    await db.commit()
+                except Exception:
+                    pass
 
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
                 token_stats["prompt_tokens"] = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
