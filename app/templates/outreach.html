@@ -18,7 +18,7 @@
                     Find Target Businesses & Auto Cold DM
                 </h1>
                 <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                    Enter your business offer or idea and target location. The AI engine searches prospect businesses, extracts contact details (Email, Socials, Phone), and writes personalized high-converting cold pitches.
+                    Enter your business offer or idea and target location, upload a CSV list of leads, or create templates to manage your campaigns in bulk.
                 </p>
             </div>
             <div class="flex items-center gap-4 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
@@ -34,11 +34,30 @@
         </div>
     </div>
 
-    <!-- Search Lead Form Card -->
-    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80">
-        <h3 class="text-base font-extrabold text-slate-900 mb-4 flex items-center gap-2">
-            <span>🔎</span> Find Prospects & Generate Pitches
-        </h3>
+    <!-- Tab Selection Buttons -->
+    <div class="flex items-center space-x-2 border-b border-slate-200 pb-px">
+        <button @click="outreachSubTab = 'find'" :class="outreachSubTab === 'find' ? 'border-indigo-600 text-indigo-600 font-extrabold' : 'border-transparent text-slate-500 hover:text-slate-800 font-semibold'" class="px-5 py-3 border-b-2 text-xs transition-all flex items-center gap-1.5">
+            <span>🔎</span> Find Prospects (Scraper)
+        </button>
+        <button @click="outreachSubTab = 'csv'" :class="outreachSubTab === 'csv' ? 'border-indigo-600 text-indigo-600 font-extrabold' : 'border-transparent text-slate-500 hover:text-slate-800 font-semibold'" class="px-5 py-3 border-b-2 text-xs transition-all flex items-center gap-1.5">
+            <span>📤</span> Import Leads (CSV)
+        </button>
+        <button @click="outreachSubTab = 'templates'" :class="outreachSubTab === 'templates' ? 'border-indigo-600 text-indigo-600 font-extrabold' : 'border-transparent text-slate-500 hover:text-slate-800 font-semibold'" class="px-5 py-3 border-b-2 text-xs transition-all flex items-center gap-1.5">
+            <span>📝</span> Template Maker
+        </button>
+    </div>
+
+    <!-- Find Prospects Tab Content -->
+    <div x-show="outreachSubTab === 'find'" class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <span>🔎</span> Find Prospects & Generate Pitches
+            </h3>
+            <div class="flex items-center bg-slate-100 p-1 rounded-xl">
+                <button @click="searchMode = 'simple'" :class="searchMode === 'simple' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all">Simple Niche</button>
+                <button @click="searchMode = 'custom'" :class="searchMode === 'custom' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all">Custom Query</button>
+            </div>
+        </div>
 
         <form @submit.prevent="searchLeads()" class="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div class="md:col-span-3">
@@ -47,15 +66,24 @@
                     class="w-full px-4 py-3 text-sm rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 font-medium"></textarea>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Business Niche / Category <span class="text-rose-500">*</span></label>
-                <input type="text" x-model="searchForm.niche" required placeholder="e.g. Restaurant, Agency, Boutique" 
-                    class="w-full px-4 py-3 text-sm rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 font-medium">
+            <!-- Simple Search Fields -->
+            <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5" x-show="searchMode === 'simple'">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Business Niche / Category <span class="text-rose-500">*</span></label>
+                    <input type="text" x-model="searchForm.niche" placeholder="e.g. Restaurant, Agency, Boutique" 
+                        class="w-full px-4 py-3 text-sm rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Target Area / Location <span class="text-rose-500">*</span></label>
+                    <input type="text" x-model="searchForm.area" placeholder="e.g. Dhaka, Gulshan, Uttara" 
+                        class="w-full px-4 py-3 text-sm rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 font-medium">
+                </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Target Area / Location <span class="text-rose-500">*</span></label>
-                <input type="text" x-model="searchForm.area" required placeholder="e.g. Dhaka, Gulshan, Uttara" 
+            <!-- Custom Search Query Field -->
+            <div class="md:col-span-2" x-show="searchMode === 'custom'">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Custom Query Search <span class="text-rose-500">*</span></label>
+                <input type="text" x-model="searchForm.custom_query" placeholder="e.g. dhaka honey ceo, clothing ceo, doctors in gulshan" 
                     class="w-full px-4 py-3 text-sm rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 font-medium">
             </div>
 
@@ -70,6 +98,104 @@
                 </button>
             </div>
         </form>
+    </div>
+
+    <!-- CSV Upload Tab Content -->
+    <div x-show="outreachSubTab === 'csv'" style="display: none;" class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6" x-cloak>
+        <div>
+            <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <span>📤</span> Upload CSV Lead List
+            </h3>
+            <p class="text-xs text-slate-500 font-medium mt-1">Upload a CSV file containing your leads. The file must contain at least `email` or `phone` column header.</p>
+        </div>
+
+        <form @submit.prevent="uploadCSVFile()" class="space-y-4 max-w-xl">
+            <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50 hover:bg-slate-50 transition-all flex flex-col items-center justify-center text-center cursor-pointer relative">
+                <input type="file" @change="handleCSVFileSelect($event)" accept=".csv" class="absolute inset-0 opacity-0 cursor-pointer">
+                <span class="text-3xl mb-2">📊</span>
+                <span class="text-xs font-bold text-slate-700" x-text="csvFile ? csvFile.name : 'Click or drag CSV file here'"></span>
+                <span class="text-[10px] text-slate-400 mt-1">Accepts .csv format</span>
+            </div>
+
+            <div class="bg-slate-100/60 p-4 rounded-2xl border border-slate-200/40 text-[11px] text-slate-600 space-y-1">
+                <div class="font-bold text-slate-700 mb-1">Expected CSV Column Headers (case-insensitive):</div>
+                <div>• <code class="font-mono bg-white px-1 py-0.5 rounded border border-slate-200 font-extrabold text-indigo-600">business_name</code> (or <code class="font-mono">name</code>)</div>
+                <div>• <code class="font-mono bg-white px-1 py-0.5 rounded border border-slate-200 font-extrabold text-indigo-600">email</code></div>
+                <div>• <code class="font-mono bg-white px-1 py-0.5 rounded border border-slate-200 font-extrabold text-indigo-600">phone</code></div>
+                <div>• <code class="font-mono bg-white px-1 py-0.5 rounded border border-slate-200 font-extrabold text-indigo-600">niche</code>, <code class="font-mono">area</code>, <code class="font-mono">website</code>, <code class="font-mono">instagram</code>, <code class="font-mono">facebook</code> (optional)</div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="submit" :disabled="uploadingCSV || !csvFile" class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-slate-300 disabled:shadow-none text-white px-6 py-3 rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20 flex items-center gap-1.5">
+                    <template x-if="!uploadingCSV">
+                        <span>⚡ Import Leads</span>
+                    </template>
+                    <template x-if="uploadingCSV">
+                        <span class="animate-pulse">⏳ Importing...</span>
+                    </template>
+                </button>
+                <button type="button" @click="csvFile = null" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-6 py-3 rounded-xl text-xs font-bold transition-all">Clear</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Template Maker Tab Content -->
+    <div x-show="outreachSubTab === 'templates'" style="display: none;" class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6" x-cloak>
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="text-base font-extrabold text-slate-900">📝 Email & DM Template Maker</h3>
+                <p class="text-xs text-slate-500 font-medium">Create and save high-converting templates for your cold outreach campaigns.</p>
+            </div>
+            <button @click="createNewTemplate()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/10">
+                <span>➕</span> Create Template
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Templates List -->
+            <div class="space-y-2 max-h-[350px] overflow-y-auto pr-2 border-r border-slate-100">
+                <template x-for="t in outreachTemplates" :key="t.id">
+                    <div @click="selectTemplateForEdit(t)" :class="editingTemplate?.id === t.id ? 'bg-indigo-50 border-indigo-200 text-indigo-900' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100/80'" class="p-3.5 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between font-semibold">
+                        <span x-text="t.name"></span>
+                        <button @click.stop="deleteTemplate(t.id)" class="text-slate-400 hover:text-red-600 text-xs">✕</button>
+                    </div>
+                </template>
+                <template x-if="outreachTemplates.length === 0">
+                    <p class="text-xs text-slate-400 font-medium text-center py-6">No saved templates yet.</p>
+                </template>
+            </div>
+
+            <!-- Template Editor Form -->
+            <div class="md:col-span-2 space-y-4">
+                <template x-if="editingTemplate">
+                    <form @submit.prevent="saveTemplate()" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Template Name</label>
+                            <input type="text" x-model="editingTemplate.name" required placeholder="e.g. Agency Pitch, General FAQ Response" class="w-full px-4 py-3 text-sm rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Email Subject (Optional)</label>
+                            <input type="text" x-model="editingTemplate.subject" placeholder="e.g. Partnership inquiry for {business_name}" class="w-full px-4 py-3 text-sm rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Message Body</label>
+                            <p class="text-[10px] text-slate-400 mb-1.5">Tip: Use `{business_name}` as a placeholder for the lead's name.</p>
+                            <textarea x-model="editingTemplate.body" rows="6" required placeholder="Hi {business_name} team,\n\nI noticed..." class="w-full px-4 py-3 text-sm rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 font-medium"></textarea>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all">Save Template</button>
+                            <button type="button" @click="editingTemplate = null" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-5 py-2.5 rounded-xl text-xs font-bold transition-all">Cancel</button>
+                        </div>
+                    </form>
+                </template>
+                <template x-if="!editingTemplate">
+                    <div class="flex flex-col items-center justify-center py-20 text-slate-400 space-y-2">
+                        <span>📝</span>
+                        <p class="text-xs font-semibold">Select a template to edit or create a new one.</p>
+                    </div>
+                </template>
+            </div>
+        </div>
     </div>
 
     <!-- Leads Table Section -->
@@ -87,10 +213,39 @@
             </div>
         </div>
 
+        <!-- Bulk Action Panel -->
+        <div x-show="selectedLeadIds.length > 0" x-transition class="bg-indigo-50/70 border-b border-indigo-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-4" style="display: none;" x-cloak>
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-extrabold text-indigo-900">
+                    Selected <span x-text="selectedLeadIds.length" class="text-indigo-600 font-black"></span> lead(s) for bulk action.
+                </span>
+                <button @click="selectedLeadIds = []" class="text-xs text-indigo-700 hover:text-indigo-900 font-bold underline">Clear Selection</button>
+            </div>
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <select x-model="bulkActionTemplateId" class="px-3.5 py-2 rounded-xl text-xs bg-white border border-slate-200 text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/25">
+                    <option value="">-- Apply Template (Optional) --</option>
+                    <template x-for="t in outreachTemplates" :key="t.id">
+                        <option :value="t.id" x-text="t.name"></option>
+                    </template>
+                </select>
+                <button @click="sendBulkDMs()" :disabled="sendingBulk" class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all shadow-md shadow-indigo-600/10 whitespace-nowrap">
+                    <template x-if="!sendingBulk">
+                        <span>🚀 Send DMs in Bulk</span>
+                    </template>
+                    <template x-if="sendingBulk">
+                        <span class="animate-pulse">⏳ Sending...</span>
+                    </template>
+                </button>
+            </div>
+        </div>
+
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-100 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                        <th class="py-3.5 px-6 w-12 text-center">
+                            <input type="checkbox" @change="toggleSelectAll($event)" :checked="isAllSelected()" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                        </th>
                         <th class="py-3.5 px-6">Business Name</th>
                         <th class="py-3.5 px-6">Niche & Area</th>
                         <th class="py-3.5 px-6">Contact Info</th>
@@ -100,7 +255,10 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-xs">
                     <template x-for="lead in filteredLeads" :key="lead.id">
-                        <tr class="hover:bg-slate-50/60 transition-colors">
+                        <tr class="hover:bg-slate-50/60 transition-colors" :class="selectedLeadIds.includes(lead.id) ? 'bg-indigo-50/30' : ''">
+                            <td class="py-4 px-6 text-center w-12">
+                                <input type="checkbox" :value="lead.id" x-model="selectedLeadIds" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                            </td>
                             <td class="py-4 px-6 font-bold text-slate-800">
                                 <div class="flex items-center gap-2.5">
                                     <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center border border-indigo-100" x-text="lead.business_name.charAt(0)"></div>
@@ -152,7 +310,7 @@
                     </template>
                     <template x-if="filteredLeads.length === 0">
                         <tr>
-                            <td colspan="5" class="py-12 text-center text-slate-400 font-medium">
+                            <td colspan="6" class="py-12 text-center text-slate-400 font-medium">
                                 No prospects found. Use the form above to search for businesses in your area.
                             </td>
                         </tr>
@@ -171,6 +329,17 @@
                     <p class="text-xs text-slate-500 font-medium" x-text="selectedLead?.email + ' • ' + selectedLead?.instagram"></p>
                 </div>
                 <button @click="modalOpen = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+            </div>
+
+            <!-- Choose Template in Modal -->
+            <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-700 uppercase tracking-wider block">Apply Preset Template</label>
+                <select @change="applyTemplateToSingle($event.target.value)" class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 text-slate-700 font-semibold focus:outline-none">
+                    <option value="">-- Apply Preset Template --</option>
+                    <template x-for="t in outreachTemplates" :key="t.id">
+                        <option :value="t.body" x-text="t.name"></option>
+                    </template>
+                </select>
             </div>
 
             <div>
@@ -198,10 +367,14 @@
 function leadOutreachApp() {
     return {
         leads: {{ leads | tojson | safe if leads else '[]' }},
+        outreachTemplates: {{ templates | tojson | safe if templates else '[]' }},
+        outreachSubTab: 'find',
+        searchMode: 'simple',
         searchForm: {
             idea: 'Automated AI Chatbot Integration for customer service and lead capture',
             niche: 'Restaurant',
-            area: 'Dhaka'
+            area: 'Dhaka',
+            custom_query: ''
         },
         searching: false,
         filterQuery: '',
@@ -209,6 +382,18 @@ function leadOutreachApp() {
         selectedLead: null,
         pitchText: '',
         generatingPitch: false,
+
+        // CSV variables
+        csvFile: null,
+        uploadingCSV: false,
+
+        // Bulk variables
+        selectedLeadIds: [],
+        bulkActionTemplateId: '',
+        sendingBulk: false,
+
+        // Template variables
+        editingTemplate: null,
 
         get contactedCount() {
             return this.leads.filter(l => l.status === 'Contacted' || l.status === 'Converted').length;
@@ -218,20 +403,132 @@ function leadOutreachApp() {
             if (!this.filterQuery) return this.leads;
             const q = this.filterQuery.toLowerCase();
             return this.leads.filter(l => 
-                l.business_name.toLowerCase().includes(q) || 
-                l.niche.toLowerCase().includes(q) || 
-                l.area.toLowerCase().includes(q) ||
+                (l.business_name && l.business_name.toLowerCase().includes(q)) || 
+                (l.niche && l.niche.toLowerCase().includes(q)) || 
+                (l.area && l.area.toLowerCase().includes(q)) ||
                 (l.email && l.email.toLowerCase().includes(q))
             );
         },
 
+        // Selection Helpers
+        toggleSelectAll(e) {
+            if (e.target.checked) {
+                this.selectedLeadIds = this.filteredLeads.map(l => l.id);
+            } else {
+                this.selectedLeadIds = [];
+            }
+        },
+
+        isAllSelected() {
+            return this.filteredLeads.length > 0 && this.selectedLeadIds.length === this.filteredLeads.length;
+        },
+
+        // CSV Import
+        handleCSVFileSelect(e) {
+            this.csvFile = e.target.files[0];
+        },
+
+        async uploadCSVFile() {
+            if (!this.csvFile) return;
+            this.uploadingCSV = true;
+            const formData = new FormData();
+            formData.append('file', this.csvFile);
+
+            try {
+                const res = await fetch('/admin/outreach/api/upload-csv', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`✅ Imported ${data.count} leads successfully!`);
+                    window.location.reload();
+                } else {
+                    alert(data.detail || 'Failed to import CSV');
+                }
+            } catch (err) {
+                alert('Error uploading file');
+            } finally {
+                this.uploadingCSV = false;
+            }
+        },
+
+        // Template CRUD
+        createNewTemplate() {
+            this.editingTemplate = { id: null, name: '', subject: '', body: '' };
+        },
+
+        selectTemplateForEdit(t) {
+            this.editingTemplate = { ...t };
+        },
+
+        async saveTemplate() {
+            try {
+                const res = await fetch('/admin/outreach/api/templates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.editingTemplate)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Template saved!');
+                    const index = this.outreachTemplates.findIndex(t => t.id === data.template.id);
+                    if (index > -1) {
+                        this.outreachTemplates[index] = data.template;
+                    } else {
+                        this.outreachTemplates.unshift(data.template);
+                    }
+                    this.editingTemplate = null;
+                }
+            } catch (err) {
+                alert('Failed to save template');
+            }
+        },
+
+        async deleteTemplate(id) {
+            if (!confirm('Are you sure you want to delete this template?')) return;
+            try {
+                const res = await fetch(`/admin/outreach/api/templates/${id}`, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.outreachTemplates = this.outreachTemplates.filter(t => t.id !== id);
+                    if (this.editingTemplate?.id === id) {
+                        this.editingTemplate = null;
+                    }
+                }
+            } catch (err) {
+                alert('Failed to delete template');
+            }
+        },
+
+        // Applying templates to editor/modal
+        applyTemplateToSingle(bodyText) {
+            if (!bodyText) return;
+            if (this.selectedLead) {
+                this.pitchText = bodyText.replace(/{business_name}/g, this.selectedLead.business_name || 'Client');
+            }
+        },
+
+        applyTemplateToBulk() {
+            // Dropdown triggers this, handles mapping template content if bulk sending
+        },
+
+        // Search Leads
         async searchLeads() {
             this.searching = true;
+            const payload = {
+                idea: this.searchForm.idea,
+                niche: this.searchMode === 'simple' ? this.searchForm.niche : '',
+                area: this.searchMode === 'simple' ? this.searchForm.area : '',
+                custom_query: this.searchMode === 'custom' ? this.searchForm.custom_query : ''
+            };
             try {
                 const res = await fetch('/admin/outreach/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(this.searchForm)
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -243,6 +540,67 @@ function leadOutreachApp() {
                 alert('Network error occurred');
             } finally {
                 this.searching = false;
+            }
+        },
+
+        // Sending DMs
+        async sendColdDM(lead, customPitch = null) {
+            const targetLead = lead || this.selectedLead;
+            if (!targetLead) return;
+
+            try {
+                const res = await fetch('/admin/outreach/api/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lead_id: targetLead.id,
+                        message: customPitch || this.pitchText || targetLead.cold_pitch,
+                        channel: targetLead.email ? 'Email/Instagram' : 'Direct Message'
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    targetLead.status = 'Contacted';
+                    targetLead.cold_pitch = customPitch || this.pitchText || targetLead.cold_pitch;
+                    this.modalOpen = false;
+                    alert('✅ Cold DM dispatched successfully!');
+                }
+            } catch (err) {
+                alert('Failed to send DM');
+            }
+        },
+
+        async sendBulkDMs() {
+            if (this.selectedLeadIds.length === 0) return;
+            this.sendingBulk = true;
+
+            let bulkMessage = "";
+            if (this.bulkActionTemplateId) {
+                const selectedTpl = this.outreachTemplates.find(t => t.id == this.bulkActionTemplateId);
+                if (selectedTpl) {
+                    bulkMessage = selectedTpl.body;
+                }
+            }
+
+            try {
+                const res = await fetch('/admin/outreach/api/send-bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lead_ids: this.selectedLeadIds,
+                        message: bulkMessage,
+                        channel: 'Email/DM'
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`✅ Bulk Cold DMs dispatched to ${data.count} leads!`);
+                    window.location.reload();
+                }
+            } catch (err) {
+                alert('Failed to send bulk DMs');
+            } finally {
+                this.sendingBulk = false;
             }
         },
 
@@ -274,31 +632,6 @@ function leadOutreachApp() {
                 alert('Failed to regenerate pitch');
             } finally {
                 this.generatingPitch = false;
-            }
-        },
-
-        async sendColdDM(lead, customPitch = null) {
-            const targetLead = lead || this.selectedLead;
-            if (!targetLead) return;
-
-            try {
-                const res = await fetch('/admin/outreach/api/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        lead_id: targetLead.id,
-                        message: customPitch || this.pitchText || targetLead.cold_pitch,
-                        channel: targetLead.email ? 'Email/Instagram' : 'Direct Message'
-                    })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    targetLead.status = 'Contacted';
-                    this.modalOpen = false;
-                    alert('✅ Cold DM dispatched successfully!');
-                }
-            } catch (err) {
-                alert('Failed to send DM');
             }
         }
     }

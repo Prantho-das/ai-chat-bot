@@ -5,12 +5,21 @@ from typing import List, Dict, Any
 from app.services.ai_service import ai_service
 
 class LeadService:
-    async def search_leads(self, niche: str, area: str, limit: int = 6) -> List[Dict[str, Any]]:
+    async def search_leads(self, niche: str, area: str, limit: int = 6, custom_query: str = None) -> List[Dict[str, Any]]:
         """
-        Search target businesses based on niche and location.
+        Search target businesses based on niche and location, or a raw custom query.
         Combines DuckDuckGo/Web query scraping with smart fallback generation.
         """
-        query = f"{niche} in {area} contact email phone website"
+        if custom_query:
+            query = f"{custom_query} contact email phone website"
+            # Set smart niche/area from query
+            niche_val = custom_query.replace("dhaka", "").replace("honey", "").replace("clothing", "").replace("ceo", "").replace("doctors", "").strip() or "prospect"
+            area_val = "dhaka" if "dhaka" in custom_query.lower() else "general"
+        else:
+            query = f"{niche} in {area} contact email phone website"
+            niche_val = niche
+            area_val = area
+
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         extracted_leads = []
         
@@ -42,13 +51,13 @@ class LeadService:
                         handle = clean_name.lower().replace(" ", "").replace("&", "")
                         
                         extracted_leads.append({
-                            "business_name": clean_name or f"{niche.capitalize()} Entity",
-                            "niche": niche,
-                            "area": area,
+                            "business_name": clean_name or f"{niche_val.capitalize()} Entity",
+                            "niche": niche_val,
+                            "area": area_val,
                             "email": emails[0] if emails else f"contact@{clean_url if clean_url else handle + '.com'}",
                             "phone": phones[0] if phones and len(phones[0]) > 7 else f"+880 17{i}1-8493{i}2",
                             "website": f"https://{clean_url}" if clean_url else f"https://{handle}.com",
-                            "instagram": f"@{handle}_bd" if "bd" in area.lower() or "dhaka" in area.lower() else f"@{handle}",
+                            "instagram": f"@{handle}_bd" if "bd" in area_val.lower() or "dhaka" in area_val.lower() else f"@{handle}",
                             "facebook": f"https://facebook.com/{handle}",
                             "rating": f"{4.2 + (i % 8) * 0.1:.1f} ★"
                         })
@@ -58,20 +67,20 @@ class LeadService:
         # Fallback generator if search yields less than required
         if len(extracted_leads) < limit:
             seed_names = [
-                f"Apex {niche.title()} Hub",
-                f"Royal {niche.title()} {area.title()}",
-                f"Urban {niche.title()} Studio",
-                f"{area.title()} Premium {niche.title()}",
-                f"NextGen {niche.title()} Solutions",
-                f"Horizon {niche.title()} Center"
+                f"Apex {niche_val.title()} Hub",
+                f"Royal {niche_val.title()} {area_val.title()}",
+                f"Urban {niche_val.title()} Studio",
+                f"{area_val.title()} Premium {niche_val.title()}",
+                f"NextGen {niche_val.title()} Solutions",
+                f"Horizon {niche_val.title()} Center"
             ]
             for i in range(len(extracted_leads), limit):
                 b_name = seed_names[i % len(seed_names)]
                 slug = re.sub(r'[^a-zA-Z0-9]', '', b_name.lower())
                 extracted_leads.append({
                     "business_name": b_name,
-                    "niche": niche,
-                    "area": area,
+                    "niche": niche_val,
+                    "area": area_val,
                     "email": f"info@{slug}.com",
                     "phone": f"+880 1819-2049{i:02d}",
                     "website": f"https://www.{slug}.com",
