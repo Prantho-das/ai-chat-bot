@@ -8,6 +8,11 @@ if "mysql" in db_url:
         import aiomysql
     except ImportError:
         db_url = "sqlite+aiosqlite:///./chatbot.db"
+elif "postgres" in db_url:
+    try:
+        import asyncpg
+    except ImportError:
+        db_url = "sqlite+aiosqlite:///./chatbot.db"
 
 engine = create_async_engine(db_url, echo=settings.DEBUG, future=True)
 

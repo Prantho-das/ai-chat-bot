@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AI Chatbot Admin{% endblock %}</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Alpine.js CDN -->
@@ -19,17 +21,17 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); rounded: 4px; }
     </style>
 </head>
-<body class="h-full bg-slate-50/60 text-slate-800 antialiased" x-data="{ mobileMenuOpen: false }">
+<body class="h-full bg-slate-50/60 text-slate-800 antialiased" x-data="{ mobileMenuOpen: false, sidebarCollapsed: localStorage.getItem('sidebar_collapsed') === 'true' }">
 
     {% if request.cookies.get("admin_token") or request.cookies.get("admin_session") %}
     <!-- Desktop Sidebar Navigation (Hidden on Mobile) -->
-    <aside class="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-r border-slate-800/80 shadow-xl z-20">
+    <aside :class="sidebarCollapsed ? 'md:w-20' : 'md:w-64'" class="hidden md:flex md:flex-col md:fixed md:inset-y-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-r border-slate-800/80 shadow-xl z-20 transition-all duration-300">
         <!-- Logo Header -->
-        <div class="p-6 border-b border-slate-800/80 flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-500/25 ring-2 ring-indigo-400/20">
+        <div class="p-6 border-b border-slate-800/80 flex items-center space-x-3" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
+            <div class="w-10 h-10 shrink-0 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-500/25 ring-2 ring-indigo-400/20">
                 ⚡
             </div>
-            <div>
+            <div x-show="!sidebarCollapsed" x-transition.opacity class="origin-left">
                 <h1 class="font-extrabold text-base text-white tracking-tight flex items-center gap-1.5">
                     MarketFlow
                     <span class="text-[9px] bg-indigo-500/20 text-indigo-300 font-bold px-1.5 py-0.5 rounded border border-indigo-500/30">PRO</span>
@@ -43,74 +45,83 @@
             
             <!-- Group 1: MAIN -->
             <div class="space-y-1">
-                <div class="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">Main Menu</div>
+                <div x-show="!sidebarCollapsed" class="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">Main Menu</div>
                 
-                <a href="/admin" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if request.url.path == '/admin' %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}">
-                    <span class="text-base">📊</span>
-                    <span>Dashboard</span>
+                <a href="/admin" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if request.url.path == '/admin' %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
+                    <span class="text-base shrink-0">📊</span>
+                    <span x-show="!sidebarCollapsed" x-transition.opacity class="origin-left">Dashboard</span>
                 </a>
                 
-                <a href="/admin/conversations" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/conversations' in request.url.path %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}">
-                    <span class="text-base">💬</span>
-                    <span>Conversations</span>
+                <a href="/admin/conversations" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/conversations' in request.url.path %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
+                    <span class="text-base shrink-0">💬</span>
+                    <span x-show="!sidebarCollapsed" x-transition.opacity class="origin-left">Conversations</span>
                 </a>
 
-                <a href="/admin/leads" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/leads' in request.url.path %}bg-amber-500/90 text-white shadow-md shadow-amber-500/25 ring-1 ring-amber-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}">
-                    <span class="text-base">🔥</span>
-                    <span class="flex items-center gap-1.5">
+                <a href="/admin/leads" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/leads' in request.url.path %}bg-amber-500/90 text-white shadow-md shadow-amber-500/25 ring-1 ring-amber-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
+                    <span class="text-base shrink-0">🔥</span>
+                    <span x-show="!sidebarCollapsed" x-transition.opacity class="flex items-center gap-1.5 origin-left">
                         Captured Leads
                         <span class="text-[9px] bg-amber-500/20 text-amber-300 font-extrabold px-1.5 py-0.5 rounded border border-amber-500/30">HOT</span>
                     </span>
                 </a>
+
+                {% if not simplified_client_mode %}
+                <a href="/admin/qa-panel" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/qa-panel' in request.url.path %}bg-blue-600/90 text-white shadow-md shadow-blue-600/25 ring-1 ring-blue-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
+                    <span class="text-base shrink-0">🧪</span>
+                    <span x-show="!sidebarCollapsed" x-transition.opacity class="origin-left">QA & FB Testing Hub</span>
+                </a>
+                {% endif %}
             </div>
 
             <!-- Group 2: MANAGEMENT & ENGINE -->
             <div class="space-y-1">
-                <div class="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">Management</div>
+                <div x-show="!sidebarCollapsed" class="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">Management</div>
 
-                <a href="/admin/outreach" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/outreach' in request.url.path %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}">
-                    <span class="text-base">🎯</span>
-                    <span>Lead Finder & Cold DM</span>
+                <a href="/admin/outreach" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/outreach' in request.url.path %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
+                    <span class="text-base shrink-0">🎯</span>
+                    <span x-show="!sidebarCollapsed" x-transition.opacity class="origin-left">Lead Finder & Cold DM</span>
                 </a>
 
-                <a href="/admin/knowledge" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/knowledge' in request.url.path %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}">
-                    <span class="text-base">🧠</span>
-                    <span>Knowledge Base</span>
+                <a href="/admin/knowledge" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/knowledge' in request.url.path %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
+                    <span class="text-base shrink-0">🧠</span>
+                    <span x-show="!sidebarCollapsed" x-transition.opacity class="origin-left">Knowledge Base</span>
                 </a>
 
-                <a href="/admin/settings" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if request.url.path == '/admin/settings' and not 'tab=marketing' in request.url.query %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}">
-                    <span class="text-base">⚙️</span>
-                    <span>Bot Settings</span>
+                <a href="/admin/settings" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if request.url.path == '/admin/settings' and not 'tab=marketing' in request.url.query %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
+                    <span class="text-base shrink-0">⚙️</span>
+                    <span x-show="!sidebarCollapsed" x-transition.opacity class="origin-left">Bot Settings</span>
                 </a>
 
-                <a href="/admin/settings?tab=marketing" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if 'tab=marketing' in request.url.query %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}">
-                    <span class="text-base">🚀</span>
-                    <span>Marketing Hub</span>
+                <a href="/admin/settings?tab=marketing" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if 'tab=marketing' in request.url.query %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
+                    <span class="text-base shrink-0">🚀</span>
+                    <span x-show="!sidebarCollapsed" x-transition.opacity class="origin-left">Marketing Hub</span>
                 </a>
             </div>
 
             <!-- Group 3: SYSTEM & HELP -->
             <div class="space-y-1">
-                <div class="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">System & Help</div>
+                <div x-show="!sidebarCollapsed" class="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">System & Help</div>
 
-                <a href="/admin/guide" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/guide' in request.url.path %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}">
-                    <span class="text-base">💡</span>
-                    <span>Setup Guide</span>
+                <a href="/admin/guide" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/guide' in request.url.path %}bg-indigo-600/90 text-white shadow-md shadow-indigo-600/25 ring-1 ring-indigo-400/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
+                    <span class="text-base shrink-0">💡</span>
+                    <span x-show="!sidebarCollapsed" x-transition.opacity class="origin-left">Setup Guide</span>
                 </a>
 
-                <a href="/admin/logs" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/logs' in request.url.path %}bg-rose-500/20 text-rose-300 border border-rose-500/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}">
-                    <span class="text-base">📡</span>
-                    <span>Live Logs</span>
+                {% if not simplified_client_mode %}
+                <a href="/admin/logs" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all {% if '/logs' in request.url.path %}bg-rose-500/20 text-rose-300 border border-rose-500/30{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-slate-200{% endif %}" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
+                    <span class="text-base shrink-0">📡</span>
+                    <span x-show="!sidebarCollapsed" x-transition.opacity class="origin-left">Live Logs</span>
                 </a>
+                {% endif %}
             </div>
 
         </nav>
 
         <!-- Sidebar Footer -->
-        <div class="p-4 border-t border-slate-800/80">
-            <a href="/admin/logout" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all border border-transparent hover:border-rose-500/20">
-                <span class="text-base">🚪</span>
-                <span>Logout</span>
+        <div class="p-4 border-t border-slate-800/80" :class="sidebarCollapsed ? 'flex justify-center p-2' : ''">
+            <a href="/admin/logout" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all border border-transparent hover:border-rose-500/20" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
+                <span class="text-base shrink-0">🚪</span>
+                <span x-show="!sidebarCollapsed" x-transition.opacity>Logout</span>
             </a>
         </div>
     </aside>
@@ -160,6 +171,14 @@
                     <a href="/admin/conversations" @click="mobileMenuOpen = false" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800">
                         <span>💬 Conversations</span>
                     </a>
+                    <a href="/admin/leads" @click="mobileMenuOpen = false" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-amber-400 hover:bg-slate-800">
+                        <span>🔥 Captured Leads</span>
+                    </a>
+                    {% if not simplified_client_mode %}
+                    <a href="/admin/qa-panel" @click="mobileMenuOpen = false" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-blue-400 hover:bg-slate-800">
+                        <span>🧪 QA & FB Testing Hub</span>
+                    </a>
+                    {% endif %}
                     <a href="/admin/appointments" @click="mobileMenuOpen = false" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800">
                         <span>📅 Appointments</span>
                     </a>
@@ -175,9 +194,11 @@
                     <a href="/admin/guide" @click="mobileMenuOpen = false" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800">
                         <span>💡 Setup Guide</span>
                     </a>
+                    {% if not simplified_client_mode %}
                     <a href="/admin/logs" @click="mobileMenuOpen = false" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800">
                         <span>📡 Live Logs</span>
                     </a>
+                    {% endif %}
                 </nav>
 
                 <div class="p-4 border-t border-slate-800">
@@ -191,13 +212,23 @@
     {% endif %}
 
     <!-- Main Content Area -->
-    <main class="flex-1 flex flex-col min-h-screen overflow-y-auto {% if request.cookies.get('admin_token') or request.cookies.get('admin_session') %}md:pl-64{% endif %}">
+    <main class="flex-1 flex flex-col min-h-screen overflow-y-auto transition-all duration-300"
+          {% if request.cookies.get('admin_token') or request.cookies.get('admin_session') %}
+          :class="sidebarCollapsed ? 'md:pl-20' : 'md:pl-64'"
+          {% endif %}>
         <header class="h-16 bg-white/80 border-b border-slate-200/80 backdrop-blur-xl flex items-center justify-between px-6 sm:px-8 sticky top-0 z-10">
             <div class="flex items-center space-x-3">
                 {% if request.cookies.get('admin_token') or request.cookies.get('admin_session') %}
+                <!-- Mobile Menu Button -->
                 <button @click="mobileMenuOpen = true" class="md:hidden p-2 -ml-2 rounded-xl text-slate-600 hover:bg-slate-100 focus:outline-none">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
+                <!-- Desktop Sidebar Collapse Toggle -->
+                <button @click="sidebarCollapsed = !sidebarCollapsed; localStorage.setItem('sidebar_collapsed', sidebarCollapsed)" class="hidden md:inline-flex p-2 -ml-2 rounded-xl text-slate-600 hover:bg-slate-100 focus:outline-none transition-all">
+                    <svg class="h-5 w-5 transition-transform duration-300" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" />
                     </svg>
                 </button>
                 {% endif %}

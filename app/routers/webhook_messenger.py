@@ -95,7 +95,7 @@ def _extract_user_text(messaging_event: dict) -> str | None:
     return None
 
 
-async def _get_or_create_conversation(db: AsyncSession, sender_id: str) -> "Conversation":
+async def _get_or_create_conversation(db: AsyncSession, sender_id: str, access_token: str = None) -> "Conversation":
     """Get existing conversation or create new one for a messenger sender."""
     stmt = select(Conversation).where(
         Conversation.platform == "messenger",
@@ -105,14 +105,24 @@ async def _get_or_create_conversation(db: AsyncSession, sender_id: str) -> "Conv
     conversation = result.scalar_one_or_none()
 
     if not conversation:
+        user_name = f"FB User {sender_id[-4:]}"
+        profile = await messenger_service.get_user_profile(sender_id, access_token)
+        if profile and profile.get("name"):
+            user_name = profile["name"]
+
         conversation = Conversation(
             platform="messenger",
             sender_id=sender_id,
-            sender_name=f"FB User {sender_id[-4:]}"
+            sender_name=user_name
         )
         db.add(conversation)
         await db.commit()
         await db.refresh(conversation)
+    elif conversation.sender_name.startswith("FB User"):
+        profile = await messenger_service.get_user_profile(sender_id, access_token)
+        if profile and profile.get("name"):
+            conversation.sender_name = profile["name"]
+            await db.commit()
 
     return conversation
 
@@ -120,9 +130,12 @@ async def _get_or_create_conversation(db: AsyncSession, sender_id: str) -> "Conv
 async def _process_dm(sender_id: str, user_text: str, access_token: str, db: AsyncSession):
     """Process a single DM: save message, generate AI reply, send back."""
     try:
+        # Immediate typing indicator for smooth user experience
+        await messenger_service.send_typing_indicator(sender_id, access_token)
+
         await log_service.log("INFO", "Messenger DM", f"Received DM from {sender_id}: '{user_text[:100]}'")
 
-        conversation = await _get_or_create_conversation(db, sender_id)
+        conversation = await _get_or_create_conversation(db, sender_id, access_token)
 
         user_msg = Message(
             conversation_id=conversation.id,
@@ -147,18 +160,19 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
         history_res = await db.execute(stmt_msg)
         history = history_res.scalars().all()
 
-        ai_reply, is_cached, token_stats = await ai_service.generate_response(user_text, history, db)
+        ai_reply, is_cached, rag_info = await ai_service.generate_response(user_text, history, db)
         await log_service.log("INFO", "AI Engine", f"AI reply for {sender_id}: '{ai_reply[:100]}'")
 
+        token_data = rag_info.get("tokens", {}) if isinstance(rag_info, dict) else {}
         ai_msg = Message(
             conversation_id=conversation.id,
             role="assistant",
             content=ai_reply,
             is_ai_generated=True,
             is_cached=is_cached,
-            prompt_tokens=token_stats.get("prompt_tokens", 0),
-            completion_tokens=token_stats.get("completion_tokens", 0),
-            total_tokens=token_stats.get("total_tokens", 0)
+            prompt_tokens=token_data.get("prompt_tokens", 0),
+            completion_tokens=token_data.get("completion_tokens", 0),
+            total_tokens=token_data.get("total_tokens", 0)
         )
         db.add(ai_msg)
         await db.commit()
@@ -222,18 +236,19 @@ async def _process_comment(entry_page_id: str, change: dict, access_token: str, 
         history_res = await db.execute(stmt_msg)
         history = history_res.scalars().all()
 
-        ai_reply, is_cached, token_stats = await ai_service.generate_response(comment_text, history, db)
+        ai_reply, is_cached, rag_info = await ai_service.generate_response(comment_text, history, db)
         await log_service.log("INFO", "AI Engine", f"Comment AI reply: '{ai_reply[:100]}'")
 
+        token_data = rag_info.get("tokens", {}) if isinstance(rag_info, dict) else {}
         ai_msg = Message(
             conversation_id=conversation.id,
             role="assistant",
             content=ai_reply,
             is_ai_generated=True,
             is_cached=is_cached,
-            prompt_tokens=token_stats.get("prompt_tokens", 0),
-            completion_tokens=token_stats.get("completion_tokens", 0),
-            total_tokens=token_stats.get("total_tokens", 0)
+            prompt_tokens=token_data.get("prompt_tokens", 0),
+            completion_tokens=token_data.get("completion_tokens", 0),
+            total_tokens=token_data.get("total_tokens", 0)
         )
         db.add(ai_msg)
         await db.commit()

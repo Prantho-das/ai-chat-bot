@@ -1,19 +1,10 @@
 import os
+from app.config import settings
 from fastapi import APIRouter, Request, Response, Depends, Form, UploadFile, File, status
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
-from app.database import get_db
-from app.config import settings
-from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog, Lead
-from app.services.ai_service import ai_service, DEFAULT_FALLBACK_MESSAGE, DEFAULT_SYSTEM_PROMPT
-from app.services.log_service import log_service
-from app.helpers import get_bot_setting, upsert_bot_setting
-
-router = APIRouter(prefix="/admin", tags=["Admin Panel"])
-templates = Jinja2Templates(directory="app/templates")
-
 try:
     from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
     serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
@@ -23,6 +14,30 @@ except ImportError:
         def loads(self, token, max_age=None): return {"user": settings.ADMIN_USERNAME}
     serializer = DummySerializer()
     BadSignature = Exception
+    SignatureExpired = Exception
+
+from app.database import get_db, engine, Base
+from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog, Lead, QAIssueReport
+from app.services.ai_service import ai_service, DEFAULT_FALLBACK_MESSAGE, DEFAULT_SYSTEM_PROMPT
+from app.services.log_service import log_service
+from app.helpers import get_bot_setting, upsert_bot_setting
+from app.services.lead_extractor_service import lead_extractor_service
+
+router = APIRouter(prefix="/admin", tags=["Admin Panel"])
+templates = Jinja2Templates(directory="app/templates")
+
+@router.post("/migrate-db")
+async def migrate_db(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        await log_service.log("INFO", "DB Migration", "Database schema migration executed successfully by Admin.")
+        return RedirectResponse(url="/admin/settings?msg=migration_success", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        await log_service.log("ERROR", "DB Migration", f"Database migration failed: {e}")
+        return RedirectResponse(url="/admin/settings?error=migration_failed", status_code=status.HTTP_303_SEE_OTHER)
 COOKIE_NAME = "admin_token"
 TOKEN_MAX_AGE = 8 * 3600 # 8 Hours
 
@@ -37,6 +52,17 @@ def is_authenticated(request: Request) -> bool:
         return data.get("user") == settings.ADMIN_USERNAME
     except (BadSignature, SignatureExpired):
         return False
+
+async def render_admin_page(template_name: str, request: Request, db: AsyncSession, context: dict):
+    simplified_mode = await get_bot_setting(db, "simplified_client_mode", "false")
+    context["simplified_client_mode"] = (simplified_mode == "true")
+    context["request"] = request
+    try:
+        return templates.TemplateResponse(request, template_name, context)
+    except TypeError:
+        return templates.TemplateResponse(template_name, context)
+
+
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -75,8 +101,7 @@ async def guide_page(request: Request, db: AsyncSession = Depends(get_db)):
     has_wa = bool(settings_dict.get("wa_access_token", settings.WA_ACCESS_TOKEN))
     has_calendar = bool(settings_dict.get("google_calendar_token") or settings_dict.get("google_refresh_token") or os.getenv("GOOGLE_REFRESH_TOKEN"))
 
-    return templates.TemplateResponse("guide.html", {
-        "request": request,
+    return await render_admin_page("guide.html", request, db, {
         "has_gemini": has_gemini,
         "has_fb": has_fb,
         "has_wa": has_wa,
@@ -92,7 +117,18 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     total_msgs = await db.scalar(select(func.count(Message.id))) or 0
     total_kb = await db.scalar(select(func.count(KnowledgeEntry.id))) or 0
     cached_msgs = await db.scalar(select(func.count(Message.id)).where(Message.is_cached == True)) or 0
+    
+    total_prompt_tokens = await db.scalar(select(func.sum(Message.prompt_tokens))) or 0
+    total_completion_tokens = await db.scalar(select(func.sum(Message.completion_tokens))) or 0
     total_tokens_used = await db.scalar(select(func.sum(Message.total_tokens))) or 0
+
+    # Gemini 2.0 Flash pricing estimate: $0.10 / 1M input tokens, $0.40 / 1M output tokens
+    estimated_cost_usd = (total_prompt_tokens * 0.00000010) + (total_completion_tokens * 0.00000040)
+    estimated_cost_bdt = estimated_cost_usd * 122.0
+
+    # Calculate Savings Percentage
+    ai_msgs_total = await db.scalar(select(func.count(Message.id)).where(Message.role == "assistant")) or 0
+    savings_pct = round((cached_msgs / ai_msgs_total * 100), 1) if ai_msgs_total > 0 else 0.0
 
     stmt = select(Conversation).order_by(Conversation.updated_at.desc()).limit(10)
     result = await db.execute(stmt)
@@ -103,11 +139,15 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         "total_messages": total_msgs,
         "knowledge_entries": total_kb,
         "cached_messages": cached_msgs,
-        "total_tokens_used": total_tokens_used
+        "total_tokens_used": total_tokens_used,
+        "total_prompt_tokens": total_prompt_tokens,
+        "total_completion_tokens": total_completion_tokens,
+        "estimated_cost_usd": f"{estimated_cost_usd:.4f}",
+        "estimated_cost_bdt": f"{estimated_cost_bdt:.2f}",
+        "savings_pct": savings_pct
     }
 
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
+    return await render_admin_page("dashboard.html", request, db, {
         "stats": stats,
         "recent_conversations": recent_conversations
     })
@@ -141,9 +181,10 @@ async def knowledge_base_page(
     elif status_filter == "inactive":
         stmt = stmt.where(KnowledgeEntry.is_active == False)
 
-    stmt = stmt.order_by(KnowledgeEntry.created_at.desc())
+    stmt = stmt.order_by(KnowledgeEntry.id.desc())
     result = await db.execute(stmt)
     entries = result.scalars().all()
+
 
     # Stats calculation
     all_result = await db.execute(select(KnowledgeEntry))
@@ -152,8 +193,7 @@ async def knowledge_base_page(
     active_count = sum(1 for e in all_entries if e.is_active)
     categories_set = set(e.category for e in all_entries if e.category)
 
-    return templates.TemplateResponse("knowledge_base.html", {
-        "request": request,
+    return await render_admin_page("knowledge_base.html", request, db, {
         "entries": entries,
         "total_count": total_count,
         "active_count": active_count,
@@ -177,7 +217,16 @@ async def add_knowledge(
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
-    entry = KnowledgeEntry(category=category.strip(), title=title.strip(), content=content.strip(), is_active=is_active)
+    text_to_embed = f"{title.strip()}\n{content.strip()}"
+    embedding_vector_json = await ai_service.generate_embedding(text_to_embed, db=db)
+
+    entry = KnowledgeEntry(
+        category=category.strip(),
+        title=title.strip(),
+        content=content.strip(),
+        embedding_json=embedding_vector_json,
+        is_active=is_active
+    )
     db.add(entry)
     await db.commit()
 
@@ -204,6 +253,9 @@ async def edit_knowledge(
         entry.title = title.strip()
         entry.content = content.strip()
         entry.is_active = is_active
+        
+        text_to_embed = f"{title.strip()}\n{content.strip()}"
+        entry.embedding_json = await ai_service.generate_embedding(text_to_embed, db=db)
         await db.commit()
 
     return RedirectResponse(url="/admin/knowledge?saved=1", status_code=status.HTTP_302_FOUND)
@@ -219,8 +271,21 @@ async def toggle_knowledge_status(entry_id: int, request: Request, db: AsyncSess
     if entry:
         entry.is_active = not entry.is_active
         await db.commit()
-
     return RedirectResponse(url="/admin/knowledge", status_code=status.HTTP_302_FOUND)
+
+@router.post("/knowledge/delete/{entry_id}")
+async def delete_knowledge_entry(entry_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    stmt = select(KnowledgeEntry).where(KnowledgeEntry.id == entry_id)
+    result = await db.execute(stmt)
+    entry = result.scalar_one_or_none()
+    if entry:
+        await db.delete(entry)
+        await db.commit()
+
+    return RedirectResponse(url="/admin/knowledge?saved=1", status_code=status.HTTP_302_FOUND)
 
 @router.post("/knowledge/upload")
 async def upload_knowledge_file(
@@ -246,11 +311,15 @@ async def upload_knowledge_file(
             content_str = content_bytes.decode("utf-8", errors="ignore")
 
         filename = file.filename or "Uploaded Document"
+        full_text = content_str.strip()
+
+        embedding_vector_json = await ai_service.generate_embedding(f"{filename}\n{full_text}", db=db)
 
         entry = KnowledgeEntry(
             category=category.strip(),
             title=f"File: {filename}",
-            content=content_str.strip()
+            content=full_text,
+            embedding_json=embedding_vector_json
         )
         db.add(entry)
         await db.commit()
@@ -258,6 +327,7 @@ async def upload_knowledge_file(
     except Exception as e:
         print(f"Error reading file upload: {e}")
         return RedirectResponse(url="/admin/knowledge?error=upload_failed", status_code=status.HTTP_302_FOUND)
+
 
 @router.post("/knowledge/delete/{entry_id}")
 async def delete_knowledge(entry_id: int, request: Request, db: AsyncSession = Depends(get_db)):
@@ -301,8 +371,7 @@ async def conversations_page(
     result = await db.execute(stmt)
     conversations = result.scalars().all()
 
-    return templates.TemplateResponse("conversations.html", {
-        "request": request,
+    return await render_admin_page("conversations.html", request, db, {
         "conversations": conversations,
         "selected_platform": platform or "all",
         "search_query": q or ""
@@ -324,8 +393,7 @@ async def conversation_detail(conv_id: int, request: Request, db: AsyncSession =
     res_msgs = await db.execute(stmt_msgs)
     messages = res_msgs.scalars().all()
 
-    return templates.TemplateResponse("conversation_detail.html", {
-        "request": request,
+    return await render_admin_page("conversation_detail.html", request, db, {
         "conversation": conv,
         "messages": messages
     })
@@ -355,7 +423,10 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
         "google_calendar_id": settings_dict.get("google_calendar_id", os.getenv("GOOGLE_CALENDAR_ID", "primary")),
         "google_calendar_token": settings_dict.get("google_calendar_token", ""),
         "response_length": settings_dict.get("response_length", getattr(settings, "RESPONSE_LENGTH", "short")),
+        "company_name": settings_dict.get("company_name", ""),
         "booking_keywords": settings_dict.get("booking_keywords", ""),
+        "high_interest_keywords": settings_dict.get("high_interest_keywords", ""),
+        "price_keywords": settings_dict.get("price_keywords", ""),
         "detail_keywords": settings_dict.get("detail_keywords", getattr(settings, "DETAIL_KEYWORDS", "")),
         "fallback_message": settings_dict.get("fallback_message", DEFAULT_FALLBACK_MESSAGE),
         "mailchimp_api_key": settings_dict.get("mailchimp_api_key", getattr(settings, "MAILCHIMP_API_KEY", "")),
@@ -375,8 +446,7 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
 
     available_models = ai_service.get_available_models(creds["gemini_api_key"])
 
-    return templates.TemplateResponse("settings.html", {
-        "request": request,
+    return await render_admin_page("settings.html", request, db, {
         "system_prompt": settings_dict.get("system_prompt", DEFAULT_SYSTEM_PROMPT),
         "fallback_message": creds["fallback_message"],
         "creds": creds,
@@ -389,8 +459,10 @@ async def update_settings(
     request: Request,
     form_type: str = Form(...),
     system_prompt: str = Form(None),
+    company_name: str = Form(None),
     response_length: str = Form(None),
     fallback_message: str = Form(None),
+    max_history_turns: str = Form(None),
     booking_keywords: str = Form(None),
     detail_keywords: str = Form(None),
     gemini_api_key: str = Form(None),
@@ -418,18 +490,24 @@ async def update_settings(
     vapid_claims_email: str = Form(None),
     gmail_sender_email: str = Form(None),
     gmail_app_password: str = Form(None),
+    simplified_client_mode: str = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
     if form_type == "prompt":
+        if company_name is not None:
+            await upsert_bot_setting(db, "company_name", company_name.strip())
         if system_prompt is not None:
             await upsert_bot_setting(db, "system_prompt", system_prompt.strip())
         if response_length is not None:
             await upsert_bot_setting(db, "response_length", response_length.strip())
         if fallback_message is not None:
             await upsert_bot_setting(db, "fallback_message", fallback_message.strip())
+        if max_history_turns is not None:
+            await upsert_bot_setting(db, "max_history_turns", max_history_turns.strip())
+        await upsert_bot_setting(db, "simplified_client_mode", "true" if simplified_client_mode == "true" else "false")
         await db.commit()
 
     elif form_type == "credentials":
@@ -472,6 +550,12 @@ async def update_settings(
     elif form_type == "keywords":
         if booking_keywords is not None:
             await upsert_bot_setting(db, "booking_keywords", booking_keywords.strip())
+        if request.form:
+            form_data = await request.form()
+            if "high_interest_keywords" in form_data:
+                await upsert_bot_setting(db, "high_interest_keywords", form_data["high_interest_keywords"].strip())
+            if "price_keywords" in form_data:
+                await upsert_bot_setting(db, "price_keywords", form_data["price_keywords"].strip())
         if detail_keywords is not None:
             await upsert_bot_setting(db, "detail_keywords", detail_keywords.strip())
         await db.commit()
@@ -508,8 +592,7 @@ async def appointments_page(request: Request, db: AsyncSession = Depends(get_db)
     result = await db.execute(stmt)
     appointments = result.scalars().all()
 
-    return templates.TemplateResponse("appointments.html", {
-        "request": request,
+    return await render_admin_page("appointments.html", request, db, {
         "appointments": appointments,
         "saved": request.query_params.get("saved")
     })
@@ -576,8 +659,7 @@ async def live_logs_page(request: Request, db: AsyncSession = Depends(get_db)):
     res = await db.execute(stmt)
     db_logs = res.scalars().all()
 
-    return templates.TemplateResponse("logs.html", {
-        "request": request,
+    return await render_admin_page("logs.html", request, db, {
         "logs": db_logs
     })
 
@@ -618,6 +700,36 @@ async def sync_facebook_catalog(request: Request, db: AsyncSession = Depends(get
 
     return RedirectResponse(url="/admin/settings?saved=1", status_code=status.HTTP_302_FOUND)
 
+@router.get("/cache-entries")
+async def view_cache_entries(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    from app.models import CacheEntry
+    from sqlalchemy import select
+    stmt = select(CacheEntry).order_by(CacheEntry.created_at.desc()).limit(200)
+    res = await db.execute(stmt)
+    caches = res.scalars().all()
+
+    return await render_admin_page("cache_entries.html", request, db, {
+        "caches": caches
+    })
+
+@router.post("/delete-cache-entry/{entry_id}")
+async def delete_single_cache_entry(entry_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    from app.models import CacheEntry
+    from sqlalchemy import delete
+    try:
+        await db.execute(delete(CacheEntry).where(CacheEntry.id == entry_id))
+        await db.commit()
+        await log_service.log("SUCCESS", "System", f"Cache entry #{entry_id} was deleted.")
+    except Exception as e:
+        await log_service.log("ERROR", "System", f"Failed to delete cache entry #{entry_id}: {e}")
+
+    return RedirectResponse(url="/admin/cache-entries?saved=1", status_code=status.HTTP_302_FOUND)
 
 @router.get("/api/logs")
 async def get_live_logs_api(request: Request, db: AsyncSession = Depends(get_db)):
@@ -649,12 +761,154 @@ async def captured_leads_page(request: Request, db: AsyncSession = Depends(get_d
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
-    stmt = select(Lead).order_by(Lead.updated_at.desc())
+    stmt = select(Lead).order_by(Lead.id.desc())
     res = await db.execute(stmt)
     leads = res.scalars().all()
 
-    return templates.TemplateResponse("leads.html", {
-        "request": request,
-        "leads": leads
+    stmt_app = select(Appointment)
+    res_app = await db.execute(stmt_app)
+    appointments = res_app.scalars().all()
+
+    phone_to_appointment = {}
+    for app in appointments:
+        if app.customer_phone and app.google_event_link:
+            phone_to_appointment[app.customer_phone.strip()] = app.google_event_link
+
+    return await render_admin_page("leads.html", request, db, {
+        "leads": leads,
+        "phone_to_appointment": phone_to_appointment
     })
+
+# --- Facebook-Styled QA Tester Panel Routes ---
+
+@router.get("/qa-panel", response_class=HTMLResponse)
+async def qa_panel_page(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    stmt = select(QAIssueReport).order_by(QAIssueReport.created_at.desc())
+    res = await db.execute(stmt)
+    qa_reports = res.scalars().all()
+
+    return await render_admin_page("qa_panel.html", request, db, {
+        "qa_reports": qa_reports
+    })
+
+@router.post("/api/qa/chat")
+async def qa_chat_api(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return {"error": "Unauthorized. Please login to admin dashboard."}
+
+    import time
+    start_time = time.time()
+    try:
+        data = await request.json()
+        tester_name = data.get("tester_name", "Tester")
+        user_query = data.get("query", "")
+        history = data.get("history", [])
+
+        if not user_query:
+            return {"error": "Empty query"}
+
+        ai_reply_data = await ai_service.generate_response(
+            user_message=user_query,
+            history=history,
+            db=db
+        )
+
+        rag_info = {}
+        if isinstance(ai_reply_data, tuple):
+            ai_reply = ai_reply_data[0]
+            if len(ai_reply_data) >= 3 and isinstance(ai_reply_data[2], dict):
+                rag_info = ai_reply_data[2]
+        else:
+            ai_reply = ai_reply_data
+
+        await lead_extractor_service.process_chat_lead(
+            db=db,
+            sender_id=f"qa_tester_{tester_name.replace(' ', '_').lower()}",
+            platform="messenger",
+            user_text=user_query,
+            sender_name=tester_name
+        )
+
+        elapsed = round(time.time() - start_time, 2)
+        return {
+            "tester_name": tester_name,
+            "query": user_query,
+            "ai_response": ai_reply,
+            "elapsed_seconds": elapsed,
+            "rag_info": rag_info
+        }
+
+    except Exception as e:
+        elapsed = round(time.time() - start_time, 2)
+        return {
+            "tester_name": "Tester",
+            "query": "",
+            "ai_response": f"AI Processing Error: {str(e)}",
+            "elapsed_seconds": elapsed
+        }
+
+@router.post("/api/qa/report-issue")
+async def qa_report_issue_api(request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return {"error": "Unauthorized"}
+
+    data = await request.json()
+    tester_name = data.get("tester_name", "Tester")
+    user_query = data.get("user_query", "")
+    ai_response = data.get("ai_response", "")
+    issue_category = data.get("issue_category", "Wrong Info")
+    corrected_response = data.get("corrected_response", "")
+
+    new_report = QAIssueReport(
+        tester_name=tester_name,
+        user_query=user_query,
+        ai_response=ai_response,
+        issue_category=issue_category,
+        corrected_response=corrected_response,
+        status="pending"
+    )
+    db.add(new_report)
+    await db.commit()
+    await db.refresh(new_report)
+
+    await log_service.log("WARNING", "QA Issue Reported", f"Tester '{tester_name}' reported an issue [{issue_category}] on query: {user_query[:50]}")
+
+    return {"status": "success", "report_id": new_report.id}
+
+@router.post("/api/qa/learn-issue/{report_id}")
+async def qa_learn_issue_api(report_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return {"error": "Unauthorized"}
+
+    stmt = select(QAIssueReport).where(QAIssueReport.id == report_id)
+    res = await db.execute(stmt)
+    report = res.scalar_one_or_none()
+
+    if not report:
+        return {"error": "Report not found"}
+
+    if not report.corrected_response:
+        return {"error": "No corrected response provided to learn from!"}
+
+    # Add to Knowledge Base
+    kb_title = f"QA Correction ({report.issue_category}): {report.user_query[:40]}"
+    kb_content = f"Question/Query: {report.user_query}\nCorrect Answer: {report.corrected_response}"
+    
+    new_kb = KnowledgeEntry(
+        category="qa_correction",
+        title=kb_title,
+        content=kb_content,
+        is_active=True
+    )
+    db.add(new_kb)
+    report.status = "learned"
+    await db.commit()
+
+    await log_service.log("SUCCESS", "AI Learned Correction", f"AI learned correction for QA Report #{report_id}")
+
+    return {"status": "success", "message": "Correction successfully converted to Knowledge Base entry for AI learning!"}
+
 

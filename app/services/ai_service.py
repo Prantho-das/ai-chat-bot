@@ -1,5 +1,6 @@
 import hashlib
 import json
+import math
 import re
 from datetime import datetime, timedelta
 try:
@@ -11,29 +12,22 @@ from sqlalchemy import select
 from app.config import settings
 from app.models import KnowledgeEntry, BotSetting, CacheEntry, Appointment
 from app.services.calendar_service import calendar_service
+from app.services.log_service import log_service
 from app.helpers import get_bot_setting, convert_bn_to_en
 
 DEFAULT_FALLBACK_MESSAGE = (
     "দুঃখিত, এই মুহূর্তে উত্তর তৈরিতে সামান্য সমস্যা হচ্ছে। "
-    "খুব দ্রুত আমাদের একজন প্রতিনিধি আপনার সাথে যোগাযোগ করবেন।"
+    "খুব দ্রুত আমাদের একজন প্রতিনিধি আপনার সাথে যোগাযোগ করবেন."
 )
 
 DEFAULT_SYSTEM_PROMPT = (
-    "তুমি একজন বিশ্বস্ত, আন্তরিক এবং সেলস-ফোকাসড AI কাস্টমার সাপোর্ট এজেন্ট। "
-    "তোমার কথা বলার ধরন হবে একদম মানুষের মতো — বন্ধুসুলভ, সহজ ভাষায়, এবং কৃত্রিম বা রোবোটিক নয়।\n\n"
-
-    "## মূল নিয়মাবলী:\n"
-    "1. **শুধুমাত্র Knowledge Base থেকে উত্তর দাও।** Knowledge Base-এ নেই এমন কিছু কখনো বানিয়ে বলবে না। "
-    "যদি উত্তর জানা না থাকে, সৎভাবে বলো: 'এই বিষয়ে আমাদের টিমের সাথে সরাসরি কথা বলতে পারলে আরো ভালো হবে।'\n"
-    "2. **হ্যালুসিনেশন করবে না।** মিথ্যা তথ্য, মনগড়া দাম, ফিচার বা অফার বলবে না। নিশ্চিত না হলে বলো না।\n"
-    "3. **অশ্লীল, অপমানজনক বা অপ্রাসঙ্গিক মেসেজ পেলে:** শান্তভাবে এবং পেশাদারভাবে বিষয়টি এড়িয়ে যাও। "
-    "রাগ করবে না, তর্ক করবে না। বলো: 'আমি আপনাকে আমাদের প্রোডাক্ট ও সার্ভিস নিয়ে সাহায্য করতে পারি। কিছু জানতে চাইলে বলুন!' "
-    "কোনো অবস্থাতেই অশ্লীল বা অপ্রাসঙ্গিক কথায় সাড়া দেবে না বা নিজে এ ধরনের কিছু বলবে না।\n"
-    "4. **Convincing Sales Approach:** গ্রাহকের সমস্যা বা চাহিদা বুঝে সেই অনুযায়ী প্রোডাক্ট/সার্ভিসের সুবিধা তুলে ধরো। "
-    "শুধু ফিচার তালিকা না দিয়ে, কীভাবে এটি তাদের ব্যবসা বা জীবনে কাজে লাগবে তা বুঝিয়ে বলো।\n"
-    "5. **প্রাসঙ্গিক হলে** উত্তরের শেষে একটি স্বাভাবিক প্রশ্ন বা কল-টু-অ্যাকশন রাখো (যেমন: 'আপনি কি ডেমো দেখতে চান?')।\n"
-    "6. **সম্পূর্ণ বাক্যে উত্তর দাও।** কোনো উত্তর মাঝখানে থামিয়ে দেবে না বা অসম্পূর্ণ রাখবে না।\n"
-    "7. **মেটা-টেক্সট দেবে না।** নিজের নিয়ম, word count, বা চিন্তা প্রক্রিয়া আউটপুটে দেখাবে না। শুধু গ্রাহকের জন্য সরাসরি উত্তর দাও।"
+    "তুমি একজন অত্যন্ত বুদ্ধিমান, আন্তরিক এবং প্রফেশনাল AI কাস্টমার সাপোর্ট স্পেশালিস্ট। "
+    "কথোপকথন সবসময় ব্যালেন্সড, আকর্ষণীয় এবং রিডেবল রাখবে:\n\n"
+    "## স্মার্ট রেসপন্স রুলস:\n"
+    "১. **পরিমিত ও আকর্ষণীয় উত্তর (Max 3-4 Lines):** বিস্তারিত বিষয় হলেও চ্যাটে কখনো বিশাল লম্বা এসে (Essay) বা অতিরিক্ত পয়েন্ট দেবে না। মূল ৩-৪টি গুরুত্বপূর্ণ পয়েন্ট সংক্ষেপে ও স্পষ্ট করে তুলে ধরো।\n"
+    "২. **সহজ প্রশ্ন (Greetings, ঠিকানা, মূল্য):** ১-২ লাইনে সরাসরি উত্তর দাও।\n"
+    "৩. **তথ্য উৎস:** শুধুমাত্র প্রদত্ত Knowledge Base থেকে সঠিক তথ্য প্রকাশ করবে।\n"
+    "৪. **মেসেঞ্জার ফ্রেন্ডলি:** পড়া সহজ হয় এমনভাবে সুন্দর ফর্মেটিংয়ে লিখবে।"
 )
 
 class AIService:
@@ -47,7 +41,33 @@ class AIService:
             self._cached_api_key = api_key
             self._configured = True
 
+    async def generate_embedding(self, text: str, db: AsyncSession = None) -> str:
+        try:
+            if not text or not genai:
+                return None
+            api_key, _ = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
+            if not api_key:
+                api_key = settings.GEMINI_API_KEY
+            if not api_key or api_key.startswith("your_"):
+                return None
+
+            clean_key = api_key.strip().strip('"').strip("'")
+            self._ensure_genai_configured(clean_key)
+
+            for model_name in ["models/text-embedding-004", "models/embedding-001"]:
+                try:
+                    result = genai.embed_content(model=model_name, content=text[:2000], task_type="retrieval_document")
+                    if result and "embedding" in result:
+                        return json.dumps(result["embedding"])
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[EMBEDDING ERROR] {e}")
+        return None
+
+
     async def get_fallback_message(self, db: AsyncSession) -> str:
+
         return await get_bot_setting(db, "fallback_message", DEFAULT_FALLBACK_MESSAGE)
 
     async def get_system_prompt(self, db: AsyncSession) -> str:
@@ -70,20 +90,75 @@ class AIService:
         records = result.scalars().all()
         return {r.key: r.value for r in records}
 
-    async def get_knowledge_base_data(self, db: AsyncSession) -> tuple[str, str]:
-        stmt = select(KnowledgeEntry).where(KnowledgeEntry.is_active == True)
+    async def get_knowledge_base_data_with_entries(self, db: AsyncSession, user_message: str = "") -> tuple[str, str, list, str]:
+        stmt = select(KnowledgeEntry).where(KnowledgeEntry.is_active == True).order_by(KnowledgeEntry.category, KnowledgeEntry.id)
         result = await db.execute(stmt)
         entries = result.scalars().all()
-        
+
         if not entries:
-            return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb"
-        
-        kb_text = ""
-        for entry in entries:
-            kb_text += f"\n- [{entry.category.upper()}] {entry.title}: {entry.content}"
-        
+            return "কোনো অতিরিক্ত তথ্য প্রদান করা হয়নি।", "empty_kb", [], "none", None
+
+        selected_entries = []
+        search_method = "none"
+
+        if user_message:
+            cleaned_msg = user_message.lower().strip()
+            query_words = set(re.findall(r'\w+', cleaned_msg))
+
+            # 1. Hybrid Search (Vector Similarity + Keyword Boosting)
+            query_embedding_json = await self.generate_embedding(user_message, db=db)
+            hybrid_scores = []
+
+            query_vec = None
+            if query_embedding_json:
+                try:
+                    query_vec = json.loads(query_embedding_json)
+                except Exception:
+                    query_vec = None
+
+            for entry in entries:
+                v_score = 0.0
+                if query_vec and entry.embedding_json:
+                    try:
+                        doc_vec = json.loads(entry.embedding_json)
+                        dot = sum(q * d for q, d in zip(query_vec, doc_vec))
+                        norm_q = math.sqrt(sum(q * q for q in query_vec))
+                        norm_d = math.sqrt(sum(d * d for d in doc_vec))
+                        v_score = dot / (norm_q * norm_d) if (norm_q * norm_d) > 0 else 0.0
+                    except Exception:
+                        v_score = 0.0
+
+                # Keyword boost calculation
+                title_words = set(re.findall(r'\w+', (entry.title or "").lower()))
+                content_words = set(re.findall(r'\w+', (entry.content or "").lower()))
+                k_score = (len(query_words.intersection(title_words)) * 0.15) + (len(query_words.intersection(content_words)) * 0.05)
+                if (entry.category or "") and entry.category.lower() in cleaned_msg:
+                    k_score += 0.1
+
+                final_score = (v_score * 0.7) + (k_score * 0.3)
+                if final_score > 0.25:
+                    hybrid_scores.append((final_score, entry))
+
+            if hybrid_scores:
+                hybrid_scores.sort(key=lambda x: x[0], reverse=True)
+                selected_entries = [item[1] for item in hybrid_scores[:2]]
+                search_method = "hybrid_vector"
+        else:
+            selected_entries = entries[:3]
+            search_method = "default"
+
+        if not selected_entries:
+            return "কোনো প্রাসঙ্গিক নলেজ ডকু দেওয়া হয়নি।", "no_rag_match", [], search_method, query_embedding_json
+
+        kb_lines = []
+        for idx, entry in enumerate(selected_entries, 1):
+            cat = (entry.category or 'GENERAL').upper()
+            kb_lines.append(f"{idx}. [{cat}] {entry.title or ''}: {entry.content or ''}")
+
+        kb_text = "\n".join(kb_lines)
         kb_hash = hashlib.md5(kb_text.encode("utf-8")).hexdigest()
-        return kb_text, kb_hash
+        return kb_text, kb_hash, selected_entries, search_method, query_embedding_json
+
 
     async def get_gemini_config(self, db: AsyncSession) -> tuple[str, str]:
         stmt = select(BotSetting).where(BotSetting.key.in_(["gemini_api_key", "gemini_model"]))
@@ -92,7 +167,12 @@ class AIService:
         settings_dict = {r.key: r.value for r in records}
 
         api_key = settings_dict.get("gemini_api_key", "")
-        model_name = settings_dict.get("gemini_model", "gemini-2.0-flash")
+        model_name = settings_dict.get("gemini_model", "").strip()
+        
+        # Fallback to stable valid models if empty or invalid model selected
+        if not model_name or "tts" in model_name.lower():
+            model_name = "gemini-2.0-flash"
+
         return api_key, model_name
 
     def get_available_models(self, api_key: str = None) -> list[dict]:
@@ -109,15 +189,16 @@ class AIService:
                             "name": m.display_name or model_id
                         })
                 if models:
-                    return models
+                    # Filter out TTS/Audio only models that fail standard text chat
+                    valid_models = [m for m in models if "tts" not in m["id"].lower() and "audio" not in m["id"].lower()]
+                    return valid_models if valid_models else models
         except Exception as e:
             print(f"Error fetching models from Gemini API: {e}")
 
         return [
-            {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash"},
+            {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash (Recommended)"},
             {"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash"},
-            {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro"},
-            {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash"},
+            {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro"}
         ]
 
     async def get_booking_keywords(self, db: AsyncSession) -> list[str]:
@@ -139,29 +220,31 @@ class AIService:
     async def is_booking_intent(self, user_message: str, db: AsyncSession) -> bool:
         lowered = user_message.strip().lower()
 
-        def has_word(word_list, text):
-            for w in word_list:
-                pattern = r'\b' + re.escape(w) + r'\b'
-                if re.search(pattern, text):
-                    return True
+        # Get configured booking keywords
+        booking_kws = await self.get_booking_keywords(db)
+        # Check if message contains any booking keyword
+        has_booking_kw = any(kw in lowered for kw in booking_kws)
+
+        if not has_booking_kw:
             return False
 
-        booking_keywords = await self.get_booking_keywords(db)
-        if has_word(booking_keywords, lowered):
-            return True
+        question_indicators = ["kora jabe", "hobe ki", "jabe ki", "jabe?", "hobe?", "kivabe", "pari ki", "করা যাবে", "হবে কি", "যাবে কি", "কীভাবে", "পারি কি"]
+        has_question = any(q in lowered for q in question_indicators)
 
-        date_words = [
-            "today", "tomorrow", "ajker", "ajke", "aj", "ajk", "kalke", "kal", "kalk", "tarikh", "tariker",
-            "আজকের", "আজকে", "আজ", "কালকে", "কাল", "আগামীকাল", "পরশু", "তারিখ", "তারিখের"
-        ]
-        if has_word(date_words, lowered):
-            return True
+        has_phone = bool(re.search(r'01[3-9]\d{8}', lowered))
+        has_explicit_time = bool(re.search(r'\b(\d{1,2}|[০-৯]{1,2})\s*(?:ta|tai|tar|টার|টা|pm|am|:\d\d)\b', lowered))
 
-        dynamic_digit_pattern = r'\b(\d{1,2}|[০-৯]{1,2})\s*(?:ta|tai|tar|টার|টা|pm|am|:\d\d|তারিখ|তারিখের)'
-        if re.search(dynamic_digit_pattern, lowered):
+        direct_commands = ["book koro", "fix koro", "book korin", "booking den", "book den", "বুক করুন", "বুক করে দেন", "মিটিং ফিক্স করুন"]
+        has_direct_command = any(cmd in lowered for cmd in direct_commands)
+
+        if has_question and not (has_phone or has_explicit_time or has_direct_command):
+            return False
+
+        if has_phone or has_explicit_time or has_direct_command:
             return True
 
         return False
+
 
     async def _handle_calendar_booking(self, user_message: str, calendar_config: dict, db: AsyncSession) -> str:
         phone_match = re.search(r'01[3-9]\d{8}', user_message)
@@ -230,66 +313,222 @@ class AIService:
         db.add(new_appointment)
         await db.commit()
 
+        link_str = f" Link: {cal_res.get('html_link', '')}" if cal_res.get('html_link') else ""
         if is_rescheduled:
-            return f"[SYSTEM ACTION: Requested slot on {final_date} at {formatted_time} was busy. Google Calendar booked next available slot for {final_date} at {final_time}. Clearly confirm this date ({final_date}) and time ({final_time}) to customer.]"
-        return f"[SYSTEM ACTION: Google Calendar appointment successfully booked for {final_date} at {final_time}. Clearly confirm this exact date ({final_date}) and time ({final_time}) to customer.]"
+            return f"[SYSTEM ACTION: Requested slot on {final_date} at {formatted_time} was busy. Google Calendar booked next available slot for {final_date} at {final_time}. Clearly confirm this date ({final_date}) and time ({final_time}) to customer.{link_str}]"
+        return f"[SYSTEM ACTION: Google Calendar appointment successfully booked for {final_date} at {final_time}. Clearly confirm this exact date ({final_date}) and time ({final_time}) and provide calendar link to customer.{link_str}]"
 
     async def generate_response(self, user_message: str, history: list = None, db: AsyncSession = None) -> tuple[str, bool, dict]:
         fallback_msg = await self.get_fallback_message(db) if db else DEFAULT_FALLBACK_MESSAGE
         token_stats = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
-        # Fast Instant Path for simple Greetings & Check-ins (50ms response time)
-        clean_query = user_message.strip().lower().rstrip(".!?")
-        greetings = [
-            "hey", "hlw", "hello", "hi", "hy", "hei",
-            "keo asen", "keu asen", "keo asea", "keo acen", "keu acen",
-            "কেউ আছেন", "কেউ আছো", "কেউ কি আছেন", "আছো কেউ", "আছেন কেউ",
-            "হাই", "হ্যালো", "আসসালামু আলাইকুম", "assalamu alaikum", "slm", "slam"
-        ]
-        if clean_query in greetings:
-            instant_reply = "জি, আমি আছি! POSTech Live-এ আপনাকে স্বাগত। 😊 আমি আপনাকে কীভাবে সাহায্য করতে পারি বলুন?"
-            return instant_reply, True, {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
-
         try:
+            clean_raw = user_message.strip().lower()
+
+            # 1. Static Greeting Bypass (0 Tokens, Instant Reply)
+            simple_greetings = {"hi", "hello", "hey", "হাই", "হ্যালো", "হে", "হেই", "assalamu alaikum", "assalamualaikum", "সালামু আলাইকুম", "আসসালামু আলাইকুম", "কেমন আছেন", "kemon achen", "kemon asen"}
+            if clean_raw in simple_greetings:
+                greeting_reply = "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি? আমাদের সফটওয়্যার বা সার্ভিস সম্পর্কে বিস্তারিত জানতে কোনো প্রশ্ন থাকলে বলতে পারেন।"
+                return greeting_reply, True, {
+                    "matched_count": 0,
+                    "matched_titles": [],
+                    "search_method": "static_rule",
+                    "model_used": "Static Rule (0 Tokens)",
+                    "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                }
+
+            booking_action_info = ""
             if db and await self.is_booking_intent(user_message, db):
                 cal_config = await self.get_calendar_config(db)
-                booking_msg = await self._handle_calendar_booking(user_message, cal_config, db)
-                return booking_msg, False, token_stats
+                booking_action_info = await self._handle_calendar_booking(user_message, cal_config, db)
 
             api_key, model_name = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
             if not api_key:
                 api_key = settings.GEMINI_API_KEY
 
+            if api_key:
+                api_key = api_key.strip().strip('"').strip("'")
+
             if not api_key or api_key.startswith("your_") or not genai:
+                print(f"[AI SERVICE WARNING] Missing or invalid Gemini API Key ('{api_key[:10] if api_key else 'None'}')! Returning fallback message.")
                 return fallback_msg, False, token_stats
 
             self._ensure_genai_configured(api_key)
 
             sys_prompt = await self.get_system_prompt(db) if db else DEFAULT_SYSTEM_PROMPT
-            kb_text, _ = await self.get_knowledge_base_data(db) if db else ("Empty", "empty")
-
-            full_prompt = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}\n\n## CUSTOMER QUERY:\n{user_message}"
-
-            model = genai.GenerativeModel(model_name)
             
-            # Execute Gemini call with 8.0s timeout to prevent hanging
-            import asyncio
+            # Enforce dynamic response length instruction
+            resp_len = await self.get_response_length(db) if db else "short"
+            
+            # Check if user query contains detail keywords (e.g. price, features, details) to auto-upgrade to medium/long response
+            detail_kws = await self.get_detail_keywords(db) if db else []
+            has_detail_kw = any(kw in user_message.lower() for kw in detail_kws) if detail_kws else False
+            
+            if resp_len == "short" and has_detail_kw:
+                resp_len = "medium"  # Auto-upgrade to medium to allow displaying list/prices
+
+            if resp_len == "short":
+                sys_prompt += "\n\n## RESPONSE LENGTH CRITICAL RULE:\nউত্তর অবশ্যই অত্যন্ত সংক্ষিপ্ত এবং সর্বোচ্চ ১ থেকে ২ লাইনের মধ্যে হতে হবে। কোনো অতিরিক্ত বিবরণ বা পয়েন্ট আকারে বড় তালিকা দেওয়া যাবে না।"
+            elif resp_len == "medium":
+                sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nউত্তরটি মাঝারি মানের হবে, ৩ থেকে ৪ লাইনের মধ্যে শেষ করবে।"
+            elif resp_len == "long":
+                sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nবিস্তারিত উত্তর প্রদান করো।"
+
+            # 2. Normalized Query for Higher Cache Hits
+            clean_q = re.sub(r'[^\w\s]', '', clean_raw).strip()
+            kb_text, kb_hash, selected_entries, search_method, query_emb_json = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [], "none", None)
+
+            cache_key = hashlib.md5(f"{clean_q}:{kb_hash}".encode("utf-8")).hexdigest()
+            if db and not booking_action_info:
+                stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
+                res_c = await db.execute(stmt_c)
+                cached = res_c.scalar_one_or_none()
+                if cached and cached.ai_response:
+                    return cached.ai_response, True, {
+                        "matched_count": len(selected_entries),
+                        "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
+                        "search_method": search_method,
+                        "model_used": model_name + " (Cached)",
+                        "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                    }
+
+            hist_limit_val = await get_bot_setting(db, "max_history_turns") if db else "4"
             try:
-                response = await asyncio.wait_for(model.generate_content_async(full_prompt), timeout=8.0)
-                ai_text = response.text.strip() if response and hasattr(response, 'text') else fallback_msg
-            except asyncio.TimeoutError:
-                print("[AI SERVICE TIMEOUT] Gemini API call timed out. Returning fallback message.")
-                return fallback_msg, False, token_stats
+                hist_limit = int(hist_limit_val)
+            except ValueError:
+                hist_limit = 4
+
+            hist_txt = ""
+            if history:
+                h_lines = []
+                for msg in history[-hist_limit:]:
+                    if isinstance(msg, dict):
+                        role = msg.get("role")
+                        content = msg.get("content")
+                    else:
+                        role = getattr(msg, "role", "")
+                        content = getattr(msg, "content", "")
+                    r = "Customer" if role == "user" else "Assistant"
+                    h_lines.append(f"{r}: {content}")
+                if h_lines:
+                    hist_txt = "## CONVERSATION HISTORY:\n" + "\n".join(h_lines) + "\n\n"
+
+            full_prompt = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}\n\n"
+            if hist_txt:
+                full_prompt += hist_txt
+            if booking_action_info:
+                full_prompt += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
+            full_prompt += f"## CUSTOMER QUERY:\n{user_message}"
+
+            models_to_try = [model_name]
+            if model_name != "gemini-2.0-flash":
+                models_to_try.append("gemini-2.0-flash")
+
+            response = None
+            ai_text = None
+
+            # Attempt Gemini Native Context Caching if static system context is large (>2000 chars) and caching module exists
+            cached_context_obj = None
+            static_context = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}"
+            if len(static_context) > 2000 and hasattr(genai, 'caching') and hasattr(genai.caching, 'CachedContent'):
+                try:
+                    cache_ttl_minutes = 15
+                    cached_context_obj = genai.caching.CachedContent.create(
+                        model=f"models/{model_name}",
+                        display_name="system_kb_context",
+                        contents=[static_context],
+                        ttl=timedelta(minutes=cache_ttl_minutes)
+                    )
+                except Exception as cache_err:
+                    cached_context_obj = None
+
+            for m_name in models_to_try:
+                try:
+                    if cached_context_obj:
+                        model = genai.GenerativeModel.from_cached_content(cached_content=cached_context_obj)
+                        user_prompt_payload = ""
+                        if hist_txt:
+                            user_prompt_payload += hist_txt
+                        if booking_action_info:
+                            user_prompt_payload += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
+                        user_prompt_payload += f"## CUSTOMER QUERY:\n{user_message}"
+                        res = await model.generate_content_async(user_prompt_payload)
+                    else:
+                        model = genai.GenerativeModel(m_name)
+                        res = await model.generate_content_async(full_prompt)
+
+                    if res:
+                        t = None
+                        try:
+                            t = res.text.strip() if hasattr(res, 'text') else None
+                        except ValueError:
+                            if hasattr(res, 'candidates') and res.candidates:
+                                parts = res.candidates[0].content.parts
+                                t = "".join([p.text for p in parts if hasattr(p, 'text') and p.text]).strip()
+                        if t:
+                            ai_text = t
+                            response = res
+                            model_name = m_name
+                            break
+                except Exception as gem_err:
+                    err_text = f"Gemini API Exception for {m_name} ({type(gem_err).__name__}): {gem_err}"
+                    print(f"[GEMINI API ERROR] {err_text}")
+                    await log_service.log("ERROR", "AI Engine Error", err_text, f"Model: {m_name}")
+                    continue
+
+            if not ai_text:
+                return fallback_msg, False, {
+                    "matched_count": len(selected_entries),
+                    "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
+                    "search_method": search_method,
+                    "model_used": model_name,
+                    "tokens": token_stats
+                }
+
+            if db and ai_text != fallback_msg:
+                try:
+                    if not query_emb_json:
+                        query_emb_json = await self.generate_embedding(clean_q, db=db)
+
+                    new_cache = CacheEntry(
+                        prompt_hash=cache_key,
+                        user_query=user_message[:200],
+                        ai_response=ai_text,
+                        embedding_json=query_emb_json
+                    )
+                    db.add(new_cache)
+                    await db.commit()
+                except Exception as save_err:
+                    print(f"[CACHE SAVE ERROR] {save_err}")
 
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
                 token_stats["prompt_tokens"] = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
                 token_stats["completion_tokens"] = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
                 token_stats["total_tokens"] = getattr(response.usage_metadata, 'total_token_count', 0) or (token_stats["prompt_tokens"] + token_stats["completion_tokens"])
 
-            return ai_text, False, token_stats
+            rag_info = {
+                "matched_count": len(selected_entries),
+                "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
+                "search_method": search_method,
+                "model_used": model_name,
+                "tokens": token_stats
+            }
+            return ai_text, False, rag_info
         except Exception as e:
-            print(f"[AI SERVICE ERROR] {e}")
-            return fallback_msg, False, token_stats
+            err_msg = f"AI Response Critical Exception: {str(e)}"
+            print(f"[AI SERVICE ERROR] {err_msg}")
+            if db:
+                try:
+                    await log_service.log("ERROR", "AI Critical Exception", err_msg)
+                except Exception:
+                    pass
+            return fallback_msg, False, {
+                "matched_count": 0,
+                "matched_titles": [],
+                "search_method": "error",
+                "model_used": "unknown",
+                "tokens": token_stats
+            }
 
 ai_service = AIService()
 

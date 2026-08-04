@@ -13,26 +13,65 @@ class MessengerService:
             await log_service.log("ERROR", "Messenger", f"Cannot send DM to {recipient_id}: Page Access Token missing or invalid.", "Set FB Page Access Token in Bot Settings.")
             return False
 
+        # Facebook Messenger character limit per message is 2000. Chunking to 1800 chars for safe delivery
+        chunks = [text[i:i + 1800] for i in range(0, len(text), 1800)]
+        success = True
+
+        async with httpx.AsyncClient() as client:
+            for chunk in chunks:
+                payload = {
+                    "recipient": {"id": recipient_id},
+                    "message": {"text": chunk}
+                }
+                params = {"access_token": token}
+                try:
+                    response = await client.post(self.api_url, json=payload, params=params)
+                    res_data = response.json()
+                    if response.status_code != 200:
+                        err_msg = res_data.get("error", {}).get("message", json.dumps(res_data))
+                        await log_service.log("ERROR", "Messenger", f"FB DM Send Failed ({response.status_code}): {err_msg}", json.dumps(res_data))
+                        success = False
+                except Exception as e:
+                    await log_service.log("ERROR", "Messenger", f"Network Exception while sending FB DM: {e}")
+                    success = False
+        return success
+
+    async def send_typing_indicator(self, recipient_id: str, access_token: str = None) -> bool:
+        """Send typing_on action so Facebook user sees 'typing...' bubble immediately."""
+        token = access_token or getattr(settings, "FB_PAGE_ACCESS_TOKEN", "")
+        if not token or token.startswith("your_"):
+            return False
+
         payload = {
             "recipient": {"id": recipient_id},
-            "message": {"text": text}
+            "sender_action": "typing_on"
         }
         params = {"access_token": token}
 
         async with httpx.AsyncClient() as client:
             try:
-                response = await client.post(self.api_url, json=payload, params=params)
-                res_data = response.json()
-                if response.status_code == 200:
-                    await log_service.log("SUCCESS", "Messenger", f"Successfully sent DM reply to user {recipient_id}", json.dumps(res_data))
-                    return True
-                else:
-                    err_msg = res_data.get("error", {}).get("message", json.dumps(res_data))
-                    await log_service.log("ERROR", "Messenger", f"FB DM Send Failed ({response.status_code}): {err_msg}", json.dumps(res_data))
-                    return False
-            except Exception as e:
-                await log_service.log("ERROR", "Messenger", f"Network Exception while sending FB DM: {e}")
+                await client.post(self.api_url, json=payload, params=params, timeout=3.0)
+                return True
+            except Exception:
                 return False
+
+    async def get_user_profile(self, user_id: str, access_token: str = None) -> dict:
+        """Fetch Facebook user name using Graph API."""
+        token = access_token or getattr(settings, "FB_PAGE_ACCESS_TOKEN", "")
+        if not token or token.startswith("your_"):
+            return {}
+
+        url = f"https://graph.facebook.com/v19.0/{user_id}"
+        params = {"fields": "first_name,last_name,name", "access_token": token}
+
+        async with httpx.AsyncClient() as client:
+            try:
+                res = await client.get(url, params=params, timeout=5.0)
+                if res.status_code == 200:
+                    return res.json()
+            except Exception as e:
+                print(f"[MESSENGER PROFILE FETCH ERROR] {e}")
+        return {}
 
     async def send_image_message(self, recipient_id: str, image_url: str, access_token: str = None) -> bool:
         """Send an image to a Messenger user via URL."""
