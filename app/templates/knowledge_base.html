@@ -11,10 +11,18 @@
             <h3 class="text-lg font-extrabold text-slate-900 tracking-tight">Business Knowledge Base</h3>
             <p class="text-xs text-slate-500 font-medium">এই তথ্যগুলোর উপর ভিত্তি করে Gemini AI কাস্টমারদের প্রশ্নের অটোমেটিক উত্তর তৈরি করবে</p>
         </div>
-        <button @click="showModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center space-x-2 shrink-0">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-            <span>Add Knowledge Item</span>
-        </button>
+        <div class="flex items-center gap-2 shrink-0">
+            <form action="/admin/knowledge/generate-missing-embeddings" method="POST" class="inline">
+                <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md shadow-amber-600/20 flex items-center justify-center space-x-2 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <span>Generate Missing Embeddings{% if missing_embed_count %} ({{ missing_embed_count }}){% endif %}</span>
+                </button>
+            </form>
+            <button @click="showModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center space-x-2 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>Add Knowledge Item</span>
+            </button>
+        </div>
     </div>
 
     <!-- Alert Notifications -->
@@ -22,6 +30,13 @@
     <div class="p-4 bg-emerald-50 border border-emerald-200/80 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center space-x-2 shadow-sm animate-fade-in">
         <span class="text-base">✅</span>
         <span>নলেজ বেস আইটেম সফলভাবে সংরক্ষিত হয়েছে! (Knowledge Base Updated)</span>
+    </div>
+    {% endif %}
+
+    {% if reembedded %}
+    <div class="p-4 bg-indigo-50 border border-indigo-200/80 rounded-2xl text-indigo-800 text-xs font-semibold flex items-center space-x-2 shadow-sm animate-fade-in">
+        <span class="text-base">✨</span>
+        <span>{{ reembedded }} টি নলেজ আইটেমের জন্য এম্বেডিং সফলভাবে তৈরি করা হয়েছে! (Embeddings Generated)</span>
     </div>
     {% endif %}
 
@@ -105,6 +120,7 @@
                         <th class="px-6 py-4">Category</th>
                         <th class="px-6 py-4">Title</th>
                         <th class="px-6 py-4">Content Snippet</th>
+                        <th class="px-6 py-4">Embedding</th>
                         <th class="px-6 py-4">Status</th>
                         <th class="px-6 py-4 text-right">Action</th>
                     </tr>
@@ -133,6 +149,17 @@
                                     @click="viewTitle = $el.dataset.title; viewContent = $el.dataset.content"
                                     class="text-[11px] text-indigo-600 hover:text-indigo-700 font-bold hover:underline shrink-0">View Full</button>
                             </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if item.embedding_json and item.embedding_json != "[]" %}
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60 inline-flex items-center space-x-1">
+                                <span>✨ Ready</span>
+                            </span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/60 inline-flex items-center space-x-1">
+                                <span>⚠️ Missing</span>
+                            </span>
+                            {% endif %}
                         </td>
                         <td class="px-6 py-4">
                             <form action="/admin/knowledge/toggle/{{ item.id }}" method="POST" class="inline">
@@ -169,7 +196,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-slate-400 text-xs font-medium">
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-400 text-xs font-medium">
                             <div class="space-y-2">
                                 <span class="text-2xl block">🔍</span>
                                 <p>No knowledge items found matching your criteria.</p>

@@ -192,16 +192,19 @@ async def knowledge_base_page(
     total_count = len(all_entries)
     active_count = sum(1 for e in all_entries if e.is_active)
     categories_set = set(e.category for e in all_entries if e.category)
+    missing_embed_count = sum(1 for e in all_entries if not e.embedding_json or not e.embedding_json.strip() or e.embedding_json == "[]")
 
     return await render_admin_page("knowledge_base.html", request, db, {
         "entries": entries,
         "total_count": total_count,
         "active_count": active_count,
         "categories_count": len(categories_set),
+        "missing_embed_count": missing_embed_count,
         "q": q or "",
         "category_filter": category or "all",
         "status_filter": status_filter or "all",
         "saved": request.query_params.get("saved"),
+        "reembedded": request.query_params.get("reembedded"),
         "error": request.query_params.get("error")
     })
 
@@ -329,19 +332,34 @@ async def upload_knowledge_file(
         return RedirectResponse(url="/admin/knowledge?error=upload_failed", status_code=status.HTTP_302_FOUND)
 
 
-@router.post("/knowledge/delete/{entry_id}")
-async def delete_knowledge(entry_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+@router.post("/knowledge/generate-missing-embeddings")
+async def generate_missing_embeddings(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
-    stmt = select(KnowledgeEntry).where(KnowledgeEntry.id == entry_id)
+    stmt = select(KnowledgeEntry).where(
+        (KnowledgeEntry.embedding_json.is_(None)) |
+        (KnowledgeEntry.embedding_json == "") |
+        (KnowledgeEntry.embedding_json == "[]")
+    )
     result = await db.execute(stmt)
-    entry = result.scalar_one_or_none()
-    if entry:
-        await db.delete(entry)
+    missing_entries = result.scalars().all()
+
+    count = 0
+    for entry in missing_entries:
+        text_to_embed = f"{entry.title.strip()}\n{entry.content.strip()}"
+        emb_json = await ai_service.generate_embedding(text_to_embed, db=db)
+        if emb_json:
+            entry.embedding_json = emb_json
+            count += 1
+
+    if count > 0:
         await db.commit()
 
-    return RedirectResponse(url="/admin/knowledge", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url=f"/admin/knowledge?reembedded={count}", status_code=status.HTTP_302_FOUND)
 
 @router.get("/conversations", response_class=HTMLResponse)
 async def conversations_page(
