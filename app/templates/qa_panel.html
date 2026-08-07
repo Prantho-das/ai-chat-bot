@@ -284,6 +284,20 @@
         localStorage.setItem("qa_active_tester", name);
         document.getElementById("currentTesterName").innerText = name;
         document.getElementById("testerBadgeAvatar").innerText = name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2) || "T";
+        
+        chatHistory = [];
+        const chatArea = document.getElementById("chatArea");
+        if (chatArea) {
+            chatArea.innerHTML = `
+                <div class="text-center py-8 text-slate-400 text-xs font-medium">
+                    <p class="text-2xl mb-1.5">🤖</p>
+                    Started new session for <strong class="text-slate-700">${name}</strong>. Type a message or send media to test.
+                </div>
+            `;
+        }
+        if (typeof clearAttachedImage === 'function') clearAttachedImage();
+        if (typeof clearAttachedAudio === 'function') clearAttachedAudio();
+
         renderTesters();
     }
 
