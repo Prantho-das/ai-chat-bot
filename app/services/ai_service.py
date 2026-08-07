@@ -41,29 +41,53 @@ class AIService:
             self._cached_api_key = api_key
             self._configured = True
 
+    def _extract_api_keys(self, raw_keys: str) -> list[str]:
+        if not raw_keys:
+            return []
+        keys = [k.strip().strip('"').strip("'") for k in raw_keys.split(",") if k.strip()]
+        return [k for k in keys if k and not k.startswith("your_")]
+
+    def _generate_fallback_vector(self, text: str) -> str:
+        if not text:
+            return None
+        vec = [0.0] * 64
+        words = re.findall(r'\w+', text.lower())
+        for w in words:
+            h = int(hashlib.md5(w.encode('utf-8')).hexdigest(), 16)
+            idx = h % 64
+            vec[idx] += 1.0
+        norm = math.sqrt(sum(v * v for v in vec))
+        if norm > 0:
+            vec = [round(v / norm, 5) for v in vec]
+        return json.dumps(vec)
+
     async def generate_embedding(self, text: str, db: AsyncSession = None) -> str:
         try:
-            if not text or not genai:
+            if not text:
                 return None
-            api_key, _ = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
-            if not api_key:
-                api_key = settings.GEMINI_API_KEY
-            if not api_key or api_key.startswith("your_"):
-                return None
-
-            clean_key = api_key.strip().strip('"').strip("'")
-            self._ensure_genai_configured(clean_key)
-
-            for model_name in ["models/text-embedding-004", "models/embedding-001"]:
-                try:
-                    result = genai.embed_content(model=model_name, content=text[:2000], task_type="retrieval_document")
-                    if result and "embedding" in result:
-                        return json.dumps(result["embedding"])
-                except Exception:
-                    continue
+            raw_key, _ = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
+            keys = self._extract_api_keys(raw_key) or self._extract_api_keys(settings.GEMINI_API_KEY)
+            
+            if genai and keys:
+                for key in keys:
+                    try:
+                        self._ensure_genai_configured(key)
+                        for model_name in ["models/text-embedding-004", "text-embedding-004", "models/embedding-001"]:
+                            try:
+                                result = genai.embed_content(model=model_name, content=text[:2000], task_type="retrieval_document")
+                                if result and "embedding" in result:
+                                    return json.dumps(result["embedding"])
+                            except Exception as embed_err:
+                                print(f"[EMBEDDING MODEL TRY FAIL] {model_name}: {embed_err}")
+                                continue
+                    except Exception as key_err:
+                        print(f"[EMBEDDING KEY FAIL] Key ending in ...{key[-6:]}: {key_err}")
+                        continue
         except Exception as e:
             print(f"[EMBEDDING ERROR] {e}")
-        return None
+
+        # Local fallback vector generation so embedding never stays empty or fails
+        return self._generate_fallback_vector(text)
 
 
     async def get_fallback_message(self, db: AsyncSession) -> str:
@@ -135,14 +159,18 @@ class AIService:
                 if (entry.category or "") and entry.category.lower() in cleaned_msg:
                     k_score += 0.1
 
-                final_score = (v_score * 0.7) + (k_score * 0.3)
-                if final_score > 0.25:
+                final_score = (v_score * 0.7) + (k_score * 0.3) if query_vec else k_score
+                min_threshold = 0.25 if query_vec else 0.05
+                if final_score > min_threshold:
                     hybrid_scores.append((final_score, entry))
 
             if hybrid_scores:
                 hybrid_scores.sort(key=lambda x: x[0], reverse=True)
                 selected_entries = [item[1] for item in hybrid_scores[:2]]
-                search_method = "hybrid_vector"
+                search_method = "hybrid_vector" if query_vec else "keyword_fallback"
+            elif not query_vec:
+                selected_entries = entries[:2]
+                search_method = "default_fallback"
         else:
             selected_entries = entries[:3]
             search_method = "default"
@@ -342,18 +370,12 @@ class AIService:
                 cal_config = await self.get_calendar_config(db)
                 booking_action_info = await self._handle_calendar_booking(user_message, cal_config, db)
 
-            api_key, model_name = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
-            if not api_key:
-                api_key = settings.GEMINI_API_KEY
+            raw_key, model_name = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
+            keys = self._extract_api_keys(raw_key) or self._extract_api_keys(settings.GEMINI_API_KEY)
 
-            if api_key:
-                api_key = api_key.strip().strip('"').strip("'")
-
-            if not api_key or api_key.startswith("your_") or not genai:
-                print(f"[AI SERVICE WARNING] Missing or invalid Gemini API Key ('{api_key[:10] if api_key else 'None'}')! Returning fallback message.")
+            if not keys or not genai:
+                print("[AI SERVICE WARNING] Missing or invalid Gemini API Key! Returning fallback message.")
                 return fallback_msg, False, token_stats
-
-            self._ensure_genai_configured(api_key)
 
             sys_prompt = await self.get_system_prompt(db) if db else DEFAULT_SYSTEM_PROMPT
             
@@ -427,54 +449,58 @@ class AIService:
             response = None
             ai_text = None
 
-            # Attempt Gemini Native Context Caching if static system context is large (>2000 chars) and caching module exists
-            cached_context_obj = None
-            static_context = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}"
-            if len(static_context) > 2000 and hasattr(genai, 'caching') and hasattr(genai.caching, 'CachedContent'):
-                try:
-                    cache_ttl_minutes = 15
-                    cached_context_obj = genai.caching.CachedContent.create(
-                        model=f"models/{model_name}",
-                        display_name="system_kb_context",
-                        contents=[static_context],
-                        ttl=timedelta(minutes=cache_ttl_minutes)
-                    )
-                except Exception as cache_err:
-                    cached_context_obj = None
+            for key in keys:
+                self._ensure_genai_configured(key)
+                # Attempt Gemini Native Context Caching if static system context is large (>2000 chars) and caching module exists
+                cached_context_obj = None
+                static_context = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}"
+                if len(static_context) > 2000 and hasattr(genai, 'caching') and hasattr(genai.caching, 'CachedContent'):
+                    try:
+                        cache_ttl_minutes = 15
+                        cached_context_obj = genai.caching.CachedContent.create(
+                            model=f"models/{model_name}",
+                            display_name="system_kb_context",
+                            contents=[static_context],
+                            ttl=timedelta(minutes=cache_ttl_minutes)
+                        )
+                    except Exception:
+                        cached_context_obj = None
 
-            for m_name in models_to_try:
-                try:
-                    if cached_context_obj:
-                        model = genai.GenerativeModel.from_cached_content(cached_content=cached_context_obj)
-                        user_prompt_payload = ""
-                        if hist_txt:
-                            user_prompt_payload += hist_txt
-                        if booking_action_info:
-                            user_prompt_payload += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
-                        user_prompt_payload += f"## CUSTOMER QUERY:\n{user_message}"
-                        res = await model.generate_content_async(user_prompt_payload)
-                    else:
-                        model = genai.GenerativeModel(m_name)
-                        res = await model.generate_content_async(full_prompt)
+                for m_name in models_to_try:
+                    try:
+                        if cached_context_obj:
+                            model = genai.GenerativeModel.from_cached_content(cached_content=cached_context_obj)
+                            user_prompt_payload = ""
+                            if hist_txt:
+                                user_prompt_payload += hist_txt
+                            if booking_action_info:
+                                user_prompt_payload += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
+                            user_prompt_payload += f"## CUSTOMER QUERY:\n{user_message}"
+                            res = await model.generate_content_async(user_prompt_payload)
+                        else:
+                            model = genai.GenerativeModel(m_name)
+                            res = await model.generate_content_async(full_prompt)
 
-                    if res:
-                        t = None
-                        try:
-                            t = res.text.strip() if hasattr(res, 'text') else None
-                        except ValueError:
-                            if hasattr(res, 'candidates') and res.candidates:
-                                parts = res.candidates[0].content.parts
-                                t = "".join([p.text for p in parts if hasattr(p, 'text') and p.text]).strip()
-                        if t:
-                            ai_text = t
-                            response = res
-                            model_name = m_name
-                            break
-                except Exception as gem_err:
-                    err_text = f"Gemini API Exception for {m_name} ({type(gem_err).__name__}): {gem_err}"
-                    print(f"[GEMINI API ERROR] {err_text}")
-                    await log_service.log("ERROR", "AI Engine Error", err_text, f"Model: {m_name}")
-                    continue
+                        if res:
+                            t = None
+                            try:
+                                t = res.text.strip() if hasattr(res, 'text') else None
+                            except ValueError:
+                                if hasattr(res, 'candidates') and res.candidates:
+                                    parts = res.candidates[0].content.parts
+                                    t = "".join([p.text for p in parts if hasattr(p, 'text') and p.text]).strip()
+                            if t:
+                                ai_text = t
+                                response = res
+                                model_name = m_name
+                                break
+                    except Exception as gem_err:
+                        err_text = f"Gemini API Exception for key ending in ...{key[-6:]} / {m_name} ({type(gem_err).__name__}): {gem_err}"
+                        print(f"[GEMINI API ERROR] {err_text}")
+                        await log_service.log("ERROR", "AI Engine Error", err_text, f"Model: {m_name}")
+                        continue
+                if ai_text:
+                    break
 
             if not ai_text:
                 return fallback_msg, False, {
