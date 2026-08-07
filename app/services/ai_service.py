@@ -382,9 +382,19 @@ class AIService:
 
             # 1. Static Greeting Bypass (0 Tokens, Instant Reply) - Only if no media attached
             if not image_bytes and not audio_bytes:
-                simple_greetings = {"hi", "hello", "hey", "হাই", "হ্যালো", "হে", "হেই", "assalamu alaikum", "assalamualaikum", "সালামু আলাইকুম", "আসসালামু আলাইকুম", "কেমন আছেন", "kemon achen", "kemon asen"}
-                if clean_raw in simple_greetings:
-                    greeting_reply = f"ধন্যবাদ! আমি {bot_name}, আপনার প্রফেশনাল AI অ্যাসিস্ট্যান্ট। আমাদের সফটওয়্যার বা সার্ভিস বিষয়ে কোনো তথ্য জানতে চাইলে আমাকে বলতে পারেন, কীভাবে সাহায্য করতে পারি?"
+                simple_greetings = {
+                    "hi", "hello", "hey", "yo", "sup", "baby", "babe", "dear",
+                    "হাই", "হ্যালো", "হে", "হেই", "বেবি",
+                    "assalamu alaikum", "assalamualaikum", "সালামু আলাইকুম", "আসসালামু আলাইকুম",
+                    "কেমন আছেন", "kemon achen", "kemon asen",
+                    "good morning", "good evening", "good afternoon", "good night",
+                    "শুভ সকাল", "শুভ সন্ধ্যা", "শুভ রাত্রি"
+                }
+                casual_patterns = {"miss", "ভালোবাসি", "love you", "miss you", "miss kortesi", "miss kortechi", "miss kortaci", "onek miss"}
+                is_greeting = clean_raw in simple_greetings
+                is_casual = not is_greeting and any(p in clean_raw for p in casual_patterns)
+                if is_greeting or is_casual:
+                    greeting_reply = f"ধন্যবাদ! আমি {bot_name}। আমাদের সার্ভিস নিয়ে জানতে চাইলে বলুন, কীভাবে সাহায্য করতে পারি?"
                     return greeting_reply, True, {
                         "matched_count": 0,
                         "matched_titles": [],
@@ -407,7 +417,7 @@ class AIService:
 
             sys_prompt = await self.get_system_prompt(db) if db else DEFAULT_SYSTEM_PROMPT
             if bot_name:
-                sys_prompt = f"তুমি {bot_name}।\n" + sys_prompt
+                sys_prompt = f"তোমার নাম {bot_name}। নিজেকে পরিচয় দিলে শুধু '{bot_name}' বলবে, 'AI অ্যাসিস্ট্যান্ট' বলবে না।\n" + sys_prompt
             
             # Enforce dynamic response length instruction
             resp_len = await self.get_response_length(db) if db else "short"
