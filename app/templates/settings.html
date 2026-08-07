@@ -180,6 +180,27 @@ block content %}
         </p>
       </div>
 
+      <!-- Dynamic AI Bot Name Rotation Panel -->
+      <div class="bg-purple-50/60 p-4 rounded-2xl border border-purple-100 space-y-3">
+        <div class="flex items-center justify-between">
+          <label class="block text-xs font-bold text-purple-900 flex items-center space-x-1.5">
+            <span>🎭</span>
+            <span>ডাইনামিক এআই বটের নাম রোটেশন (Dynamic Bot Name Rotation)</span>
+          </label>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" name="enable_bot_name_rotation" value="true" {% if creds.enable_bot_name_rotation == 'true' %}checked{% endif %} class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+          </label>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 mb-1">এআই বটের নামসমূহ (কমা দিয়ে আলাদা করুন):</label>
+          <input type="text" name="bot_names_list" value="{{ creds.bot_names_list }}" class="w-full bg-white border border-purple-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/10" placeholder="PosTech, TechFlow, MarketAI, Assistant, DataBot">
+        </div>
+        <p class="text-[10px] text-purple-700 font-medium">
+          💡 এই ফিচার চালু থাকলে প্রতিটি নতুন কাস্টমারের সাথে এআই ভিন্ন ভিন্ন নামে কথা বলবে (যেমন: পার্সন ১ এর জন্য "PosTech", পার্সন ২ এর জন্য "TechFlow")। ⚡ কোনো অতিরিক্ত টোকেন খরচ নেই!
+        </p>
+      </div>
+
       <!-- Chatbot Response Length Selection Panel -->
       <div
         class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3"

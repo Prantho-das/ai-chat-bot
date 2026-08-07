@@ -505,7 +505,9 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
         "vapid_private_key": settings_dict.get("vapid_private_key", getattr(settings, "VAPID_PRIVATE_KEY", "")),
         "vapid_claims_email": settings_dict.get("vapid_claims_email", getattr(settings, "VAPID_CLAIMS_EMAIL", "admin@example.com")),
         "gmail_sender_email": settings_dict.get("gmail_sender_email", getattr(settings, "GMAIL_SENDER_EMAIL", "")),
-        "gmail_app_password": settings_dict.get("gmail_app_password", getattr(settings, "GMAIL_APP_PASSWORD", ""))
+        "gmail_app_password": settings_dict.get("gmail_app_password", getattr(settings, "GMAIL_APP_PASSWORD", "")),
+        "enable_bot_name_rotation": settings_dict.get("enable_bot_name_rotation", "false"),
+        "bot_names_list": settings_dict.get("bot_names_list", "PosTech, TechFlow, MarketAI, Assistant, DataBot")
     }
 
     available_models = ai_service.get_available_models(creds["gemini_api_key"])
@@ -527,6 +529,8 @@ async def update_settings(
     response_length: str = Form(None),
     fallback_message: str = Form(None),
     max_history_turns: str = Form(None),
+    enable_bot_name_rotation: str = Form(None),
+    bot_names_list: str = Form(None),
     booking_keywords: str = Form(None),
     detail_keywords: str = Form(None),
     gemini_api_key: str = Form(None),
@@ -571,6 +575,9 @@ async def update_settings(
             await upsert_bot_setting(db, "fallback_message", fallback_message.strip())
         if max_history_turns is not None:
             await upsert_bot_setting(db, "max_history_turns", max_history_turns.strip())
+        if bot_names_list is not None:
+            await upsert_bot_setting(db, "bot_names_list", bot_names_list.strip())
+        await upsert_bot_setting(db, "enable_bot_name_rotation", "true" if enable_bot_name_rotation == "true" else "false")
         await upsert_bot_setting(db, "simplified_client_mode", "true" if simplified_client_mode == "true" else "false")
         await db.commit()
 
@@ -877,7 +884,8 @@ async def qa_chat_api(request: Request, db: AsyncSession = Depends(get_db)):
         ai_reply_data = await ai_service.generate_response(
             user_message=user_query,
             history=history,
-            db=db
+            db=db,
+            user_identifier=tester_name
         )
 
         rag_info = {}

@@ -178,7 +178,8 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
             image_bytes=image_bytes,
             image_mime=image_mime,
             audio_bytes=audio_bytes,
-            audio_mime=audio_mime
+            audio_mime=audio_mime,
+            user_identifier=sender_id
         )
         await log_service.log("INFO", "AI Engine", f"AI reply for {sender_id}: '{ai_reply[:100]}'")
 

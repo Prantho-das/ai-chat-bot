@@ -346,6 +346,22 @@ class AIService:
             return f"[SYSTEM ACTION: Requested slot on {final_date} at {formatted_time} was busy. Google Calendar booked next available slot for {final_date} at {final_time}. Clearly confirm this date ({final_date}) and time ({final_time}) to customer.{link_str}]"
         return f"[SYSTEM ACTION: Google Calendar appointment successfully booked for {final_date} at {final_time}. Clearly confirm this exact date ({final_date}) and time ({final_time}) and provide calendar link to customer.{link_str}]"
 
+    async def get_bot_name(self, db: AsyncSession, user_identifier: str = None) -> str:
+        if not db:
+            return "PosTech"
+        enable_rot = await get_bot_setting(db, "enable_bot_name_rotation", "false")
+        comp_name = await get_bot_setting(db, "company_name", "")
+        if enable_rot.lower() == "true":
+            names_raw = await get_bot_setting(db, "bot_names_list", "PosTech, TechFlow, MarketAI, Assistant, DataBot")
+            names = [n.strip() for n in names_raw.split(",") if n.strip()]
+            if names:
+                if user_identifier:
+                    idx = abs(hash(str(user_identifier))) % len(names)
+                else:
+                    idx = random.randint(0, len(names) - 1)
+                return names[idx]
+        return comp_name if comp_name else "PosTech"
+
     async def generate_response(
         self,
         user_message: str,
@@ -354,7 +370,8 @@ class AIService:
         image_bytes: bytes = None,
         image_mime: str = None,
         audio_bytes: bytes = None,
-        audio_mime: str = None
+        audio_mime: str = None,
+        user_identifier: str = None
     ) -> tuple[str, bool, dict]:
         fallback_msg = await self.get_fallback_message(db) if db else DEFAULT_FALLBACK_MESSAGE
         token_stats = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
@@ -362,12 +379,13 @@ class AIService:
         try:
             user_message = user_message or ""
             clean_raw = user_message.strip().lower()
+            bot_name = await self.get_bot_name(db, user_identifier) if db else "PosTech"
 
             # 1. Static Greeting Bypass (0 Tokens, Instant Reply) - Only if no media attached
             if not image_bytes and not audio_bytes:
                 simple_greetings = {"hi", "hello", "hey", "হাই", "হ্যালো", "হে", "হেই", "assalamu alaikum", "assalamualaikum", "সালামু আলাইকুম", "আসসালামু আলাইকুম", "কেমন আছেন", "kemon achen", "kemon asen"}
                 if clean_raw in simple_greetings:
-                    greeting_reply = "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি? আমাদের সফটওয়্যার বা সার্ভিস সম্পর্কে বিস্তারিত জানতে কোনো প্রশ্ন থাকলে বলতে পারেন।"
+                    greeting_reply = f"ধন্যবাদ! আমি {bot_name}, আপনার প্রফেশনাল AI অ্যাসিস্ট্যান্ট। আমাদের সফটওয়্যার বা সার্ভিস বিষয়ে কোনো তথ্য জানতে চাইলে আমাকে বলতে পারেন, কীভাবে সাহায্য করতে পারি?"
                     return greeting_reply, True, {
                         "matched_count": 0,
                         "matched_titles": [],
@@ -389,6 +407,8 @@ class AIService:
                 return fallback_msg, False, token_stats
 
             sys_prompt = await self.get_system_prompt(db) if db else DEFAULT_SYSTEM_PROMPT
+            if bot_name:
+                sys_prompt = f"তোমার নাম {bot_name}। তুমি {bot_name}-এর ভার্চুয়াল AI অ্যাসিস্ট্যান্ট।\n" + sys_prompt
             
             # Enforce dynamic response length instruction
             resp_len = await self.get_response_length(db) if db else "short"
