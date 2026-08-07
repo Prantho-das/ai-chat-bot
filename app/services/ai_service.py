@@ -21,13 +21,11 @@ DEFAULT_FALLBACK_MESSAGE = (
 )
 
 DEFAULT_SYSTEM_PROMPT = (
-    "তুমি একজন অত্যন্ত বুদ্ধিমান, আন্তরিক এবং প্রফেশনাল AI কাস্টমার সাপোর্ট স্পেশালিস্ট। "
-    "কথোপকথন সবসময় ব্যালেন্সড, আকর্ষণীয় এবং রিডেবল রাখবে:\n\n"
-    "## স্মার্ট রেসপন্স রুলস:\n"
-    "১. **পরিমিত ও আকর্ষণীয় উত্তর (Max 3-4 Lines):** বিস্তারিত বিষয় হলেও চ্যাটে কখনো বিশাল লম্বা এসে (Essay) বা অতিরিক্ত পয়েন্ট দেবে না। মূল ৩-৪টি গুরুত্বপূর্ণ পয়েন্ট সংক্ষেপে ও স্পষ্ট করে তুলে ধরো।\n"
-    "২. **সহজ প্রশ্ন (Greetings, ঠিকানা, মূল্য):** ১-২ লাইনে সরাসরি উত্তর দাও।\n"
-    "৩. **তথ্য উৎস:** শুধুমাত্র প্রদত্ত Knowledge Base থেকে সঠিক তথ্য প্রকাশ করবে।\n"
-    "৪. **মেসেঞ্জার ফ্রেন্ডলি:** পড়া সহজ হয় এমনভাবে সুন্দর ফর্মেটিংয়ে লিখবে।"
+    "তুমি প্রফেশনাল AI সাপোর্ট। রুলস: "
+    "১. সর্বোচ্চ ৩-৪ লাইনে উত্তর দাও। "
+    "২. সহজ প্রশ্নে ১-২ লাইন। "
+    "৩. শুধু Knowledge Base থেকে তথ্য দাও। "
+    "৪. মেসেঞ্জার ফ্রেন্ডলি ফর্মেট।"
 )
 
 class AIService:
@@ -181,7 +179,8 @@ class AIService:
         kb_lines = []
         for idx, entry in enumerate(selected_entries, 1):
             cat = (entry.category or 'GENERAL').upper()
-            kb_lines.append(f"{idx}. [{cat}] {entry.title or ''}: {entry.content or ''}")
+            content_trimmed = (entry.content or '')[:500]
+            kb_lines.append(f"{idx}. [{cat}] {entry.title or ''}: {content_trimmed}")
 
         kb_text = "\n".join(kb_lines)
         kb_hash = hashlib.md5(kb_text.encode("utf-8")).hexdigest()
@@ -408,7 +407,7 @@ class AIService:
 
             sys_prompt = await self.get_system_prompt(db) if db else DEFAULT_SYSTEM_PROMPT
             if bot_name:
-                sys_prompt = f"তোমার নাম {bot_name}। তুমি {bot_name}-এর ভার্চুয়াল AI অ্যাসিস্ট্যান্ট।\n" + sys_prompt
+                sys_prompt = f"তুমি {bot_name}।\n" + sys_prompt
             
             # Enforce dynamic response length instruction
             resp_len = await self.get_response_length(db) if db else "short"
@@ -421,11 +420,11 @@ class AIService:
                 resp_len = "medium"  # Auto-upgrade to medium to allow displaying list/prices
 
             if resp_len == "short":
-                sys_prompt += "\n\n## RESPONSE LENGTH CRITICAL RULE:\nউত্তর অবশ্যই অত্যন্ত সংক্ষিপ্ত এবং সর্বোচ্চ ১ থেকে ২ লাইনের মধ্যে হতে হবে। কোনো অতিরিক্ত বিবরণ বা পয়েন্ট আকারে বড় তালিকা দেওয়া যাবে না।"
+                sys_prompt += "\n[LENGTH: ১-২ লাইন। সংক্ষিপ্ত।]"
             elif resp_len == "medium":
-                sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nউত্তরটি মাঝারি মানের হবে, ৩ থেকে ৪ লাইনের মধ্যে শেষ করবে।"
+                sys_prompt += "\n[LENGTH: ৩-৪ লাইন। মাঝারি।]"
             elif resp_len == "long":
-                sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nবিস্তারিত উত্তর প্রদান করো।"
+                sys_prompt += "\n[LENGTH: বিস্তারিত।]"
 
             # Add multimodal instruction if media attached
             if image_bytes:
@@ -448,7 +447,7 @@ class AIService:
                 if not cached and selected_entries:
                     query_words = set(re.findall(r'\w+', clean_q.lower()))
                     if query_words:
-                        stmt_all_c = select(CacheEntry).order_by(CacheEntry.created_at.desc()).limit(100)
+                        stmt_all_c = select(CacheEntry).order_by(CacheEntry.created_at.desc()).limit(20)
                         res_all_c = await db.execute(stmt_all_c)
                         all_cached = res_all_c.scalars().all()
                         for c_item in all_cached:
@@ -490,12 +489,12 @@ class AIService:
                 if h_lines:
                     hist_txt = "## CONVERSATION HISTORY:\n" + "\n".join(h_lines) + "\n\n"
 
-            full_prompt = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}\n\n"
+            full_prompt = f"{sys_prompt}\n\nKB:\n{kb_text}\n\n"
             if hist_txt:
                 full_prompt += hist_txt
             if booking_action_info:
-                full_prompt += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
-            full_prompt += f"## CUSTOMER QUERY:\n{user_message if user_message else 'Customer sent media file.'}"
+                full_prompt += f"ACTION: {booking_action_info}\n\n"
+            full_prompt += f"Q: {user_message if user_message else 'Media file.'}"
 
             models_to_try = [model_name]
             if model_name != "gemini-2.0-flash":
@@ -599,7 +598,5 @@ class AIService:
                 "model_used": "unknown",
                 "tokens": token_stats
             }
-
-ai_service = AIService()
 
 ai_service = AIService()
