@@ -1,4 +1,5 @@
 import os
+import base64
 from app.config import settings
 from fastapi import APIRouter, Request, Response, Depends, Form, UploadFile, File, status
 from fastapi.responses import RedirectResponse, HTMLResponse
@@ -877,14 +878,50 @@ async def qa_chat_api(request: Request, db: AsyncSession = Depends(get_db)):
         tester_name = data.get("tester_name", "Tester")
         user_query = data.get("query", "")
         history = data.get("history", [])
+        image_b64 = data.get("image_base64")
+        audio_b64 = data.get("audio_base64")
 
-        if not user_query:
-            return {"error": "Empty query"}
+        if not user_query and not image_b64 and not audio_b64:
+            return {"error": "Empty query and media"}
+
+        image_bytes = None
+        image_mime = None
+        if image_b64:
+            try:
+                if "," in image_b64:
+                    header, b64_str = image_b64.split(",", 1)
+                    if "data:" in header and ";base64" in header:
+                        image_mime = header.split("data:")[1].split(";")[0]
+                else:
+                    b64_str = image_b64
+                    image_mime = "image/jpeg"
+                image_bytes = base64.b64decode(b64_str)
+            except Exception as img_err:
+                print(f"[QA IMAGE DECODE ERROR] {img_err}")
+
+        audio_bytes = None
+        audio_mime = None
+        if audio_b64:
+            try:
+                if "," in audio_b64:
+                    header, b64_str = audio_b64.split(",", 1)
+                    if "data:" in header and ";base64" in header:
+                        audio_mime = header.split("data:")[1].split(";")[0]
+                else:
+                    b64_str = audio_b64
+                    audio_mime = "audio/webm"
+                audio_bytes = base64.b64decode(b64_str)
+            except Exception as aud_err:
+                print(f"[QA AUDIO DECODE ERROR] {aud_err}")
 
         ai_reply_data = await ai_service.generate_response(
             user_message=user_query,
             history=history,
             db=db,
+            image_bytes=image_bytes,
+            image_mime=image_mime,
+            audio_bytes=audio_bytes,
+            audio_mime=audio_mime,
             user_identifier=tester_name
         )
 
