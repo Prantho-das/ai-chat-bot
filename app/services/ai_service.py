@@ -419,14 +419,32 @@ class AIService:
 
             cache_key = hashlib.md5(f"{clean_q}:{kb_hash}".encode("utf-8")).hexdigest()
             if db and not booking_action_info and not image_bytes and not audio_bytes:
+                # 1. Exact MD5 Hash Match
                 stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
                 res_c = await db.execute(stmt_c)
                 cached = res_c.scalar_one_or_none()
+
+                # 2. Semantic Keyword Cache Match Fallback
+                if not cached and selected_entries:
+                    query_words = set(re.findall(r'\w+', clean_q.lower()))
+                    if query_words:
+                        stmt_all_c = select(CacheEntry).order_by(CacheEntry.created_at.desc()).limit(100)
+                        res_all_c = await db.execute(stmt_all_c)
+                        all_cached = res_all_c.scalars().all()
+                        for c_item in all_cached:
+                            c_words = set(re.findall(r'\w+', (c_item.user_query or "").lower()))
+                            intersection = query_words.intersection(c_words)
+                            union = query_words.union(c_words)
+                            jaccard = len(intersection) / len(union) if union else 0.0
+                            if jaccard >= 0.60:
+                                cached = c_item
+                                break
+
                 if cached and cached.ai_response:
                     return cached.ai_response, True, {
                         "matched_count": len(selected_entries),
                         "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
-                        "search_method": search_method,
+                        "search_method": search_method + " (Smart Cache)",
                         "model_used": model_name + " (Cached)",
                         "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
                     }
@@ -513,18 +531,22 @@ class AIService:
                     "tokens": token_stats
                 }
 
-            if db and ai_text != fallback_msg:
+            if db and ai_text != fallback_msg and not image_bytes and not audio_bytes:
                 try:
-                    if not query_emb_json:
-                        query_emb_json = await self.generate_embedding(clean_q, db=db)
+                    stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
+                    res_c = await db.execute(stmt_c)
+                    existing_cache = res_c.scalar_one_or_none()
 
-                    new_cache = CacheEntry(
-                        prompt_hash=cache_key,
-                        user_query=user_message[:200],
-                        ai_response=ai_text,
-                        embedding_json=query_emb_json
-                    )
-                    db.add(new_cache)
+                    if existing_cache:
+                        existing_cache.ai_response = ai_text
+                        existing_cache.user_query = user_message[:500]
+                    else:
+                        new_cache = CacheEntry(
+                            prompt_hash=cache_key,
+                            user_query=user_message[:500],
+                            ai_response=ai_text
+                        )
+                        db.add(new_cache)
                     await db.commit()
                 except Exception as save_err:
                     print(f"[CACHE SAVE ERROR] {save_err}")

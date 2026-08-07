@@ -366,6 +366,8 @@ async def conversations_page(
     request: Request,
     platform: str = None,
     q: str = None,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(15, ge=1),
     db: AsyncSession = Depends(get_db)
 ):
     if not is_authenticated(request):
@@ -376,7 +378,7 @@ async def conversations_page(
     if platform and platform != "all":
         stmt = stmt.where(Conversation.platform == platform)
 
-    if q:
+    if q and q.strip():
         search_filter = f"%{q.strip()}%"
         stmt = stmt.where(
             or_(
@@ -385,18 +387,40 @@ async def conversations_page(
             )
         )
 
-    stmt = stmt.order_by(Conversation.updated_at.desc())
+    # Calculate count for pagination
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total_count = await db.scalar(count_stmt) or 0
+
+    total_pages = math.ceil(total_count / per_page) if total_count > 0 else 1
+    page = max(1, min(page, total_pages))
+    offset = (page - 1) * per_page
+
+    stmt = stmt.order_by(Conversation.updated_at.desc()).offset(offset).limit(per_page)
     result = await db.execute(stmt)
     conversations = result.scalars().all()
 
     return await render_admin_page("conversations.html", request, db, {
         "conversations": conversations,
         "selected_platform": platform or "all",
-        "search_query": q or ""
+        "search_query": q or "",
+        "page": page,
+        "per_page": per_page,
+        "total_count": total_count,
+        "total_pages": total_pages,
+        "has_prev": page > 1,
+        "has_next": page < total_pages,
+        "prev_page": page - 1,
+        "next_page": page + 1
     })
 
 @router.get("/conversations/{conv_id}", response_class=HTMLResponse)
-async def conversation_detail(conv_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+async def conversation_detail(
+    conv_id: int,
+    request: Request,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(15, ge=1),
+    db: AsyncSession = Depends(get_db)
+):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
@@ -407,13 +431,35 @@ async def conversation_detail(conv_id: int, request: Request, db: AsyncSession =
     if not conv:
         return RedirectResponse(url="/admin/conversations", status_code=status.HTTP_302_FOUND)
 
-    stmt_msgs = select(Message).where(Message.conversation_id == conv_id).order_by(Message.created_at.asc())
+    # Count total messages in this conversation
+    count_stmt = select(func.count(Message.id)).where(Message.conversation_id == conv_id)
+    total_messages = await db.scalar(count_stmt) or 0
+
+    total_pages = math.ceil(total_messages / per_page) if total_messages > 0 else 1
+    page = max(1, min(page, total_pages))
+    offset = (page - 1) * per_page
+
+    stmt_msgs = (
+        select(Message)
+        .where(Message.conversation_id == conv_id)
+        .order_by(Message.created_at.asc())
+        .offset(offset)
+        .limit(per_page)
+    )
     res_msgs = await db.execute(stmt_msgs)
     messages = res_msgs.scalars().all()
 
     return await render_admin_page("conversation_detail.html", request, db, {
         "conversation": conv,
-        "messages": messages
+        "messages": messages,
+        "page": page,
+        "per_page": per_page,
+        "total_messages": total_messages,
+        "total_pages": total_pages,
+        "has_prev": page > 1,
+        "has_next": page < total_pages,
+        "prev_page": page - 1,
+        "next_page": page + 1
     })
 
 @router.get("/settings", response_class=HTMLResponse)

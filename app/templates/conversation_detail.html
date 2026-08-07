@@ -18,6 +18,18 @@
             <span class="px-2 py-0.5 rounded text-xs bg-purple-50 text-purple-700 font-semibold border border-purple-100">FB Comment</span>
             {% endif %}
         </div>
+
+        {% if total_pages > 1 %}
+        <div class="flex items-center space-x-2 text-xs font-semibold">
+            <span class="text-slate-400 text-[11px]">Page {{ page }}/{{ total_pages }}</span>
+            {% if has_prev %}
+            <a href="/admin/conversations/{{ conversation.id }}?page={{ prev_page }}&per_page={{ per_page }}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg transition-all">← Prev</a>
+            {% endif %}
+            {% if has_next %}
+            <a href="/admin/conversations/{{ conversation.id }}?page={{ next_page }}&per_page={{ per_page }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg transition-all shadow-xs">Next →</a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <!-- Chat Messages Container -->
@@ -59,6 +71,28 @@
         <p class="text-center text-slate-400 text-xs py-12 font-medium">No messages available in this thread.</p>
         {% endfor %}
     </div>
+
+    <!-- Bottom Pagination Controls -->
+    {% if total_pages > 1 %}
+    <div class="flex items-center justify-between bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm text-xs font-semibold text-slate-600">
+        <div>
+            Showing <span class="font-extrabold text-slate-900">Page {{ page }}</span> of <span class="font-extrabold text-slate-900">{{ total_pages }}</span> (Total {{ total_messages }} messages)
+        </div>
+        <div class="flex items-center space-x-2">
+            {% if has_prev %}
+            <a href="/admin/conversations/{{ conversation.id }}?page={{ prev_page }}&per_page={{ per_page }}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl transition-all">← Previous Page</a>
+            {% else %}
+            <span class="bg-slate-50 text-slate-300 px-3 py-1.5 rounded-xl cursor-not-allowed">← Previous Page</span>
+            {% endif %}
+
+            {% if has_next %}
+            <a href="/admin/conversations/{{ conversation.id }}?page={{ next_page }}&per_page={{ per_page }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl transition-all shadow-sm">Next Page →</a>
+            {% else %}
+            <span class="bg-slate-50 text-slate-300 px-3 py-1.5 rounded-xl cursor-not-allowed">Next Page →</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 
 </div>
 {% endblock %}
