@@ -38,61 +38,47 @@ async def verify_webhook(
     return Response(content="Verification failed", status_code=403)
 
 
-def _extract_user_text(messaging_event: dict) -> str | None:
-    """Extract user-readable text from any messaging event type."""
+def _extract_user_text(messaging_event: dict) -> tuple[str | None, str | None, str | None]:
+    """Extract user-readable text, image_url, and audio_url from messaging event."""
 
-    # 1. Standard text message
     message_data = messaging_event.get("message", {})
     if message_data.get("is_echo"):
-        return None
+        return None, None, None
 
-    if "text" in message_data:
-        return message_data["text"]
+    user_text = message_data.get("text")
+    image_url = None
+    audio_url = None
 
-    # 2. Quick reply (button tap) — has payload inside message
     quick_reply = message_data.get("quick_reply")
-    if quick_reply:
-        return quick_reply.get("payload", "")
+    if quick_reply and not user_text:
+        user_text = quick_reply.get("payload", "")
 
-    # 3. Attachments — sticker, image, audio, video, file, location
     attachments = message_data.get("attachments")
     if attachments:
-        parts = []
         for att in attachments:
             att_type = att.get("type", "unknown")
             payload = att.get("payload", {})
+            url = payload.get("url")
+            if att_type == "image" and url:
+                image_url = url
+            elif att_type == "audio" and url:
+                audio_url = url
 
-            if att_type == "sticker":
-                sticker_id = payload.get("sticker_id", "")
-                parts.append(f"[স্টিকার পাঠিয়েছেন]")
-            elif att_type == "image":
-                parts.append("[ছবি পাঠিয়েছেন]")
-            elif att_type == "audio":
-                parts.append("[অডিও পাঠিয়েছেন]")
-            elif att_type == "video":
-                parts.append("[ভিডিও পাঠিয়েছেন]")
-            elif att_type == "file":
-                parts.append("[ফাইল পাঠিয়েছেন]")
-            elif att_type == "location":
-                lat = payload.get("coordinates", {}).get("lat", "")
-                lng = payload.get("coordinates", {}).get("long", "")
-                parts.append(f"[লোকেশন শেয়ার করেছেন: {lat}, {lng}]")
-            else:
-                parts.append(f"[{att_type} পাঠিয়েছেন]")
-        if parts:
-            return " ".join(parts)
+    if not user_text:
+        if image_url:
+            user_text = "[User sent image]"
+        elif audio_url:
+            user_text = "[User sent voice message]"
 
-    # 4. Postback (Get Started button, persistent menu, etc.)
     postback = messaging_event.get("postback")
-    if postback:
-        return postback.get("title") or postback.get("payload", "")
+    if postback and not user_text:
+        user_text = postback.get("title") or postback.get("payload", "")
 
-    # 5. Referral (m.me link clicks)
     referral = messaging_event.get("referral")
-    if referral:
-        return referral.get("ref", "হ্যালো")
+    if referral and not user_text:
+        user_text = referral.get("ref", "হ্যালো")
 
-    return None
+    return user_text, image_url, audio_url
 
 
 async def _get_or_create_conversation(db: AsyncSession, sender_id: str, access_token: str = None) -> "Conversation":
@@ -127,7 +113,7 @@ async def _get_or_create_conversation(db: AsyncSession, sender_id: str, access_t
     return conversation
 
 
-async def _process_dm(sender_id: str, user_text: str, access_token: str, db: AsyncSession):
+async def _process_dm(sender_id: str, user_text: str, access_token: str, db: AsyncSession, image_url: str = None, audio_url: str = None):
     """Process a single DM: save message, generate AI reply, send back."""
     try:
         # Immediate typing indicator for smooth user experience
@@ -160,7 +146,40 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
         history_res = await db.execute(stmt_msg)
         history = history_res.scalars().all()
 
-        ai_reply, is_cached, rag_info = await ai_service.generate_response(user_text, history, db)
+        image_bytes, image_mime = None, None
+        audio_bytes, audio_mime = None, None
+
+        if image_url:
+            try:
+                import httpx
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    res = await client.get(image_url)
+                    if res.status_code == 200:
+                        image_bytes = res.content
+                        image_mime = res.headers.get("content-type", "image/jpeg")
+            except Exception as img_err:
+                print(f"[IMAGE FETCH ERROR] {img_err}")
+
+        if audio_url:
+            try:
+                import httpx
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    res = await client.get(audio_url)
+                    if res.status_code == 200:
+                        audio_bytes = res.content
+                        audio_mime = res.headers.get("content-type", "audio/mp3")
+            except Exception as aud_err:
+                print(f"[AUDIO FETCH ERROR] {aud_err}")
+
+        ai_reply, is_cached, rag_info = await ai_service.generate_response(
+            user_message=user_text,
+            history=history,
+            db=db,
+            image_bytes=image_bytes,
+            image_mime=image_mime,
+            audio_bytes=audio_bytes,
+            audio_mime=audio_mime
+        )
         await log_service.log("INFO", "AI Engine", f"AI reply for {sender_id}: '{ai_reply[:100]}'")
 
         token_data = rag_info.get("tokens", {}) if isinstance(rag_info, dict) else {}

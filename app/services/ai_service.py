@@ -346,24 +346,35 @@ class AIService:
             return f"[SYSTEM ACTION: Requested slot on {final_date} at {formatted_time} was busy. Google Calendar booked next available slot for {final_date} at {final_time}. Clearly confirm this date ({final_date}) and time ({final_time}) to customer.{link_str}]"
         return f"[SYSTEM ACTION: Google Calendar appointment successfully booked for {final_date} at {final_time}. Clearly confirm this exact date ({final_date}) and time ({final_time}) and provide calendar link to customer.{link_str}]"
 
-    async def generate_response(self, user_message: str, history: list = None, db: AsyncSession = None) -> tuple[str, bool, dict]:
+    async def generate_response(
+        self,
+        user_message: str,
+        history: list = None,
+        db: AsyncSession = None,
+        image_bytes: bytes = None,
+        image_mime: str = None,
+        audio_bytes: bytes = None,
+        audio_mime: str = None
+    ) -> tuple[str, bool, dict]:
         fallback_msg = await self.get_fallback_message(db) if db else DEFAULT_FALLBACK_MESSAGE
         token_stats = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
         try:
+            user_message = user_message or ""
             clean_raw = user_message.strip().lower()
 
-            # 1. Static Greeting Bypass (0 Tokens, Instant Reply)
-            simple_greetings = {"hi", "hello", "hey", "হাই", "হ্যালো", "হে", "হেই", "assalamu alaikum", "assalamualaikum", "সালামু আলাইকুম", "আসসালামু আলাইকুম", "কেমন আছেন", "kemon achen", "kemon asen"}
-            if clean_raw in simple_greetings:
-                greeting_reply = "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি? আমাদের সফটওয়্যার বা সার্ভিস সম্পর্কে বিস্তারিত জানতে কোনো প্রশ্ন থাকলে বলতে পারেন।"
-                return greeting_reply, True, {
-                    "matched_count": 0,
-                    "matched_titles": [],
-                    "search_method": "static_rule",
-                    "model_used": "Static Rule (0 Tokens)",
-                    "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-                }
+            # 1. Static Greeting Bypass (0 Tokens, Instant Reply) - Only if no media attached
+            if not image_bytes and not audio_bytes:
+                simple_greetings = {"hi", "hello", "hey", "হাই", "হ্যালো", "হে", "হেই", "assalamu alaikum", "assalamualaikum", "সালামু আলাইকুম", "আসসালামু আলাইকুম", "কেমন আছেন", "kemon achen", "kemon asen"}
+                if clean_raw in simple_greetings:
+                    greeting_reply = "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি? আমাদের সফটওয়্যার বা সার্ভিস সম্পর্কে বিস্তারিত জানতে কোনো প্রশ্ন থাকলে বলতে পারেন।"
+                    return greeting_reply, True, {
+                        "matched_count": 0,
+                        "matched_titles": [],
+                        "search_method": "static_rule",
+                        "model_used": "Static Rule (0 Tokens)",
+                        "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                    }
 
             booking_action_info = ""
             if db and await self.is_booking_intent(user_message, db):
@@ -396,12 +407,18 @@ class AIService:
             elif resp_len == "long":
                 sys_prompt += "\n\n## RESPONSE LENGTH RULE:\nবিস্তারিত উত্তর প্রদান করো।"
 
+            # Add multimodal instruction if media attached
+            if image_bytes:
+                sys_prompt += "\n\n[NOTE: কাস্টমার একটি ছবি পাঠিয়েছেন। ছবি এবং কাস্টমারের মেসেজটি বিশ্লেষণ করে প্রাসঙ্গিক উত্তর দাও।]"
+            if audio_bytes:
+                sys_prompt += "\n\n[NOTE: কাস্টমার একটি ভয়েস/অডিও মেসেজ পাঠিয়েছেন। অডিওটি শুনে বিশ্লেষণ করে বাংলায় সরাসরি উত্তর দাও।]"
+
             # 2. Normalized Query for Higher Cache Hits
             clean_q = re.sub(r'[^\w\s]', '', clean_raw).strip()
             kb_text, kb_hash, selected_entries, search_method, query_emb_json = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [], "none", None)
 
             cache_key = hashlib.md5(f"{clean_q}:{kb_hash}".encode("utf-8")).hexdigest()
-            if db and not booking_action_info:
+            if db and not booking_action_info and not image_bytes and not audio_bytes:
                 stmt_c = select(CacheEntry).where(CacheEntry.prompt_hash == cache_key)
                 res_c = await db.execute(stmt_c)
                 cached = res_c.scalar_one_or_none()
@@ -440,7 +457,7 @@ class AIService:
                 full_prompt += hist_txt
             if booking_action_info:
                 full_prompt += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
-            full_prompt += f"## CUSTOMER QUERY:\n{user_message}"
+            full_prompt += f"## CUSTOMER QUERY:\n{user_message if user_message else 'Customer sent media file.'}"
 
             models_to_try = [model_name]
             if model_name != "gemini-2.0-flash":
@@ -451,35 +468,18 @@ class AIService:
 
             for key in keys:
                 self._ensure_genai_configured(key)
-                # Attempt Gemini Native Context Caching if static system context is large (>2000 chars) and caching module exists
-                cached_context_obj = None
-                static_context = f"{sys_prompt}\n\n## KNOWLEDGE BASE DATA:\n{kb_text}"
-                if len(static_context) > 2000 and hasattr(genai, 'caching') and hasattr(genai.caching, 'CachedContent'):
-                    try:
-                        cache_ttl_minutes = 15
-                        cached_context_obj = genai.caching.CachedContent.create(
-                            model=f"models/{model_name}",
-                            display_name="system_kb_context",
-                            contents=[static_context],
-                            ttl=timedelta(minutes=cache_ttl_minutes)
-                        )
-                    except Exception:
-                        cached_context_obj = None
-
                 for m_name in models_to_try:
                     try:
-                        if cached_context_obj:
-                            model = genai.GenerativeModel.from_cached_content(cached_content=cached_context_obj)
-                            user_prompt_payload = ""
-                            if hist_txt:
-                                user_prompt_payload += hist_txt
-                            if booking_action_info:
-                                user_prompt_payload += f"## SYSTEM ACTION COMPLETED:\n{booking_action_info}\n\n"
-                            user_prompt_payload += f"## CUSTOMER QUERY:\n{user_message}"
-                            res = await model.generate_content_async(user_prompt_payload)
-                        else:
-                            model = genai.GenerativeModel(m_name)
-                            res = await model.generate_content_async(full_prompt)
+                        model = genai.GenerativeModel(m_name)
+                        
+                        prompt_contents = []
+                        if image_bytes and image_mime:
+                            prompt_contents.append({"mime_type": image_mime, "data": image_bytes})
+                        if audio_bytes and audio_mime:
+                            prompt_contents.append({"mime_type": audio_mime, "data": audio_bytes})
+                        prompt_contents.append(full_prompt)
+
+                        res = await model.generate_content_async(prompt_contents)
 
                         if res:
                             t = None
@@ -499,6 +499,8 @@ class AIService:
                         print(f"[GEMINI API ERROR] {err_text}")
                         await log_service.log("ERROR", "AI Engine Error", err_text, f"Model: {m_name}")
                         continue
+                if ai_text:
+                    break
                 if ai_text:
                     break
 
