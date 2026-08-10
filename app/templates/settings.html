@@ -424,80 +424,139 @@ block content %}
     <form action="/admin/settings" method="POST" class="space-y-6">
       <input type="hidden" name="form_type" value="credentials" />
 
-      <!-- Gemini Key Card -->
+      <!-- Multi-Provider AI Key Card -->
       <div
+        x-data="{ activeProvider: '{{ creds.ai_provider }}' }"
         class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 space-y-4"
       >
         <div class="flex items-center justify-between">
-          <span
-            class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100"
-            >✨ Google Gemini AI</span
-          >
-          <a
-            href="https://aistudio.google.com/app/apikey"
-            target="_blank"
-            class="text-[11px] text-indigo-600 hover:underline font-semibold"
-            >কীভাবে Key পাবেন? →</a
-          >
+          <span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
+            🤖 AI Engine & Model Provider Configuration
+          </span>
+          <span class="text-[11px] text-slate-500 font-medium">Select active provider below</span>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1"
-              >Gemini Model Selection (API থেকে স্বয়ংক্রিয়ভাবে প্রাপ্ত)</label
-            >
-            <select
-              name="gemini_model"
-              class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-600"
-            >
-              {% for m in available_models %}
-              <option
-                value="{{ m.id }}"
-                {%
-                if
-                creds.gemini_model=""
-                ="m.id"
-                or
-                (not
-                creds.gemini_model
-                and
-                loop.first)
-                %}selected{%
-                endif
-                %}
-              >
-                {{ m.name }} ({{ m.id }})
-              </option>
-              {% endfor %}
-            </select>
-            <p class="text-[10px] text-slate-400 mt-1">
-              💡 আপনার Gemini API Key দিয়ে গুগল সার্ভিস থেকে সমস্ত এভেলেবল
-              মডেলের ড্রপডাউন অটোমেটিক তৈরি হয়ে যাবে।
-            </p>
-          </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">সক্রিয় AI Provider নির্বাচন করুন</label>
+          <select
+            name="ai_provider"
+            x-model="activeProvider"
+            class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600"
+          >
+            <option value="gemini" {% if creds.ai_provider == 'gemini' or not creds.ai_provider %}selected{% endif %}>✨ Google Gemini (Recommended)</option>
+            <option value="openai" {% if creds.ai_provider == 'openai' %}selected{% endif %}>🟢 OpenAI / ChatGPT (GPT-4o, GPT-4o-mini, GPT-3.5)</option>
+            <option value="deepseek" {% if creds.ai_provider == 'deepseek' %}selected{% endif %}>🟦 DeepSeek AI (DeepSeek-Chat, DeepSeek-Coder)</option>
+            <option value="anthropic" {% if creds.ai_provider == 'anthropic' %}selected{% endif %}>🟧 Anthropic Claude (Claude 3.5 Sonnet, Haiku)</option>
+          </select>
+        </div>
 
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1"
-              >Gemini API Key</label
-            >
-            <div x-data="{ show: false }" class="relative">
-              <input
-                :type="show ? 'text' : 'password'"
-                name="gemini_api_key"
-                value="{{ creds.gemini_api_key }}"
-                placeholder="AIzaSy..."
-                class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"
-              />
-              <button
-                type="button"
-                @click="show = !show"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none"
-              >
-                <span x-show="!show" title="Show Token">👁️</span>
-                <span x-show="show" title="Hide Token" style="display: none"
-                  >🙈</span
-                >
-              </button>
+        <!-- Gemini Config Panel -->
+        <div x-show="activeProvider === 'gemini'" class="space-y-3 pt-2 border-t border-slate-200/60">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-indigo-600">Google Gemini Settings</span>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[11px] text-indigo-600 hover:underline font-semibold">Gemini API Key পাবেন →</a>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Gemini Model Selection</label>
+              <select name="gemini_model" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-indigo-600">
+                {% for m in available_models %}
+                <option value="{{ m.id }}" {% if creds.gemini_model == m.id or (not creds.gemini_model and loop.first) %}selected{% endif %}>{{ m.name }} ({{ m.id }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Gemini API Key</label>
+              <div x-data="{ show: false }" class="relative">
+                <input :type="show ? 'text' : 'password'" name="gemini_api_key" value="{{ creds.gemini_api_key }}" placeholder="AIzaSy..." class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600" />
+                <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
+                  <span x-show="!show">👁️</span>
+                  <span x-show="show" style="display: none">🙈</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- OpenAI Panel -->
+        <div x-show="activeProvider === 'openai'" style="display: none;" class="space-y-3 pt-2 border-t border-slate-200/60">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-emerald-600">OpenAI / ChatGPT Settings</span>
+            <a href="https://platform.openai.com/api-keys" target="_blank" class="text-[11px] text-emerald-600 hover:underline font-semibold">OpenAI API Key পাবেন →</a>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">OpenAI Model Selection</label>
+              <select name="openai_model" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-600">
+                <option value="gpt-4o-mini" {% if creds.openai_model == 'gpt-4o-mini' or not creds.openai_model %}selected{% endif %}>gpt-4o-mini (Fast & Affordable - Recommended)</option>
+                <option value="gpt-4o" {% if creds.openai_model == 'gpt-4o' %}selected{% endif %}>gpt-4o (High Intelligence)</option>
+                <option value="gpt-3.5-turbo" {% if creds.openai_model == 'gpt-3.5-turbo' %}selected{% endif %}>gpt-3.5-turbo</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">OpenAI API Key</label>
+              <div x-data="{ show: false }" class="relative">
+                <input :type="show ? 'text' : 'password'" name="openai_api_key" value="{{ creds.openai_api_key }}" placeholder="sk-proj-..." class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-emerald-600" />
+                <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
+                  <span x-show="!show">👁️</span>
+                  <span x-show="show" style="display: none">🙈</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DeepSeek Panel -->
+        <div x-show="activeProvider === 'deepseek'" style="display: none;" class="space-y-3 pt-2 border-t border-slate-200/60">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-sky-600">DeepSeek AI Settings</span>
+            <a href="https://platform.deepseek.com/api_keys" target="_blank" class="text-[11px] text-sky-600 hover:underline font-semibold">DeepSeek API Key পাবেন →</a>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">DeepSeek Model Selection</label>
+              <select name="deepseek_model" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-sky-600">
+                <option value="deepseek-chat" {% if creds.deepseek_model == 'deepseek-chat' or not creds.deepseek_model %}selected{% endif %}>deepseek-chat (V3 - Recommended)</option>
+                <option value="deepseek-coder" {% if creds.deepseek_model == 'deepseek-coder' %}selected{% endif %}>deepseek-coder</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">DeepSeek API Key</label>
+              <div x-data="{ show: false }" class="relative">
+                <input :type="show ? 'text' : 'password'" name="deepseek_api_key" value="{{ creds.deepseek_api_key }}" placeholder="sk-..." class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-sky-600" />
+                <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
+                  <span x-show="!show">👁️</span>
+                  <span x-show="show" style="display: none">🙈</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Anthropic Panel -->
+        <div x-show="activeProvider === 'anthropic'" style="display: none;" class="space-y-3 pt-2 border-t border-slate-200/60">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-amber-600">Anthropic Claude Settings</span>
+            <a href="https://console.anthropic.com/settings/keys" target="_blank" class="text-[11px] text-amber-600 hover:underline font-semibold">Claude API Key পাবেন →</a>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Claude Model Selection</label>
+              <select name="anthropic_model" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-amber-600">
+                <option value="claude-3-5-sonnet-20241022" {% if creds.anthropic_model == 'claude-3-5-sonnet-20241022' or not creds.anthropic_model %}selected{% endif %}>claude-3-5-sonnet-20241022 (Recommended)</option>
+                <option value="claude-3-5-haiku-20241022" {% if creds.anthropic_model == 'claude-3-5-haiku-20241022' %}selected{% endif %}>claude-3-5-haiku-20241022 (Fast & Lightweight)</option>
+                <option value="claude-3-opus-20240229" {% if creds.anthropic_model == 'claude-3-opus-20240229' %}selected{% endif %}>claude-3-opus-20240229</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Anthropic API Key</label>
+              <div x-data="{ show: false }" class="relative">
+                <input :type="show ? 'text' : 'password'" name="anthropic_api_key" value="{{ creds.anthropic_api_key }}" placeholder="sk-ant-..." class="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-amber-600" />
+                <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs focus:outline-none select-none">
+                  <span x-show="!show">👁️</span>
+                  <span x-show="show" style="display: none">🙈</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

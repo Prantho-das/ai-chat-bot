@@ -411,8 +411,15 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
     settings_dict = {s.key: s.value for s in settings_records}
 
     creds = {
+        "ai_provider": settings_dict.get("ai_provider", getattr(settings, "AI_PROVIDER", "gemini")),
         "gemini_api_key": settings_dict.get("gemini_api_key", settings.GEMINI_API_KEY),
         "gemini_model": settings_dict.get("gemini_model", settings.GEMINI_MODEL),
+        "openai_api_key": settings_dict.get("openai_api_key", getattr(settings, "OPENAI_API_KEY", "")),
+        "openai_model": settings_dict.get("openai_model", getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")),
+        "deepseek_api_key": settings_dict.get("deepseek_api_key", getattr(settings, "DEEPSEEK_API_KEY", "")),
+        "deepseek_model": settings_dict.get("deepseek_model", getattr(settings, "DEEPSEEK_MODEL", "deepseek-chat")),
+        "anthropic_api_key": settings_dict.get("anthropic_api_key", getattr(settings, "ANTHROPIC_API_KEY", "")),
+        "anthropic_model": settings_dict.get("anthropic_model", getattr(settings, "ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")),
         "fb_page_access_token": settings_dict.get("fb_page_access_token", settings.FB_PAGE_ACCESS_TOKEN),
         "fb_verify_token": settings_dict.get("fb_verify_token", settings.FB_VERIFY_TOKEN),
         "wa_access_token": settings_dict.get("wa_access_token", settings.WA_ACCESS_TOKEN),
@@ -466,8 +473,15 @@ async def update_settings(
     max_history_turns: str = Form(None),
     booking_keywords: str = Form(None),
     detail_keywords: str = Form(None),
+    ai_provider: str = Form(None),
     gemini_api_key: str = Form(None),
     gemini_model: str = Form(None),
+    openai_api_key: str = Form(None),
+    openai_model: str = Form(None),
+    deepseek_api_key: str = Form(None),
+    deepseek_model: str = Form(None),
+    anthropic_api_key: str = Form(None),
+    anthropic_model: str = Form(None),
     fb_page_access_token: str = Form(None),
     fb_verify_token: str = Form(None),
     wa_access_token: str = Form(None),
@@ -513,8 +527,15 @@ async def update_settings(
 
     elif form_type == "credentials":
         raw_creds = {
+            "ai_provider": ai_provider,
             "gemini_api_key": gemini_api_key,
             "gemini_model": gemini_model,
+            "openai_api_key": openai_api_key,
+            "openai_model": openai_model,
+            "deepseek_api_key": deepseek_api_key,
+            "deepseek_model": deepseek_model,
+            "anthropic_api_key": anthropic_api_key,
+            "anthropic_model": anthropic_model,
             "fb_page_access_token": fb_page_access_token,
             "fb_verify_token": fb_verify_token,
             "wa_access_token": wa_access_token,
