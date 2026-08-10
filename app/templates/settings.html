@@ -216,16 +216,7 @@ block content %}
               type="radio"
               name="response_length"
               value="short"
-              {%
-              if
-              creds.response_length=""
-              ="short"
-              or
-              not
-              creds.response_length
-              %}checked{%
-              endif
-              %}
+              {% if creds.response_length == "short" or not creds.response_length %}checked{% endif %}
               class="text-indigo-600 focus:ring-indigo-500"
             />
             <div>
@@ -245,13 +236,7 @@ block content %}
               type="radio"
               name="response_length"
               value="medium"
-              {%
-              if
-              creds.response_length=""
-              ="medium"
-              %}checked{%
-              endif
-              %}
+              {% if creds.response_length == "medium" %}checked{% endif %}
               class="text-indigo-600 focus:ring-indigo-500"
             />
             <div>
@@ -271,13 +256,7 @@ block content %}
               type="radio"
               name="response_length"
               value="long"
-              {%
-              if
-              creds.response_length=""
-              ="long"
-              %}checked{%
-              endif
-              %}
+              {% if creds.response_length == "long" %}checked{% endif %}
               class="text-indigo-600 focus:ring-indigo-500"
             />
             <div>
@@ -800,7 +779,6 @@ block content %}
         ⚠️ Not Connected
       </span>
       {% endif %}
->>>>>>> master
     </div>
 
     <!-- 1-Click File Upload Box (n8n Style) -->
