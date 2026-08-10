@@ -3,6 +3,7 @@ import json
 import math
 import re
 from datetime import datetime, timedelta
+import httpx
 try:
     import google.generativeai as genai
 except ImportError:
@@ -187,19 +188,36 @@ class AIService:
         return kb_text, kb_hash, selected_entries, search_method, query_embedding_json
 
 
-    async def get_gemini_config(self, db: AsyncSession) -> tuple[str, str]:
-        stmt = select(BotSetting).where(BotSetting.key.in_(["gemini_api_key", "gemini_model"]))
+    async def get_ai_config(self, db: AsyncSession) -> tuple[str, str, str]:
+        keys = ["ai_provider", "gemini_api_key", "gemini_model", "openai_api_key", "openai_model", "deepseek_api_key", "deepseek_model", "anthropic_api_key", "anthropic_model"]
+        stmt = select(BotSetting).where(BotSetting.key.in_(keys))
         result = await db.execute(stmt)
         records = result.scalars().all()
-        settings_dict = {r.key: r.value for r in records}
+        s_dict = {r.key: r.value for r in records}
 
-        api_key = settings_dict.get("gemini_api_key", "")
-        model_name = settings_dict.get("gemini_model", "").strip()
-        
-        # Fallback to stable valid models if empty or invalid model selected
-        if not model_name or "tts" in model_name.lower():
-            model_name = "gemini-2.0-flash"
+        provider = s_dict.get("ai_provider", getattr(settings, "AI_PROVIDER", "gemini")).strip().lower()
+        if provider not in ["gemini", "openai", "deepseek", "anthropic"]:
+            provider = "gemini"
 
+        if provider == "openai":
+            api_key = s_dict.get("openai_api_key", getattr(settings, "OPENAI_API_KEY", ""))
+            model_name = s_dict.get("openai_model", getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")).strip()
+        elif provider == "deepseek":
+            api_key = s_dict.get("deepseek_api_key", getattr(settings, "DEEPSEEK_API_KEY", ""))
+            model_name = s_dict.get("deepseek_model", getattr(settings, "DEEPSEEK_MODEL", "deepseek-chat")).strip()
+        elif provider == "anthropic":
+            api_key = s_dict.get("anthropic_api_key", getattr(settings, "ANTHROPIC_API_KEY", ""))
+            model_name = s_dict.get("anthropic_model", getattr(settings, "ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")).strip()
+        else:
+            api_key = s_dict.get("gemini_api_key", getattr(settings, "GEMINI_API_KEY", ""))
+            model_name = s_dict.get("gemini_model", getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash")).strip()
+            if not model_name or "tts" in model_name.lower():
+                model_name = "gemini-2.0-flash"
+
+        return provider, api_key, model_name
+
+    async def get_gemini_config(self, db: AsyncSession) -> tuple[str, str]:
+        provider, api_key, model_name = await self.get_ai_config(db)
         return api_key, model_name
 
     def get_available_models(self, api_key: str = None) -> list[dict]:
@@ -408,11 +426,15 @@ class AIService:
                 cal_config = await self.get_calendar_config(db)
                 booking_action_info = await self._handle_calendar_booking(user_message, cal_config, db)
 
-            raw_key, model_name = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
-            keys = self._extract_api_keys(raw_key) or self._extract_api_keys(settings.GEMINI_API_KEY)
+            provider, raw_key, model_name = await self.get_ai_config(db) if db else ("gemini", settings.GEMINI_API_KEY, "gemini-2.0-flash")
+            keys = self._extract_api_keys(raw_key) if raw_key else []
 
-            if not keys or not genai:
-                print("[AI SERVICE WARNING] Missing or invalid Gemini API Key! Returning fallback message.")
+            if not raw_key and hasattr(settings, f"{provider.upper()}_API_KEY"):
+                raw_key = getattr(settings, f"{provider.upper()}_API_KEY", "")
+                keys = self._extract_api_keys(raw_key)
+
+            if not raw_key or raw_key.startswith("your_"):
+                print(f"[AI SERVICE WARNING] Missing or invalid API Key for provider '{provider}'! Returning fallback message.")
                 return fallback_msg, False, token_stats
 
             sys_prompt = await self.get_system_prompt(db) if db else DEFAULT_SYSTEM_PROMPT
@@ -460,21 +482,18 @@ class AIService:
                         stmt_all_c = select(CacheEntry).order_by(CacheEntry.created_at.desc()).limit(20)
                         res_all_c = await db.execute(stmt_all_c)
                         all_cached = res_all_c.scalars().all()
-                        for c_item in all_cached:
-                            c_words = set(re.findall(r'\w+', (c_item.user_query or "").lower()))
-                            intersection = query_words.intersection(c_words)
-                            union = query_words.union(c_words)
-                            jaccard = len(intersection) / len(union) if union else 0.0
-                            if jaccard >= 0.60:
-                                cached = c_item
+                        for c_entry in all_cached:
+                            c_words = set(re.findall(r'\w+', (c_entry.user_query or '').lower()))
+                            if c_words and len(query_words.intersection(c_words)) / len(query_words) >= 0.7:
+                                cached = c_entry
                                 break
 
                 if cached and cached.ai_response:
                     return cached.ai_response, True, {
                         "matched_count": len(selected_entries),
                         "matched_titles": [f"[{e.category.upper()}] {e.title}" for e in selected_entries[:4]],
-                        "search_method": search_method + " (Smart Cache)",
-                        "model_used": model_name + " (Cached)",
+                        "search_method": search_method,
+                        "model_used": f"{provider.upper()} ({model_name}) (Cached)",
                         "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
                     }
 
@@ -497,7 +516,7 @@ class AIService:
                     r = "Customer" if role == "user" else "Assistant"
                     h_lines.append(f"{r}: {content}")
                 if h_lines:
-                    hist_txt = "## CONVERSATION HISTORY:\n" + "\n".join(h_lines) + "\n\n"
+                    hist_txt = "## HISTORY:\n" + "\n".join(h_lines) + "\n\n"
 
             full_prompt = f"{sys_prompt}\n\nKB:\n{kb_text}\n\n"
             if hist_txt:
@@ -506,50 +525,131 @@ class AIService:
                 full_prompt += f"ACTION: {booking_action_info}\n\n"
             full_prompt += f"Q: {user_message if user_message else 'Media file.'}"
 
-            models_to_try = [model_name]
-            if model_name != "gemini-2.0-flash":
-                models_to_try.append("gemini-2.0-flash")
+            if provider in ["openai", "deepseek"]:
+                base_url = "https://api.openai.com/v1" if provider == "openai" else "https://api.deepseek.com"
+                messages_payload = [{"role": "system", "content": sys_prompt}]
+                user_content = f"KB:\n{kb_text}\n\n"
+                if hist_txt:
+                    user_content += hist_txt
+                if booking_action_info:
+                    user_content += f"ACTION: {booking_action_info}\n\n"
+                user_content += f"Q: {user_message if user_message else 'Media file.'}"
+                messages_payload.append({"role": "user", "content": user_content})
 
-            response = None
-            ai_text = None
+                try:
+                    async with httpx.AsyncClient(timeout=30.0) as client:
+                        resp = await client.post(
+                            f"{base_url}/chat/completions",
+                            headers={
+                                "Authorization": f"Bearer {raw_key}",
+                                "Content-Type": "application/json"
+                            },
+                            json={
+                                "model": model_name,
+                                "messages": messages_payload,
+                                "temperature": 0.7
+                            }
+                        )
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            ai_text = data["choices"][0]["message"]["content"].strip()
+                            usage = data.get("usage", {})
+                            token_stats["prompt_tokens"] = usage.get("prompt_tokens", 0)
+                            token_stats["completion_tokens"] = usage.get("completion_tokens", 0)
+                            token_stats["total_tokens"] = usage.get("total_tokens", 0)
+                        else:
+                            err_msg = f"{provider.upper()} API HTTP {resp.status_code}: {resp.text}"
+                            print(f"[{provider.upper()} API ERROR] {err_msg}")
+                            await log_service.log("ERROR", "AI Engine Error", err_msg, f"Model: {model_name}")
+                except Exception as api_err:
+                    err_msg = f"{provider.upper()} API Exception: {api_err}"
+                    print(f"[{provider.upper()} API ERROR] {err_msg}")
+                    await log_service.log("ERROR", "AI Engine Error", err_msg, f"Model: {model_name}")
 
-            for key in keys:
-                self._ensure_genai_configured(key)
-                for m_name in models_to_try:
-                    try:
-                        model = genai.GenerativeModel(m_name)
-                        
-                        prompt_contents = []
-                        if image_bytes and image_mime:
-                            prompt_contents.append({"mime_type": image_mime, "data": image_bytes})
-                        if audio_bytes and audio_mime:
-                            prompt_contents.append({"mime_type": audio_mime, "data": audio_bytes})
-                        prompt_contents.append(full_prompt)
+            elif provider == "anthropic":
+                try:
+                    async with httpx.AsyncClient(timeout=30.0) as client:
+                        user_content = f"KB:\n{kb_text}\n\n"
+                        if hist_txt:
+                            user_content += hist_txt
+                        if booking_action_info:
+                            user_content += f"ACTION: {booking_action_info}\n\n"
+                        user_content += f"Q: {user_message if user_message else 'Media file.'}"
 
-                        res = await model.generate_content_async(prompt_contents)
+                        resp = await client.post(
+                            "https://api.anthropic.com/v1/messages",
+                            headers={
+                                "x-api-key": raw_key,
+                                "anthropic-version": "2023-06-01",
+                                "content-type": "application/json"
+                            },
+                            json={
+                                "model": model_name,
+                                "system": sys_prompt,
+                                "messages": [{"role": "user", "content": user_content}],
+                                "max_tokens": 1000
+                            }
+                        )
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            ai_text = data["content"][0]["text"].strip()
+                            usage = data.get("usage", {})
+                            token_stats["prompt_tokens"] = usage.get("input_tokens", 0)
+                            token_stats["completion_tokens"] = usage.get("output_tokens", 0)
+                            token_stats["total_tokens"] = token_stats["prompt_tokens"] + token_stats["completion_tokens"]
+                        else:
+                            err_msg = f"Anthropic API HTTP {resp.status_code}: {resp.text}"
+                            print(f"[ANTHROPIC API ERROR] {err_msg}")
+                            await log_service.log("ERROR", "AI Engine Error", err_msg, f"Model: {model_name}")
+                except Exception as api_err:
+                    err_msg = f"Anthropic API Exception: {api_err}"
+                    print(f"[ANTHROPIC API ERROR] {err_msg}")
+                    await log_service.log("ERROR", "AI Engine Error", err_msg, f"Model: {model_name}")
 
-                        if res:
-                            t = None
-                            try:
-                                t = res.text.strip() if hasattr(res, 'text') else None
-                            except ValueError:
-                                if hasattr(res, 'candidates') and res.candidates:
-                                    parts = res.candidates[0].content.parts
-                                    t = "".join([p.text for p in parts if hasattr(p, 'text') and p.text]).strip()
-                            if t:
-                                ai_text = t
-                                response = res
-                                model_name = m_name
-                                break
-                    except Exception as gem_err:
-                        err_text = f"Gemini API Exception for key ending in ...{key[-6:]} / {m_name} ({type(gem_err).__name__}): {gem_err}"
-                        print(f"[GEMINI API ERROR] {err_text}")
-                        await log_service.log("ERROR", "AI Engine Error", err_text, f"Model: {m_name}")
-                        continue
-                if ai_text:
-                    break
-                if ai_text:
-                    break
+            else:
+                if not keys or not genai:
+                    print("[AI SERVICE WARNING] Missing or invalid Gemini API Key! Returning fallback message.")
+                    return fallback_msg, False, token_stats
+
+                models_to_try = [model_name]
+                if model_name != "gemini-2.0-flash":
+                    models_to_try.append("gemini-2.0-flash")
+
+                for key in keys:
+                    self._ensure_genai_configured(key)
+                    for m_name in models_to_try:
+                        try:
+                            model = genai.GenerativeModel(m_name)
+                            
+                            prompt_contents = []
+                            if image_bytes and image_mime:
+                                prompt_contents.append({"mime_type": image_mime, "data": image_bytes})
+                            if audio_bytes and audio_mime:
+                                prompt_contents.append({"mime_type": audio_mime, "data": audio_bytes})
+                            prompt_contents.append(full_prompt)
+
+                            res = await model.generate_content_async(prompt_contents)
+
+                            if res:
+                                t = None
+                                try:
+                                    t = res.text.strip() if hasattr(res, 'text') else None
+                                except ValueError:
+                                    if hasattr(res, 'candidates') and res.candidates:
+                                        parts = res.candidates[0].content.parts
+                                        t = "".join([p.text for p in parts if hasattr(p, 'text') and p.text]).strip()
+                                if t:
+                                    ai_text = t
+                                    response = res
+                                    model_name = m_name
+                                    break
+                        except Exception as gem_err:
+                            err_text = f"Gemini API Exception for key ending in ...{key[-6:]} / {m_name} ({type(gem_err).__name__}): {gem_err}"
+                            print(f"[GEMINI API ERROR] {err_text}")
+                            await log_service.log("ERROR", "AI Engine Error", err_text, f"Model: {m_name}")
+                            continue
+                    if ai_text:
+                        break
 
             if not ai_text:
                 return fallback_msg, False, {

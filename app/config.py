@@ -7,8 +7,15 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # AI Settings
+    AI_PROVIDER: str = "gemini" # gemini, openai, deepseek, anthropic
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_MODEL: str = "deepseek-chat"
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
     RESPONSE_LENGTH: str = "short" # short, medium, long
     DETAIL_KEYWORDS: str = "দাম,ফিচার,প্যাকেজ,লিস্ট,সব,বিস্তারিত,details,price,package,list,all,feature,পার্থক্য,difference,কি কি"
     
