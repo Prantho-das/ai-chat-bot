@@ -64,19 +64,8 @@ def _extract_user_text(messaging_event: dict) -> tuple[str | None, str | None, s
             elif att_type == "audio" and url:
                 audio_url = url
 
-    if not user_text:
-        if image_url:
-            user_text = "[User sent image]"
-        elif audio_url:
-            user_text = "[User sent voice message]"
-
-    postback = messaging_event.get("postback")
-    if postback and not user_text:
-        user_text = postback.get("title") or postback.get("payload", "")
-
-    referral = messaging_event.get("referral")
-    if referral and not user_text:
-        user_text = referral.get("ref", "হ্যালো")
+    if not user_text and not image_url and not audio_url:
+        return None, None, None
 
     return user_text, image_url, audio_url
 
@@ -313,9 +302,10 @@ async def process_messenger_event(data: dict):
                     if not sender_id or sender_id == page_id:
                         continue
 
-                    user_text = _extract_user_text(messaging_event)
-                    if user_text:
-                        _MESSAGE_BUFFERS.setdefault(sender_id, []).append(user_text)
+                    user_text, image_url, audio_url = _extract_user_text(messaging_event)
+                    if user_text or image_url or audio_url:
+                        text_content = user_text or ("[User sent image]" if image_url else "[User sent voice message]")
+                        _MESSAGE_BUFFERS.setdefault(sender_id, []).append(text_content)
 
                         # Cancel existing timer if follow-up arrived within window
                         if sender_id in _MESSAGE_TIMERS:
