@@ -61,16 +61,20 @@ class MessengerService:
         if not token or token.startswith("your_"):
             return {}
 
-        url = f"https://graph.facebook.com/v19.0/{user_id}"
-        params = {"fields": "first_name,last_name,name", "access_token": token}
+        url = f"https://graph.facebook.com/v21.0/{user_id}"
+        params = {"fields": "first_name,last_name,name,profile_pic", "access_token": token}
 
         async with httpx.AsyncClient() as client:
             try:
                 res = await client.get(url, params=params, timeout=5.0)
                 if res.status_code == 200:
                     return res.json()
+                else:
+                    print(f"[MESSENGER PROFILE FETCH FAILED {res.status_code}] {res.text}")
+                    await log_service.log("WARNING", "FB Profile API", f"Failed fetching profile for {user_id} ({res.status_code})", res.text)
             except Exception as e:
                 print(f"[MESSENGER PROFILE FETCH ERROR] {e}")
+                await log_service.log("ERROR", "FB Profile API", f"Error fetching profile: {e}")
         return {}
 
     async def send_image_message(self, recipient_id: str, image_url: str, access_token: str = None) -> bool:

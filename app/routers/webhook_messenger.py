@@ -330,6 +330,9 @@ async def process_messenger_event(data: dict):
 
                     user_text, image_url, audio_url = _extract_user_text(messaging_event)
                     if user_text or image_url or audio_url:
+                        # Send immediate typing bubble as soon as message hits server
+                        asyncio.create_task(messenger_service.send_typing_indicator(sender_id, access_token))
+
                         _MESSAGE_BUFFERS.setdefault(sender_id, []).append({
                             "text": user_text,
                             "image_url": image_url,
