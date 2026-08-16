@@ -464,6 +464,27 @@ async def conversation_detail(
         "next_page": page + 1
     })
 
+@router.post("/conversations/{conv_id}/toggle-status")
+async def toggle_conversation_status(
+    conv_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    stmt = select(Conversation).where(Conversation.id == conv_id)
+    res = await db.execute(stmt)
+    conv = res.scalar_one_or_none()
+    if conv:
+        if conv.status == "active":
+            conv.status = "paused" # Human agent active / AI Bot paused
+        else:
+            conv.status = "active" # AI Bot active
+        await db.commit()
+
+    return RedirectResponse(url=f"/admin/conversations/{conv_id}", status_code=status.HTTP_302_FOUND)
+
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
     if not is_authenticated(request):

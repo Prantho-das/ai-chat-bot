@@ -129,6 +129,11 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
             sender_name=conversation.sender_name
         )
 
+        # Check if Human Agent has taken over or AI is paused
+        if conversation.status in ["paused", "escalated"]:
+            await log_service.log("INFO", "Human Takeover", f"AI reply skipped for {sender_id} (Status: {conversation.status})")
+            return
+
         stmt_msg = select(Message).where(
             Message.conversation_id == conversation.id
         ).order_by(Message.created_at.asc())
@@ -324,6 +329,31 @@ async def process_messenger_event(data: dict):
 
                 # 1. Handle Messenger Direct Messages with Debouncing
                 for messaging_event in entry.get("messaging", []):
+                    # Check for Real Human Admin Reply from Meta Business Suite (Echo Event)
+                    message_data = messaging_event.get("message", {})
+                    if message_data.get("is_echo"):
+                        recipient_id = str(messaging_event.get("recipient", {}).get("id", ""))
+                        admin_text = message_data.get("text", "[Admin sent media/attachment]")
+                        
+                        # Fetch and pause AI for this user so real agent can chat freely
+                        stmt = select(Conversation).where(
+                            Conversation.platform == "messenger",
+                            Conversation.sender_id == recipient_id
+                        )
+                        res = await db.execute(stmt)
+                        conv = res.scalar_one_or_none()
+                        if conv:
+                            conv.status = "paused"
+                            db.add(Message(
+                                conversation_id=conv.id,
+                                role="assistant",
+                                content=f"[Human Agent Reply] {admin_text}",
+                                is_ai_generated=False
+                            ))
+                            await db.commit()
+                            await log_service.log("INFO", "Human Agent Takeover", f"Real Admin replied to {recipient_id}. AI Bot paused.", admin_text)
+                        continue
+
                     sender_id = str(messaging_event.get("sender", {}).get("id", ""))
                     if not sender_id or sender_id == page_id:
                         continue
