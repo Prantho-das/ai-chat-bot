@@ -120,13 +120,83 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     total_kb = await db.scalar(select(func.count(KnowledgeEntry.id))) or 0
     cached_msgs = await db.scalar(select(func.count(Message.id)).where(Message.is_cached == True)) or 0
     
+    # Fetch key reset timestamp
+    reset_at_stmt = select(BotSetting.value).where(BotSetting.key == "current_key_reset_at")
+    reset_at_str = await db.scalar(reset_at_stmt)
+    reset_dt = None
+    if reset_at_str:
+        try:
+            reset_dt = datetime.fromisoformat(reset_at_str)
+        except Exception:
+            reset_dt = None
+
+    # Current Key Usage (Filtered by reset date if key changed)
+    curr_filter = [Message.created_at >= reset_dt] if reset_dt else []
+    curr_prompt_tokens = await db.scalar(select(func.sum(Message.prompt_tokens)).where(*curr_filter)) or 0
+    curr_completion_tokens = await db.scalar(select(func.sum(Message.completion_tokens)).where(*curr_filter)) or 0
+    curr_tokens_used = await db.scalar(select(func.sum(Message.total_tokens)).where(*curr_filter)) or 0
+
+    # All-time Total Usage (Historical)
     total_prompt_tokens = await db.scalar(select(func.sum(Message.prompt_tokens))) or 0
     total_completion_tokens = await db.scalar(select(func.sum(Message.completion_tokens))) or 0
     total_tokens_used = await db.scalar(select(func.sum(Message.total_tokens))) or 0
 
-    # Gemini 2.0 Flash pricing estimate: $0.10 / 1M input tokens, $0.40 / 1M output tokens
-    estimated_cost_usd = (total_prompt_tokens * 0.00000010) + (total_completion_tokens * 0.00000040)
-    estimated_cost_bdt = estimated_cost_usd * 122.0
+    provider, api_key, model_name = await ai_service.get_ai_config(db)
+
+    # Provider Specific Quota & Rate Limit Metadata
+    provider_limits = {
+        "gemini": {
+            "name": "Google Gemini",
+            "tier": "Free / Pay-as-you-go",
+            "rpd": "1,500 Requests / Day",
+            "tpm": "1,000,000 Tokens / Min",
+            "rpm": "15 Requests / Min",
+            "context_window": "1,048,576 Tokens (1M)",
+            "pricing_input_1m": 0.10,
+            "pricing_output_1m": 0.40
+        },
+        "openai": {
+            "name": "OpenAI",
+            "tier": "Usage-based Billing",
+            "rpd": "Pay-as-you-go Balance",
+            "tpm": "200,000 Tokens / Min",
+            "rpm": "500 Requests / Min",
+            "context_window": "128,000 Tokens",
+            "pricing_input_1m": 0.15,
+            "pricing_output_1m": 0.60
+        },
+        "deepseek": {
+            "name": "DeepSeek",
+            "tier": "Usage-based Billing",
+            "rpd": "Account Credit Balance",
+            "tpm": "100,000 Tokens / Min",
+            "rpm": "60 Requests / Min",
+            "context_window": "64,000 Tokens",
+            "pricing_input_1m": 0.14,
+            "pricing_output_1m": 0.28
+        },
+        "anthropic": {
+            "name": "Anthropic Claude",
+            "tier": "Usage-based Billing",
+            "rpd": "Account Credit Balance",
+            "tpm": "80,000 Tokens / Min",
+            "rpm": "50 Requests / Min",
+            "context_window": "200,000 Tokens",
+            "pricing_input_1m": 3.00,
+            "pricing_output_1m": 15.00
+        }
+    }
+
+    current_p_info = provider_limits.get(provider, provider_limits["gemini"])
+
+    # Dynamic pricing based on active provider
+    input_rate = current_p_info["pricing_input_1m"] / 1000000.0
+    output_rate = current_p_info["pricing_output_1m"] / 1000000.0
+    curr_cost_usd = (curr_prompt_tokens * input_rate) + (curr_completion_tokens * output_rate)
+    curr_cost_bdt = curr_cost_usd * 122.0
+
+    alltime_cost_usd = (total_prompt_tokens * input_rate) + (total_completion_tokens * output_rate)
+    alltime_cost_bdt = alltime_cost_usd * 122.0
 
     # Calculate Savings Percentage
     ai_msgs_total = await db.scalar(select(func.count(Message.id)).where(Message.role == "assistant")) or 0
@@ -141,12 +211,22 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         "total_messages": total_msgs,
         "knowledge_entries": total_kb,
         "cached_messages": cached_msgs,
+        "curr_tokens_used": curr_tokens_used,
+        "curr_prompt_tokens": curr_prompt_tokens,
+        "curr_completion_tokens": curr_completion_tokens,
+        "curr_cost_usd": f"{curr_cost_usd:.4f}",
+        "curr_cost_bdt": f"{curr_cost_bdt:.2f}",
         "total_tokens_used": total_tokens_used,
         "total_prompt_tokens": total_prompt_tokens,
         "total_completion_tokens": total_completion_tokens,
-        "estimated_cost_usd": f"{estimated_cost_usd:.4f}",
-        "estimated_cost_bdt": f"{estimated_cost_bdt:.2f}",
-        "savings_pct": savings_pct
+        "alltime_cost_usd": f"{alltime_cost_usd:.4f}",
+        "alltime_cost_bdt": f"{alltime_cost_bdt:.2f}",
+        "savings_pct": savings_pct,
+        "active_provider": provider.upper(),
+        "active_model": model_name,
+        "provider_info": current_p_info,
+        "has_api_key": bool(api_key and not api_key.startswith("your_")),
+        "is_reset": bool(reset_dt)
     }
 
     return await render_admin_page("dashboard.html", request, db, {
@@ -642,6 +722,15 @@ async def update_settings(
         for k, v in raw_creds.items():
             if v is not None and v.strip() != "":
                 val = v.strip()
+                # Check if API Key has changed to reset current usage
+                if k in ["gemini_api_key", "openai_api_key", "deepseek_api_key", "anthropic_api_key", "ai_provider"]:
+                    old_val_stmt = select(BotSetting.value).where(BotSetting.key == k)
+                    old_val = await db.scalar(old_val_stmt)
+                    if old_val and old_val.strip() != val:
+                        # Key has changed! Record reset timestamp
+                        now_str = datetime.utcnow().isoformat()
+                        await upsert_bot_setting(db, "current_key_reset_at", now_str)
+
                 await upsert_bot_setting(db, k, val)
                 if hasattr(settings, k.upper()):
                     setattr(settings, k.upper(), val)

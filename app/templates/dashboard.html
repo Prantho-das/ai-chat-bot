@@ -5,7 +5,16 @@
 {% block content %}
 <div class="space-y-8">
     <!-- Stat Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Active Engine</span>
+                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-base font-bold shadow-sm">⚡</div>
+            </div>
+            <div class="text-xl font-black text-slate-900 tracking-tight truncate">{{ stats.active_provider }}</div>
+            <p class="text-[11px] font-medium text-slate-500 mt-2 truncate">{{ stats.active_model }}</p>
+        </div>
+
         <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
             <div class="flex items-center justify-between text-slate-400 mb-3">
                 <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Total Users</span>
@@ -26,29 +35,22 @@
 
         <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
             <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Knowledge Items</span>
-                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-base font-bold shadow-sm">🧠</div>
-            </div>
-            <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.knowledge_entries }}</div>
-            <p class="text-[11px] font-medium text-slate-400 mt-2">Active business items</p>
-        </div>
-
-        <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
-            <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Total Tokens Used</span>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Current Key Tokens</span>
                 <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-base font-bold shadow-sm">📊</div>
             </div>
-            <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.total_tokens_used }}</div>
-            <p class="text-[11px] font-medium text-slate-400 mt-2">In: {{ stats.total_prompt_tokens }} | Out: {{ stats.total_completion_tokens }}</p>
+            <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.curr_tokens_used }}</div>
+            <p class="text-[11px] font-medium text-slate-400 mt-2">
+                All-time: <span class="font-bold text-slate-700">{{ stats.total_tokens_used }}</span>
+            </p>
         </div>
 
         <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
             <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Estimated Cost (খরচ)</span>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Current Key Cost</span>
                 <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-base font-bold shadow-sm">💰</div>
             </div>
-            <div class="text-3xl font-extrabold text-emerald-600 tracking-tight">৳{{ stats.estimated_cost_bdt }}</div>
-            <p class="text-[11px] font-medium text-slate-400 mt-2">${{ stats.estimated_cost_usd }} USD total spent</p>
+            <div class="text-3xl font-extrabold text-emerald-600 tracking-tight">৳{{ stats.curr_cost_bdt }}</div>
+            <p class="text-[11px] font-medium text-slate-400 mt-2">All-time: ৳{{ stats.alltime_cost_bdt }} (${{ stats.alltime_cost_usd }})</p>
         </div>
 
         <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
@@ -58,6 +60,41 @@
             </div>
             <div class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.cached_messages }}</div>
             <p class="text-[11px] font-medium text-emerald-600 mt-2">🔥 {{ stats.savings_pct }}% API Calls Saved</p>
+        </div>
+    </div>
+
+    <!-- Active AI Provider Quota & Limit Information Banner -->
+    <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-6 shadow-sm border border-slate-800">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div class="space-y-1">
+                <div class="flex items-center space-x-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Current Provider Quota</span>
+                    <span class="text-xs text-slate-400">({{ stats.provider_info.tier }})</span>
+                </div>
+                <h4 class="text-lg font-bold text-white flex items-center gap-2">
+                    {{ stats.provider_info.name }} - <span class="font-mono text-indigo-300 font-semibold">{{ stats.active_model }}</span>
+                </h4>
+                <p class="text-xs text-slate-300">বর্তমান প্রোভাইডারের টোকেন রেট ও ক্যাপাসিটি প্যারামিটার</p>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white/5 border border-white/10 rounded-xl p-4">
+                <div>
+                    <div class="text-[10px] uppercase font-bold text-slate-400">Daily Quota (RPD)</div>
+                    <div class="text-xs font-bold text-emerald-400 mt-0.5">{{ stats.provider_info.rpd }}</div>
+                </div>
+                <div>
+                    <div class="text-[10px] uppercase font-bold text-slate-400">RPM Rate Limit</div>
+                    <div class="text-xs font-bold text-indigo-300 mt-0.5">{{ stats.provider_info.rpm }}</div>
+                </div>
+                <div>
+                    <div class="text-[10px] uppercase font-bold text-slate-400">TPM Limit</div>
+                    <div class="text-xs font-bold text-amber-300 mt-0.5">{{ stats.provider_info.tpm }}</div>
+                </div>
+                <div>
+                    <div class="text-[10px] uppercase font-bold text-slate-400">Context Window</div>
+                    <div class="text-xs font-bold text-purple-300 mt-0.5">{{ stats.provider_info.context_window }}</div>
+                </div>
+            </div>
         </div>
     </div>
 
