@@ -271,20 +271,46 @@ import asyncio
 from typing import Dict, List
 
 # In-memory Message Debouncing Buffers
-_MESSAGE_BUFFERS: Dict[str, List[str]] = {}
+_MESSAGE_BUFFERS: Dict[str, List[dict]] = {}
 _MESSAGE_TIMERS: Dict[str, asyncio.Task] = {}
 
 async def _debounced_process_dm(sender_id: str, access_token: str):
     await asyncio.sleep(2.0) # Wait 2.0s for follow-up messages
-    messages = _MESSAGE_BUFFERS.pop(sender_id, [])
+    events = _MESSAGE_BUFFERS.pop(sender_id, [])
     _MESSAGE_TIMERS.pop(sender_id, None)
 
-    if not messages:
+    if not events:
         return
 
-    combined_text = " ".join(messages).strip()
+    text_parts = []
+    image_url = None
+    audio_url = None
+
+    for ev in events:
+        t = ev.get("text")
+        if t:
+            text_parts.append(t)
+        if ev.get("image_url") and not image_url:
+            image_url = ev["image_url"]
+        if ev.get("audio_url") and not audio_url:
+            audio_url = ev["audio_url"]
+
+    combined_text = " ".join(text_parts).strip()
+    if not combined_text:
+        if image_url:
+            combined_text = "[User sent image]"
+        elif audio_url:
+            combined_text = "[User sent voice message]"
+
     async with AsyncSessionLocal() as db:
-        await _process_dm(sender_id, combined_text, access_token, db)
+        await _process_dm(
+            sender_id=sender_id,
+            user_text=combined_text,
+            access_token=access_token,
+            db=db,
+            image_url=image_url,
+            audio_url=audio_url
+        )
 
 
 async def process_messenger_event(data: dict):
@@ -304,8 +330,11 @@ async def process_messenger_event(data: dict):
 
                     user_text, image_url, audio_url = _extract_user_text(messaging_event)
                     if user_text or image_url or audio_url:
-                        text_content = user_text or ("[User sent image]" if image_url else "[User sent voice message]")
-                        _MESSAGE_BUFFERS.setdefault(sender_id, []).append(text_content)
+                        _MESSAGE_BUFFERS.setdefault(sender_id, []).append({
+                            "text": user_text,
+                            "image_url": image_url,
+                            "audio_url": audio_url
+                        })
 
                         # Cancel existing timer if follow-up arrived within window
                         if sender_id in _MESSAGE_TIMERS:
