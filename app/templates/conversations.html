@@ -58,10 +58,22 @@
                         <td class="px-6 py-4 font-semibold text-slate-900">{{ conv.sender_name or 'Unknown User' }}</td>
                         <td class="px-6 py-4 font-mono text-xs text-slate-400">{{ conv.sender_id }}</td>
                         <td class="px-6 py-4">
-                            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ conv.status }}</span>
+                            <form method="POST" action="/admin/conversations/{{ conv.id }}/toggle-status" class="inline">
+                                {% if conv.status == 'active' %}
+                                <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-amber-50 hover:text-amber-700 transition-all shadow-2xs" title="Click to Pause AI">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span>Active (AI ON)</span>
+                                </button>
+                                {% else %}
+                                <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-emerald-50 hover:text-emerald-700 transition-all shadow-2xs" title="Click to Resume AI Bot">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    <span>Paused (Click to Resume)</span>
+                                </button>
+                                {% endif %}
+                            </form>
                         </td>
                         <td class="px-6 py-4 text-xs text-slate-400 font-medium">{{ conv.updated_at.strftime('%Y-%m-%d %H:%M') if conv.updated_at else 'N/A' }}</td>
-                        <td class="px-6 py-4">
+                        <td class="px-6 py-4 flex items-center space-x-2">
                             <a href="/admin/conversations/{{ conv.id }}" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-semibold transition-colors">View Chat</a>
                         </td>
                     </tr>

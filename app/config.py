@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # AI Settings
     AI_PROVIDER: str = "gemini" # gemini, openai, deepseek, anthropic
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_MODEL: str = "gemini-2.5-flash"
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
     DEEPSEEK_API_KEY: str = ""

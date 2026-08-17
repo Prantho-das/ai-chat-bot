@@ -64,7 +64,7 @@ class AIService:
         try:
             if not text:
                 return None
-            raw_key, _ = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.0-flash")
+            raw_key, _ = await self.get_gemini_config(db) if db else (settings.GEMINI_API_KEY, "gemini-2.5-flash")
             keys = self._extract_api_keys(raw_key) or self._extract_api_keys(settings.GEMINI_API_KEY)
             
             if genai and keys:
@@ -210,9 +210,9 @@ class AIService:
             model_name = s_dict.get("anthropic_model", getattr(settings, "ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")).strip()
         else:
             api_key = s_dict.get("gemini_api_key", getattr(settings, "GEMINI_API_KEY", ""))
-            model_name = s_dict.get("gemini_model", getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash")).strip()
+            model_name = s_dict.get("gemini_model", getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash")).strip()
             if not model_name or "tts" in model_name.lower():
-                model_name = "gemini-2.0-flash"
+                model_name = "gemini-2.5-flash"
 
         return provider, api_key, model_name
 
@@ -241,7 +241,8 @@ class AIService:
             print(f"Error fetching models from Gemini API: {e}")
 
         return [
-            {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash (Recommended)"},
+            {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash (Recommended)"},
+            {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro"},
             {"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash"},
             {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro"}
         ]
@@ -426,7 +427,7 @@ class AIService:
                 cal_config = await self.get_calendar_config(db)
                 booking_action_info = await self._handle_calendar_booking(user_message, cal_config, db)
 
-            provider, raw_key, model_name = await self.get_ai_config(db) if db else ("gemini", settings.GEMINI_API_KEY, "gemini-2.0-flash")
+            provider, raw_key, model_name = await self.get_ai_config(db) if db else ("gemini", settings.GEMINI_API_KEY, "gemini-2.5-flash")
             keys = self._extract_api_keys(raw_key) if raw_key else []
 
             if not raw_key and hasattr(settings, f"{provider.upper()}_API_KEY"):
@@ -612,8 +613,10 @@ class AIService:
                     return fallback_msg, False, token_stats
 
                 models_to_try = [model_name]
-                if model_name != "gemini-2.0-flash":
-                    models_to_try.append("gemini-2.0-flash")
+                if model_name != "gemini-2.5-flash":
+                    models_to_try.append("gemini-2.5-flash")
+                if "gemini-1.5-flash" not in models_to_try:
+                    models_to_try.append("gemini-1.5-flash")
 
                 for key in keys:
                     self._ensure_genai_configured(key)
