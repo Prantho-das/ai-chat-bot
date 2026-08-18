@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Chat with {{ conversation.sender_name }} - MarketFlow AI{% endblock %}
+{% block title %}Chat with {{ conversation.sender_name }} - Piku AI{% endblock %}
 {% block header_title %}Conversation Thread{% endblock %}
 
 {% block content %}
@@ -34,82 +34,74 @@
                 </button>
                 {% endif %}
             </form>
-
-            {% if total_pages > 1 %}
-            <div class="flex items-center space-x-2 text-xs font-semibold">
-                <span class="text-slate-400 text-[11px]">Page {{ page }}/{{ total_pages }}</span>
-                {% if has_prev %}
-                <a href="/admin/conversations/{{ conversation.id }}?page={{ prev_page }}&per_page={{ per_page }}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-xl transition-all">← Prev</a>
-                {% endif %}
-                {% if has_next %}
-                <a href="/admin/conversations/{{ conversation.id }}?page={{ next_page }}&per_page={{ per_page }}" class="bg-gradient-to-r from-[#5B4BFF] to-[#7C3AED] text-white px-2.5 py-1 rounded-xl transition-all shadow-xs">Next →</a>
-                {% endif %}
-            </div>
-            {% endif %}
         </div>
     </div>
 
-    <!-- Chat Messages Container -->
-    <div class="saas-card p-6 space-y-5 min-h-[440px] flex flex-col justify-end">
-        {% for msg in messages %}
-        {% if msg.role == 'user' %}
-        <!-- User Message -->
-        <div class="flex flex-col items-start space-y-1">
-            <div class="flex items-center space-x-2">
-                <span class="text-[11px] text-slate-600 font-bold ml-1">{{ conversation.sender_name or 'User' }}</span>
-                {% if conversation.platform == 'fb_comment' %}
-                <span class="text-[9px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">💬 Commented on Facebook Post</span>
-                {% endif %}
+    <!-- Infinite Scroll Chat Container -->
+    <div class="saas-card p-6 flex flex-col justify-between overflow-hidden">
+        
+        <!-- Messages Scroll Box -->
+        <div id="chatScrollContainer" class="space-y-5 max-h-[520px] overflow-y-auto custom-scrollbar pr-2 flex flex-col">
+            {% for msg in messages %}
+            {% if msg.role == 'user' %}
+            <!-- User Message -->
+            <div class="flex flex-col items-start space-y-1 my-1">
+                <div class="flex items-center space-x-2">
+                    <span class="text-[11px] text-slate-600 font-bold ml-1">{{ conversation.sender_name or 'User' }}</span>
+                    {% if conversation.platform == 'fb_comment' %}
+                    <span class="text-[9px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">💬 Commented on Facebook Post</span>
+                    {% endif %}
+                </div>
+                <div class="bg-slate-100 text-slate-900 px-4 py-3 rounded-2xl rounded-tl-xs max-w-lg text-xs font-medium leading-relaxed border border-slate-200/80 shadow-2xs">
+                    {{ msg.content }}
+                </div>
+                <span class="text-[10px] text-slate-400 ml-1">{{ msg.created_at.strftime('%H:%M') if msg.created_at else '' }}</span>
             </div>
-            <div class="bg-slate-100/90 text-slate-900 px-4 py-3 rounded-2xl rounded-tl-xs max-w-lg text-xs font-medium leading-relaxed border border-slate-200/80 shadow-xs">
-                {{ msg.content }}
-            </div>
-            <span class="text-[10px] text-slate-400 ml-1">{{ msg.created_at.strftime('%H:%M') if msg.created_at else '' }}</span>
-        </div>
-        {% else %}
-        <!-- Assistant Message -->
-        <div class="flex flex-col items-end space-y-1">
-            <div class="flex items-center space-x-1.5">
-                {% if msg.is_cached %}
-                <span class="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-bold border border-emerald-200/60 shadow-2xs">⚡ 0 API Token Used (Cached)</span>
-                {% else %}
-                <span class="text-[9px] bg-indigo-50 text-[#5B4BFF] px-2 py-0.5 rounded-md font-semibold border border-indigo-100">✨ {{ msg.total_tokens if msg.total_tokens else 0 }} Tokens (In: {{ msg.prompt_tokens if msg.prompt_tokens else 0 }} | Out: {{ msg.completion_tokens if msg.completion_tokens else 0 }})</span>
-                {% endif %}
-                <span class="text-[10px] text-[#5B4BFF] font-extrabold">🤖 AI Bot Auto-Reply</span>
-            </div>
-            <div class="bg-gradient-to-r from-[#5B4BFF] to-[#7C3AED] text-white px-4.5 py-3 rounded-2xl rounded-tr-xs max-w-lg text-xs font-medium leading-relaxed shadow-md shadow-[#5B4BFF]/20">
-                {{ msg.content }}
-            </div>
-            <span class="text-[10px] text-slate-400 mr-1">{{ msg.created_at.strftime('%H:%M') if msg.created_at else '' }}</span>
-        </div>
-
-        {% endif %}
-        {% else %}
-        <p class="text-center text-slate-400 text-xs py-16 font-medium">No messages available in this thread.</p>
-        {% endfor %}
-    </div>
-
-    <!-- Bottom Pagination Controls -->
-    {% if total_pages > 1 %}
-    <div class="saas-card p-4 flex items-center justify-between text-xs font-semibold text-slate-600">
-        <div>
-            Showing <span class="font-extrabold text-slate-900">Page {{ page }}</span> of <span class="font-extrabold text-slate-900">{{ total_pages }}</span> (Total {{ total_messages }} messages)
-        </div>
-        <div class="flex items-center space-x-2">
-            {% if has_prev %}
-            <a href="/admin/conversations/{{ conversation.id }}?page={{ prev_page }}&per_page={{ per_page }}" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3.5 py-1.5 rounded-xl transition-all shadow-xs">← Previous Page</a>
             {% else %}
-            <span class="bg-slate-100 text-slate-300 px-3.5 py-1.5 rounded-xl cursor-not-allowed border border-slate-200/50">← Previous Page</span>
-            {% endif %}
+            <!-- Assistant / Human Operator Message -->
+            <div class="flex flex-col items-end space-y-1 my-1">
+                <div class="flex items-center space-x-1.5">
+                    {% if msg.is_cached %}
+                    <span class="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-bold border border-emerald-200/60 shadow-2xs">⚡ 0 API Token Used (Cached)</span>
+                    {% else %}
+                    <span class="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-semibold border border-blue-100">✨ {{ msg.total_tokens if msg.total_tokens else 0 }} Tokens</span>
+                    {% endif %}
+                    <span class="text-[10px] text-blue-600 font-extrabold">💬 Operator / Piku Bot Reply</span>
+                </div>
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4.5 py-3 rounded-2xl rounded-tr-xs max-w-lg text-xs font-medium leading-relaxed shadow-md shadow-blue-600/20">
+                    {{ msg.content }}
+                </div>
+                <span class="text-[10px] text-slate-400 mr-1">{{ msg.created_at.strftime('%H:%M') if msg.created_at else '' }}</span>
+            </div>
 
-            {% if has_next %}
-            <a href="/admin/conversations/{{ conversation.id }}?page={{ next_page }}&per_page={{ per_page }}" class="bg-gradient-to-r from-[#5B4BFF] to-[#7C3AED] hover:from-[#4C3CE6] text-white px-3.5 py-1.5 rounded-xl transition-all shadow-xs">Next Page →</a>
-            {% else %}
-            <span class="bg-slate-100 text-slate-300 px-3.5 py-1.5 rounded-xl cursor-not-allowed border border-slate-200/50">Next Page →</span>
             {% endif %}
+            {% else %}
+            <p class="text-center text-slate-400 text-xs py-16 font-medium">No messages available in this thread.</p>
+            {% endfor %}
         </div>
+
+        <!-- Live Direct Response Input Bar (Send to Real User) -->
+        <div class="pt-4 border-t border-slate-100 mt-4">
+            <form action="/admin/conversations/{{ conversation.id }}/send" method="POST" class="flex items-center space-x-2">
+                <input type="text" name="message_text" required placeholder="Type live response to send directly to {{ conversation.sender_name or 'User' }}..." class="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/15 transition-all">
+                <button type="submit" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 text-white px-5 py-3 rounded-2xl text-xs font-bold transition-all shadow-md shadow-blue-600/25 flex items-center space-x-1.5 cursor-pointer border-0 shrink-0">
+                    <span>Send Message</span>
+                    <span>➔</span>
+                </button>
+            </form>
+        </div>
+
     </div>
-    {% endif %}
+
+    <!-- Script to Auto-scroll Chat Area to Bottom -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var container = document.getElementById("chatScrollContainer");
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        });
+    </script>
 
 </div>
 {% endblock %}

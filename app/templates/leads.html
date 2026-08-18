@@ -1,26 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}Hot Leads - MarketFlow AI{% endblock %}
+{% block title %}Hot Leads - Piku AI{% endblock %}
 {% block header_title %}🔥 Auto-Captured Hot Leads{% endblock %}
 
 {% block content %}
-<div x-data="{ filterIntent: 'all', searchQ: '' }" class="space-y-6">
+<div x-data="{ filterIntent: 'all', searchQ: '', currentPage: 1, pageSize: 10 }" class="space-y-6">
 
     <!-- Top Summary Banner -->
-    <div class="bg-gradient-to-r from-[#0B1020] via-[#1E1B4B] to-[#5B4BFF] rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-indigo-500/20 relative overflow-hidden">
-        <div class="absolute -top-10 -right-10 w-48 h-48 bg-[#5B4BFF]/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-blue-500/20 relative overflow-hidden">
+        <div class="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="space-y-1 relative z-10">
             <h1 class="text-xl font-extrabold tracking-tight flex items-center gap-2">
                 <span>🔥</span> Auto-Captured Chat Leads
             </h1>
-            <p class="text-indigo-200 text-xs font-medium max-w-xl">
+            <p class="text-blue-100 text-xs font-medium max-w-xl">
                 AI automatically detects customer intent (Price Inquiry, High Interest, Booking) and extracts Phone Numbers & Email addresses directly from chat messages.
             </p>
         </div>
         <div class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/15 relative z-10">
             <div class="text-center px-3 border-r border-white/15">
                 <div class="text-xl font-extrabold text-white">{{ leads | length }}</div>
-                <div class="text-[9px] uppercase font-bold text-indigo-200">Total Leads</div>
+                <div class="text-[9px] uppercase font-bold text-blue-100">Total Leads</div>
             </div>
             <div class="text-center px-3">
                 <div class="text-xl font-extrabold text-amber-300">
@@ -33,20 +33,20 @@
 
     <!-- Filter & Search Bar -->
     <div class="saas-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div class="flex items-center gap-2 overflow-x-auto">
-            <button @click="filterIntent = 'all'" :class="filterIntent === 'all' ? 'bg-[#5B4BFF] text-white shadow-xs font-bold' : 'bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200/70'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all cursor-pointer">All Leads</button>
-            <button @click="filterIntent = 'High Interest'" :class="filterIntent === 'High Interest' ? 'bg-rose-500 text-white shadow-xs font-bold' : 'bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200/70'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all cursor-pointer">🔥 High Interest</button>
-            <button @click="filterIntent = 'Price Inquiry'" :class="filterIntent === 'Price Inquiry' ? 'bg-amber-500 text-white shadow-xs font-bold' : 'bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200/70'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all cursor-pointer">💰 Price Inquiry</button>
-            <button @click="filterIntent = 'Booking Request'" :class="filterIntent === 'Booking Request' ? 'bg-indigo-600 text-white shadow-xs font-bold' : 'bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200/70'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all cursor-pointer">📅 Booking Request</button>
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar">
+            <button @click="filterIntent = 'all'; currentPage = 1" :class="filterIntent === 'all' ? 'bg-blue-600 text-white shadow-xs font-bold' : 'bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200/70'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all cursor-pointer shrink-0">All Leads</button>
+            <button @click="filterIntent = 'High Interest'; currentPage = 1" :class="filterIntent === 'High Interest' ? 'bg-rose-500 text-white shadow-xs font-bold' : 'bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200/70'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all cursor-pointer shrink-0">🔥 High Interest</button>
+            <button @click="filterIntent = 'Price Inquiry'; currentPage = 1" :class="filterIntent === 'Price Inquiry' ? 'bg-amber-500 text-white shadow-xs font-bold' : 'bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200/70'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all cursor-pointer shrink-0">💰 Price Inquiry</button>
+            <button @click="filterIntent = 'Booking Request'; currentPage = 1" :class="filterIntent === 'Booking Request' ? 'bg-indigo-600 text-white shadow-xs font-bold' : 'bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200/70'" class="px-3.5 py-1.5 rounded-xl text-xs transition-all cursor-pointer shrink-0">📅 Booking Request</button>
         </div>
 
-        <input type="text" x-model="searchQ" placeholder="Search by name, phone, email..." class="px-3.5 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-[#5B4BFF] focus:ring-2 focus:ring-[#5B4BFF]/20 transition-all">
+        <input type="text" x-model="searchQ" @input="currentPage = 1" placeholder="Search by name, phone, email..." class="px-3.5 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 transition-all">
     </div>
 
-    <!-- Leads Table -->
+    <!-- Leads Table (Fully Responsive) -->
     <div class="saas-card overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         <th class="py-3.5 px-6">Customer / Sender</th>
@@ -64,7 +64,7 @@
                         
                         <td class="py-4 px-6 font-bold text-slate-800">
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#5B4BFF] to-[#7C3AED] text-white font-extrabold flex items-center justify-center text-sm shadow-md shadow-[#5B4BFF]/20">
+                                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-extrabold flex items-center justify-center text-sm shadow-md shadow-blue-600/20">
                                     {{ (lead.customer_name or 'C')[0] | upper }}
                                 </div>
                                 <div>
@@ -84,7 +84,7 @@
                         <td class="py-4 px-6 space-y-1">
                             {% if lead.phone %}
                             <div class="flex items-center gap-1.5 font-extrabold text-slate-800">
-                                <span>📞</span> <a href="tel:{{ lead.phone }}" class="text-[#5B4BFF] hover:underline">{{ lead.phone }}</a>
+                                <span>📞</span> <a href="tel:{{ lead.phone }}" class="text-blue-600 hover:underline">{{ lead.phone }}</a>
                             </div>
                             {% endif %}
                             {% if lead.email %}
@@ -136,6 +136,18 @@
                     {% endif %}
                 </tbody>
             </table>
+        </div>
+
+        <!-- Table Pagination Controls -->
+        <div class="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-semibold text-slate-600 bg-slate-50/50">
+            <div>
+                Total <span class="font-extrabold text-slate-900">{{ leads | length }}</span> lead entries recorded
+            </div>
+            <div class="flex items-center space-x-2">
+                <button @click="if(currentPage > 1) currentPage--" :disabled="currentPage === 1" :class="currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-100'" class="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white font-bold transition-all shadow-2xs">← Previous</button>
+                <span class="px-3 py-1.5 font-bold text-slate-800 bg-slate-100 rounded-lg">Page <span x-text="currentPage"></span></span>
+                <button @click="currentPage++" class="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white font-bold transition-all shadow-2xs cursor-pointer hover:bg-slate-100">Next →</button>
+            </div>
         </div>
     </div>
 

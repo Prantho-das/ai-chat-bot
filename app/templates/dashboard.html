@@ -130,8 +130,8 @@
                 View All <span>→</span>
             </a>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-600">
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-sm text-slate-600 min-w-[600px]">
                 <thead class="bg-slate-50/80 text-[11px] uppercase font-bold text-slate-400 border-b border-slate-100 tracking-wider">
                     <tr>
                         <th class="px-6 py-3.5">Platform</th>
@@ -160,7 +160,7 @@
                             <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200/60">{{ conv.status }}</span>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <a href="/admin/conversations/{{ conv.id }}" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-[#5B4BFF] border border-indigo-100 px-3.5 py-1.5 rounded-xl font-bold transition-all inline-block shadow-xs">View Chat</a>
+                            <a href="/admin/conversations/{{ conv.id }}" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 px-3.5 py-1.5 rounded-xl font-bold transition-all inline-block shadow-xs">View Chat</a>
                         </td>
                     </tr>
                     {% else %}

@@ -565,6 +565,48 @@ async def toggle_conversation_status(
 
     return RedirectResponse(url=f"/admin/conversations/{conv_id}", status_code=status.HTTP_302_FOUND)
 
+@router.post("/conversations/{conv_id}/send")
+async def send_human_message(
+    conv_id: int,
+    request: Request,
+    message_text: str = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    stmt = select(Conversation).where(Conversation.id == conv_id)
+    res = await db.execute(stmt)
+    conv = res.scalar_one_or_none()
+    
+    if conv and message_text.strip():
+        # Save message to DB
+        msg = Message(
+            conversation_id=conv.id,
+            role="assistant",
+            content=message_text.strip(),
+            created_at=datetime.utcnow()
+        )
+        db.add(msg)
+        conv.updated_at = datetime.utcnow()
+        await db.commit()
+
+        # Send live message to real user via Platform API
+        try:
+            if conv.platform == "messenger":
+                from app.services.messenger_service import messenger_service
+                await messenger_service.send_text_message(conv.sender_id, message_text.strip())
+            elif conv.platform == "whatsapp":
+                from app.services.whatsapp_service import whatsapp_service
+                await whatsapp_service.send_text_message(conv.sender_id, message_text.strip())
+            elif conv.platform == "instagram":
+                from app.services.instagram_service import instagram_service
+                await instagram_service.send_dm(conv.sender_id, message_text.strip())
+        except Exception as e:
+            logger.error(f"Failed to send live message to real user: {e}")
+
+    return RedirectResponse(url=f"/admin/conversations/{conv_id}", status_code=status.HTTP_302_FOUND)
+
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
     if not is_authenticated(request):
