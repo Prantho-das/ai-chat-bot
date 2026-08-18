@@ -1481,8 +1481,9 @@ async def create_company_user(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
+    role: str = Form("company_user"),
     full_name: str = Form(""),
-    company_id: int = Form(...),
+    company_id: int = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
     user_ctx = get_current_user_context(request)
@@ -1490,21 +1491,23 @@ async def create_company_user(
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
     try:
+        assigned_comp_id = None if role == "super_admin" else company_id
         new_user = AdminUser(
             username=username.strip().lower(),
             password_hash=password.strip(),
             full_name=full_name.strip(),
-            role="company_user",
-            company_id=company_id,
+            role=role,
+            company_id=assigned_comp_id,
             is_active=True
         )
         db.add(new_user)
         await db.commit()
-        await log_service.log("SUCCESS", "Company User Created", f"Created user '{username}' for Company #{company_id}")
+        await log_service.log("SUCCESS", "User Created", f"Created {role} user '{username}' (Company ID: {assigned_comp_id})")
     except Exception as e:
         await log_service.log("ERROR", "User Create Error", str(e))
 
     return RedirectResponse(url="/admin/companies?msg=user_created", status_code=status.HTTP_303_SEE_OTHER)
+
 
 
 @router.post("/company-users/delete/{user_id}")
