@@ -1,166 +1,86 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-[#0B1020] text-slate-900">
+<html lang="en" class="h-full bg-[#F5F7FB] text-slate-900">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In — MarketFlow AI Platform</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Sign In - MarketFlow AI Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            500: '#5B4BFF',
-                            600: '#4C3CFF',
-                            purple: '#7C3AED',
-                            accent: '#8B5CF6'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'Noto Sans Bengali', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <link rel="stylesheet" href="/static/custom.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style> 
+        body { font-family: 'Inter', 'Noto Sans Bengali', sans-serif; }
+    </style>
 </head>
-<body class="h-full bg-[#0B1020] flex items-center justify-center p-4 sm:p-6 lg:p-8 antialiased font-sans">
-    
-    <div class="w-full max-w-5xl bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[600px]">
+<body class="h-full bg-gradient-to-br from-[#F5F7FB] via-indigo-50/40 to-slate-100 flex items-center justify-center p-4 antialiased relative overflow-hidden">
+    <!-- Ambient Background Light Blur -->
+    <div class="absolute -top-24 -left-24 w-96 h-96 bg-[#5B4BFF]/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-[#7C3AED]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="w-full max-w-md relative z-10">
         
-        <!-- Left Panel: Brand & Feature Highlights (Desktop) -->
-        <div class="hidden lg:flex lg:col-span-7 bg-gradient-to-br from-[#0B1020] via-slate-950 to-brand-purple/20 p-10 flex-col justify-between relative overflow-hidden border-r border-slate-800/80">
-            <!-- Decorative Glow Background -->
-            <div class="absolute -top-24 -left-24 w-96 h-96 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-brand-purple/20 rounded-full blur-3xl pointer-events-none"></div>
-
-            <!-- Top Logo -->
-            <div class="relative z-10 flex items-center space-x-3">
-                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-500 to-brand-purple flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
-                    <i data-lucide="zap" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h1 class="text-lg font-extrabold text-white tracking-tight flex items-center gap-2">
-                        MarketFlow <span class="text-xs bg-brand-500/20 text-brand-accent px-2 py-0.5 rounded border border-brand-500/30">AI</span>
-                    </h1>
-                    <p class="text-xs font-medium text-slate-400">Omnichannel Customer Automation Platform</p>
-                </div>
+        <!-- Logo & Header -->
+        <div class="text-center space-y-3 mb-8">
+            <div class="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#5B4BFF] to-[#7C3AED] items-center justify-center text-white text-2xl font-bold shadow-xl shadow-[#5B4BFF]/30 ring-8 ring-indigo-50/80">
+                ⚡
             </div>
-
-            <!-- Middle Value Pitch Card -->
-            <div class="relative z-10 space-y-6 my-auto">
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/30 text-brand-accent text-xs font-semibold">
-                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> AI-Powered Automation Engine 3.6
-                </div>
-                
-                <h2 class="text-3xl font-extrabold text-white leading-tight">
-                    Automate Conversations, Capture Hot Leads & Scale Sales 24/7.
-                </h2>
-                
-                <!-- Simulated Stat Cards -->
-                <div class="grid grid-cols-3 gap-4 pt-4">
-                    <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
-                        <div class="text-xl font-extrabold text-white">99.2%</div>
-                        <div class="text-[11px] font-medium text-slate-400 mt-1">Resolution Rate</div>
-                    </div>
-                    <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
-                        <div class="text-xl font-extrabold text-emerald-400">420ms</div>
-                        <div class="text-[11px] font-medium text-slate-400 mt-1">Avg Latency</div>
-                    </div>
-                    <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
-                        <div class="text-xl font-extrabold text-brand-accent">24/7</div>
-                        <div class="text-[11px] font-medium text-slate-400 mt-1">Lead Capture</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Footer Badge -->
-            <div class="relative z-10 text-xs text-slate-500 flex items-center gap-4">
-                <span>✓ Messenger</span>
-                <span>✓ WhatsApp</span>
-                <span>✓ Facebook</span>
-                <span>✓ Google Calendar</span>
-            </div>
-        </div>
-
-        <!-- Right Panel: Enterprise Login Form -->
-        <div class="lg:col-span-5 bg-white p-8 sm:p-12 flex flex-col justify-between">
             <div>
-                <!-- Mobile Brand Header -->
-                <div class="lg:hidden flex items-center space-x-3 mb-8">
-                    <div class="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold shadow-md">
-                        <i data-lucide="zap" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-base font-extrabold text-slate-900">MarketFlow AI</h1>
-                        <p class="text-xs text-slate-500">Enterprise Admin Portal</p>
-                    </div>
-                </div>
-
-                <div class="mb-8">
-                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Welcome Back 👋</h2>
-                    <p class="text-xs text-slate-500 mt-1">অ্যাডমিন ড্যাশবোর্ডে প্রবেশ করতে আপনার ক্রেডেনশিয়াল দিন</p>
-                </div>
-
-                {% if error %}
-                <div class="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs font-semibold flex items-center gap-2">
-                    <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 shrink-0"></i>
-                    <span>{{ error }}</span>
-                </div>
-                {% endif %}
-
-                <form action="/admin/login" method="POST" class="space-y-5">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Username</label>
-                        <div class="relative">
-                            <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
-                            <input type="text" name="username" required placeholder="admin" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all">
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
-                        </div>
-                        <div class="relative">
-                            <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
-                            <input type="password" name="password" required placeholder="••••••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all">
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between pt-1">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500">
-                            <span class="text-xs font-medium text-slate-600">Remember me</span>
-                        </label>
-                    </div>
-
-                    <button type="submit" class="w-full btn-primary py-3.5 text-xs font-bold w-full rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-brand-500/25">
-                        <span>Sign In to Dashboard</span>
-                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                    </button>
-                </form>
-            </div>
-
-            <div class="pt-8 border-t border-slate-100 text-center">
-                <p class="text-xs text-slate-400 font-medium">
-                    Protected Enterprise Portal • MarketFlow AI 2026
-                </p>
+                <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center justify-center gap-2">
+                    MarketFlow <span class="text-xs bg-[#5B4BFF]/10 text-[#5B4BFF] font-extrabold px-2 py-0.5 rounded-md border border-[#5B4BFF]/20">AI PRO</span>
+                </h1>
+                <p class="text-xs font-semibold text-slate-400 mt-1">Enterprise Automation Portal</p>
             </div>
         </div>
+
+        <!-- Main Login Card -->
+        <div class="bg-white/95 border border-slate-200/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl shadow-slate-300/50 space-y-6">
+            
+            <div class="border-b border-slate-100 pb-4 text-center">
+                <h2 class="text-base font-extrabold text-slate-900 tracking-tight">Welcome Back</h2>
+                <p class="text-xs text-slate-400 font-medium mt-1">অ্যাডমিন ড্যাশবোর্ডে প্রবেশ করতে লগইন করুন</p>
+            </div>
+
+            {% if error %}
+            <div class="p-3.5 bg-rose-50 border border-rose-200/80 rounded-2xl text-rose-700 text-xs font-semibold flex items-center justify-center space-x-2">
+                <span>⚠️</span>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <form action="/admin/login" method="POST" class="space-y-5">
+                <div>
+                    <label class="block text-[11px] font-extrabold text-slate-600 mb-1.5 uppercase tracking-wider">Username</label>
+                    <div class="relative">
+                        <input type="text" name="username" required placeholder="Enter username" class="w-full bg-slate-50/70 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5B4BFF] focus:ring-4 focus:ring-[#5B4BFF]/15 transition-all">
+                        <span class="absolute left-3.5 top-3 text-slate-400 text-sm">👤</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Password</label>
+                    </div>
+                    <div class="relative">
+                        <input type="password" name="password" required placeholder="Enter password" class="w-full bg-slate-50/70 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5B4BFF] focus:ring-4 focus:ring-[#5B4BFF]/15 transition-all">
+                        <span class="absolute left-3.5 top-3 text-slate-400 text-sm">🔒</span>
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-gradient-to-r from-[#5B4BFF] to-[#7C3AED] hover:from-[#4C3CE6] hover:to-[#6D28D9] text-white font-extrabold py-3.5 rounded-xl text-xs transition-all shadow-lg shadow-[#5B4BFF]/25 flex items-center justify-center space-x-2 cursor-pointer border-0">
+                        <span>Sign In to Dashboard</span>
+                        <span>→</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-center text-xs text-slate-400 font-medium mt-6">
+            © 2026 MarketFlow AI Engine • Protected Enterprise Portal
+        </p>
 
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-        });
-    </script>
 </body>
 </html>
+

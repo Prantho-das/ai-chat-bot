@@ -1,238 +1,180 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — MarketFlow AI Command Center{% endblock %}
-{% block header_title %}Overview & AI Engine Status{% endblock %}
+{% block title %}Dashboard - MarketFlow AI{% endblock %}
+{% block header_title %}Overview & Analytics{% endblock %}
 
 {% block content %}
 <div class="space-y-8">
-    
-    <!-- Top Welcome Greeting Banner -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/60">
-        <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                Good evening, Admin <span class="inline-block animate-bounce">👋</span>
-            </h1>
-            <p class="text-xs sm:text-sm font-medium text-slate-500 mt-1">
-                Here's what's happening across your omnichannel AI automation engine today.
-            </p>
-        </div>
-        <div class="flex items-center gap-3 shrink-0">
-            <a href="/admin/conversations" class="btn-primary text-xs">
-                <i data-lucide="message-square" class="w-4 h-4"></i> Live Conversations
-            </a>
-            <a href="/admin/leads" class="btn-secondary text-xs">
-                <i data-lucide="user-check" class="w-4 h-4"></i> CRM Leads
-            </a>
-        </div>
-    </div>
-
-    <!-- 6 Primary KPI Cards Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5">
+    <!-- Stat Cards (KPI Section) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
         
-        <!-- KPI 1: Active Engine -->
-        <div class="surface-card p-5 hover:border-brand-500/40">
-            <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">AI Engine</span>
-                <div class="w-8 h-8 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center">
-                    <i data-lucide="cpu" class="w-4 h-4"></i>
-                </div>
+        <!-- Card 1: Active Engine -->
+        <div class="saas-card saas-card-hover p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Active Engine</span>
+                <div class="w-8 h-8 rounded-xl bg-purple-50 text-[#5B4BFF] flex items-center justify-center text-sm font-bold shadow-xs">⚡</div>
             </div>
-            <div class="text-lg font-extrabold text-slate-900 tracking-tight truncate">{{ stats.active_provider }}</div>
-            <div class="flex items-center gap-1.5 mt-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span class="text-[11px] font-semibold text-slate-500 truncate">{{ stats.active_model }}</span>
-            </div>
-        </div>
-
-        <!-- KPI 2: Total Conversations -->
-        <div class="surface-card p-5 hover:border-brand-500/40">
-            <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Total Users</span>
-                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                    <i data-lucide="users" class="w-4 h-4"></i>
-                </div>
-            </div>
-            <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.total_conversations }}</div>
-            <div class="flex items-center text-[11px] text-emerald-600 font-semibold mt-2">
-                <i data-lucide="trending-up" class="w-3.5 h-3.5 mr-1"></i> All-time total
-            </div>
-        </div>
-
-        <!-- KPI 3: Messages -->
-        <div class="surface-card p-5 hover:border-brand-500/40">
-            <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Total Messages</span>
-                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <i data-lucide="message-circle" class="w-4 h-4"></i>
-                </div>
-            </div>
-            <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.total_messages }}</div>
-            <div class="text-[11px] font-medium text-slate-400 mt-2">Sent & received</div>
-        </div>
-
-        <!-- KPI 4: Current Key Tokens -->
-        <div class="surface-card p-5 hover:border-brand-500/40">
-            <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Key Tokens</span>
-                <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                </div>
-            </div>
-            <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.curr_tokens_used }}</div>
-            <div class="text-[11px] font-medium text-slate-400 mt-2 truncate">
-                Total: <span class="font-bold text-slate-700">{{ stats.total_tokens_used }}</span>
-            </div>
-        </div>
-
-        <!-- KPI 5: Current Key Cost -->
-        <div class="surface-card p-5 hover:border-brand-500/40">
-            <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Current Cost</span>
-                <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <i data-lucide="wallet" class="w-4 h-4"></i>
-                </div>
-            </div>
-            <div class="text-2xl sm:text-3xl font-extrabold text-emerald-600 tracking-tight">৳{{ stats.curr_cost_bdt }}</div>
-            <div class="text-[11px] font-medium text-slate-400 mt-2 truncate">
-                All-time: ৳{{ stats.alltime_cost_bdt }} (${{ stats.alltime_cost_usd }})
-            </div>
-        </div>
-
-        <!-- KPI 6: Saved Calls -->
-        <div class="surface-card p-5 hover:border-brand-500/40">
-            <div class="flex items-center justify-between text-slate-400 mb-3">
-                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Cache Saved</span>
-                <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-                    <i data-lucide="zap" class="w-4 h-4"></i>
-                </div>
-            </div>
-            <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{{ stats.cached_messages }}</div>
-            <div class="text-[11px] font-semibold text-emerald-600 mt-2 flex items-center gap-1">
-                <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> {{ stats.savings_pct }}% Saved
-            </div>
-        </div>
-    </div>
-
-    <!-- Enterprise AI Engine Monitor & Capacity Banner -->
-    <div class="dark-glass-panel bg-[#0B1020] text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800 relative overflow-hidden">
-        <!-- Background Ambient Glow -->
-        <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-            <div class="space-y-2">
-                <div class="flex items-center space-x-2">
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Live Engine Monitor
-                    </span>
-                    <span class="text-xs text-slate-400">({{ stats.provider_info.tier }})</span>
-                </div>
-                <h3 class="text-xl sm:text-2xl font-extrabold text-white flex items-center gap-2">
-                    {{ stats.provider_info.name }} <span class="text-slate-500 text-lg">•</span> <span class="font-mono text-brand-accent">{{ stats.active_model }}</span>
-                </h3>
-                <p class="text-xs text-slate-400">Real-time token capacity, rate limits & context window parameters</p>
-            </div>
-
-            <!-- Metric Parameters -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900/90 border border-slate-800 rounded-2xl p-4">
-                <div class="border-r border-slate-800/80 pr-2">
-                    <div class="text-[10px] uppercase font-extrabold text-slate-400">Daily Quota (RPD)</div>
-                    <div class="text-sm font-extrabold text-emerald-400 mt-1 font-mono">{{ stats.provider_info.rpd }}</div>
-                </div>
-                <div class="border-r border-slate-800/80 pr-2 pl-1">
-                    <div class="text-[10px] uppercase font-extrabold text-slate-400">RPM Rate Limit</div>
-                    <div class="text-sm font-extrabold text-brand-accent mt-1 font-mono">{{ stats.provider_info.rpm }}</div>
-                </div>
-                <div class="border-r border-slate-800/80 pr-2 pl-1">
-                    <div class="text-[10px] uppercase font-extrabold text-slate-400">TPM Limit</div>
-                    <div class="text-sm font-extrabold text-amber-400 mt-1 font-mono">{{ stats.provider_info.tpm }}</div>
-                </div>
-                <div class="pl-1">
-                    <div class="text-[10px] uppercase font-extrabold text-slate-400">Context Window</div>
-                    <div class="text-sm font-extrabold text-purple-400 mt-1 font-mono">{{ stats.provider_info.context_window }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Conversations Data Table -->
-    <div class="surface-card overflow-hidden">
-        <div class="p-6 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/50">
             <div>
-                <h3 class="font-extrabold text-base text-slate-900">Recent Customer Conversations</h3>
-                <p class="text-xs text-slate-500 mt-0.5">Real-time incoming messages across connected channels</p>
+                <div class="text-lg font-extrabold text-slate-900 tracking-tight truncate">{{ stats.active_provider }}</div>
+                <p class="text-[11px] font-medium text-indigo-600 mt-1 truncate">{{ stats.active_model }}</p>
             </div>
-            <a href="/admin/conversations" class="btn-secondary text-xs font-semibold">
-                <span>View All Conversations</span>
-                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        </div>
+
+        <!-- Card 2: Total Users -->
+        <div class="saas-card saas-card-hover p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Total Users</span>
+                <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm font-bold shadow-xs">💬</div>
+            </div>
+            <div>
+                <div class="text-2xl font-extrabold text-slate-900 tracking-tight">{{ stats.total_conversations }}</div>
+                <p class="text-[11px] font-medium text-slate-400 mt-1">All time conversations</p>
+            </div>
+        </div>
+
+        <!-- Card 3: Total Messages -->
+        <div class="saas-card saas-card-hover p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Messages</span>
+                <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold shadow-xs">✉️</div>
+            </div>
+            <div>
+                <div class="text-2xl font-extrabold text-slate-900 tracking-tight">{{ stats.total_messages }}</div>
+                <p class="text-[11px] font-medium text-slate-400 mt-1">Total sent & received</p>
+            </div>
+        </div>
+
+        <!-- Card 4: Tokens Used -->
+        <div class="saas-card saas-card-hover p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Key Tokens</span>
+                <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-sm font-bold shadow-xs">📊</div>
+            </div>
+            <div>
+                <div class="text-2xl font-extrabold text-slate-900 tracking-tight">{{ stats.curr_tokens_used }}</div>
+                <p class="text-[11px] font-medium text-slate-400 mt-1">
+                    All-time: <span class="font-semibold text-slate-700">{{ stats.total_tokens_used }}</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Card 5: Cost BDT -->
+        <div class="saas-card saas-card-hover p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Key Cost</span>
+                <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold shadow-xs">💰</div>
+            </div>
+            <div>
+                <div class="text-2xl font-extrabold text-emerald-600 tracking-tight">৳{{ stats.curr_cost_bdt }}</div>
+                <p class="text-[11px] font-medium text-slate-400 mt-1 truncate">All-time: ৳{{ stats.alltime_cost_bdt }} (${{ stats.alltime_cost_usd }})</p>
+            </div>
+        </div>
+
+        <!-- Card 6: Cached / Saved -->
+        <div class="saas-card saas-card-hover p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Saved Calls</span>
+                <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold shadow-xs">⚡</div>
+            </div>
+            <div>
+                <div class="text-2xl font-extrabold text-slate-900 tracking-tight">{{ stats.cached_messages }}</div>
+                <p class="text-[11px] font-semibold text-emerald-600 mt-1">🔥 {{ stats.savings_pct }}% Calls Saved</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI ENGINE / SYSTEM STATUS PANEL -->
+    <div class="bg-gradient-to-r from-[#0B1020] via-[#0F172A] to-[#1E1B4B] text-white rounded-2xl p-6 shadow-xl border border-indigo-500/20 relative overflow-hidden">
+        <!-- Glow accents -->
+        <div class="absolute -top-10 -right-10 w-48 h-48 bg-[#5B4BFF]/20 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div class="space-y-2">
+                <div class="flex items-center space-x-3">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#5B4BFF]/20 text-indigo-300 border border-[#5B4BFF]/40 tracking-wide uppercase">
+                        AI SYSTEM STATUS
+                    </span>
+                    <span class="text-xs text-slate-400 font-medium">({{ stats.provider_info.tier }})</span>
+                </div>
+                <h3 class="text-xl font-extrabold text-white flex items-center gap-2 tracking-tight">
+                    {{ stats.provider_info.name }} <span class="text-slate-500">•</span> <span class="font-mono text-indigo-300 font-semibold text-lg">{{ stats.active_model }}</span>
+                </h3>
+                <p class="text-xs text-slate-300">বর্তমান এআই প্রোভাইডারের ক্যাপাসিটি, আরপিডি ও টোকেন লিমিট প্যারামিটার</p>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-xs">
+                <div class="px-2">
+                    <div class="text-[9px] uppercase font-extrabold tracking-wider text-slate-400">Daily Quota (RPD)</div>
+                    <div class="text-sm font-extrabold text-emerald-400 mt-1">{{ stats.provider_info.rpd }}</div>
+                </div>
+                <div class="px-2 border-l border-white/10">
+                    <div class="text-[9px] uppercase font-extrabold tracking-wider text-slate-400">RPM Limit</div>
+                    <div class="text-sm font-extrabold text-indigo-300 mt-1">{{ stats.provider_info.rpm }}</div>
+                </div>
+                <div class="px-2 border-l border-white/10">
+                    <div class="text-[9px] uppercase font-extrabold tracking-wider text-slate-400">TPM Limit</div>
+                    <div class="text-sm font-extrabold text-amber-300 mt-1">{{ stats.provider_info.tpm }}</div>
+                </div>
+                <div class="px-2 border-l border-white/10">
+                    <div class="text-[9px] uppercase font-extrabold tracking-wider text-slate-400">Context Window</div>
+                    <div class="text-sm font-extrabold text-purple-300 mt-1">{{ stats.provider_info.context_window }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Conversations Table -->
+    <div class="saas-card overflow-hidden">
+        <div class="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-white">
+            <div>
+                <h3 class="font-extrabold text-base text-slate-900 tracking-tight">Recent Conversations</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Real-time incoming customer conversations across platforms</p>
+            </div>
+            <a href="/admin/conversations" class="text-xs text-[#5B4BFF] hover:text-[#4C3CE6] font-bold inline-flex items-center gap-1 transition-colors">
+                View All <span>→</span>
             </a>
         </div>
-
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs sm:text-sm text-slate-600">
-                <thead class="bg-slate-50/80 text-[11px] uppercase font-bold text-slate-400 border-b border-slate-200/80">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50/80 text-[11px] uppercase font-bold text-slate-400 border-b border-slate-100 tracking-wider">
                     <tr>
-                        <th class="px-6 py-4">Channel</th>
-                        <th class="px-6 py-4">Customer Name</th>
-                        <th class="px-6 py-4">Customer ID</th>
-                        <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4 text-right">Action</th>
+                        <th class="px-6 py-3.5">Platform</th>
+                        <th class="px-6 py-3.5">Sender</th>
+                        <th class="px-6 py-3.5">Sender ID</th>
+                        <th class="px-6 py-3.5">Status</th>
+                        <th class="px-6 py-3.5 text-right">Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200/60">
+                <tbody class="divide-y divide-slate-100 bg-white">
                     {% for conv in recent_conversations %}
-                    <tr class="hover:bg-slate-50/80 transition-colors">
+                    <tr class="hover:bg-slate-50/60 transition-colors">
                         <td class="px-6 py-4">
                             {% if conv.platform == 'messenger' %}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                                <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> Messenger
-                            </span>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/50">Messenger</span>
                             {% elif conv.platform == 'whatsapp' %}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <i data-lucide="phone-call" class="w-3.5 h-3.5"></i> WhatsApp
-                            </span>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/50">WhatsApp</span>
                             {% else %}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-                                <i data-lucide="facebook" class="w-3.5 h-3.5"></i> FB Comment
-                            </span>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/50">FB Comment</span>
                             {% endif %}
                         </td>
 
-                        <td class="px-6 py-4 font-bold text-slate-900 flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-slate-200 font-bold text-slate-600 flex items-center justify-center text-xs">
-                                {{ (conv.sender_name or 'U')[0] }}
-                            </div>
-                            <span>{{ conv.sender_name or 'Unknown Customer' }}</span>
-                        </td>
-
+                        <td class="px-6 py-4 font-bold text-slate-900">{{ conv.sender_name or 'Unknown User' }}</td>
                         <td class="px-6 py-4 font-mono text-xs text-slate-400">{{ conv.sender_id }}</td>
-                        
                         <td class="px-6 py-4">
-                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                                {{ conv.status or 'Active' }}
-                            </span>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200/60">{{ conv.status }}</span>
                         </td>
-
                         <td class="px-6 py-4 text-right">
-                            <a href="/admin/conversations/{{ conv.id }}" class="btn-secondary py-1.5 px-3 text-xs">
-                                <span>Open Chat</span>
-                                <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-                            </a>
+                            <a href="/admin/conversations/{{ conv.id }}" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-[#5B4BFF] border border-indigo-100 px-3.5 py-1.5 rounded-xl font-bold transition-all inline-block shadow-xs">View Chat</a>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-slate-400">
-                            <div class="max-w-xs mx-auto space-y-2">
-                                <i data-lucide="inbox" class="w-8 h-8 text-slate-300 mx-auto"></i>
-                                <p class="text-xs font-semibold text-slate-600">No active conversations found</p>
-                                <p class="text-[11px] text-slate-400">Messages will automatically appear here as customers start chatting.</p>
-                            </div>
-                        </td>
+                        <td colspan="5" class="px-6 py-12 text-center text-slate-400 text-sm">No active conversations found yet. Messages will appear here automatically.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-
 </div>
 {% endblock %}
+

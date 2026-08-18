@@ -7,27 +7,27 @@
 <div x-data="leadOutreachApp()" class="space-y-8">
 
     <!-- Hero Header Banner -->
-    <div class="dark-glass-panel bg-[#0B1020] rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-slate-800 relative overflow-hidden">
-        <div class="absolute -top-24 -right-24 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 p-6 sm:p-8 text-white shadow-2xl">
+        <div class="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="space-y-2 max-w-2xl">
-                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/20 border border-brand-500/30 text-brand-accent text-xs font-semibold">
-                    <i data-lucide="target" class="w-3.5 h-3.5 text-brand-accent"></i> Prospect Finder & Automated Cold DM Engine
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span> Smart Lead Discovery Engine
                 </div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                    Find Target Leads & Automate Outreach
+                <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                    Find Target Businesses & Auto Cold DM
                 </h1>
-                <p class="text-slate-400 text-xs sm:text-sm leading-relaxed font-medium">
-                    Discover targeted prospects by niche or location, import CSV lead lists, and generate personalized AI sales pitches automatically.
+                <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    Enter your business offer or idea and target location, upload a CSV list of leads, or create templates to manage your campaigns in bulk.
                 </p>
             </div>
-            <div class="flex items-center gap-4 bg-slate-900/90 p-4 rounded-2xl border border-slate-800 shrink-0">
+            <div class="flex items-center gap-4 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
                 <div class="text-center px-3 border-r border-slate-800">
-                    <div class="text-xl font-extrabold text-brand-accent font-mono" x-text="leads.length"></div>
+                    <div class="text-xl font-extrabold text-indigo-400" x-text="leads.length"></div>
                     <div class="text-[10px] uppercase font-bold text-slate-400">Total Leads</div>
                 </div>
                 <div class="text-center px-3">
-                    <div class="text-xl font-extrabold text-emerald-400 font-mono" x-text="contactedCount"></div>
+                    <div class="text-xl font-extrabold text-emerald-400" x-text="contactedCount"></div>
                     <div class="text-[10px] uppercase font-bold text-slate-400">Contacted</div>
                 </div>
             </div>
@@ -35,27 +35,27 @@
     </div>
 
     <!-- Tab Selection Buttons -->
-    <div class="flex items-center space-x-2 border-b border-slate-200 pb-px">
-        <button @click="outreachSubTab = 'find'" :class="outreachSubTab === 'find' ? 'border-brand-500 text-brand-500 font-extrabold' : 'border-transparent text-slate-500 hover:text-slate-800 font-semibold'" class="px-5 py-3 border-b-2 text-xs transition-all flex items-center gap-2">
-            <i data-lucide="search" class="w-4 h-4"></i> Find Prospects
+    <div class="flex items-center space-x-2 border-b border-slate-200/80 pb-px">
+        <button @click="outreachSubTab = 'find'" :class="outreachSubTab === 'find' ? 'border-[#5B4BFF] text-[#5B4BFF] font-extrabold' : 'border-transparent text-slate-500 hover:text-slate-800 font-semibold'" class="px-5 py-3 border-b-2 text-xs transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>🔎</span> Find Prospects (Scraper)
         </button>
-        <button @click="outreachSubTab = 'csv'" :class="outreachSubTab === 'csv' ? 'border-brand-500 text-brand-500 font-extrabold' : 'border-transparent text-slate-500 hover:text-slate-800 font-semibold'" class="px-5 py-3 border-b-2 text-xs transition-all flex items-center gap-2">
-            <i data-lucide="upload-cloud" class="w-4 h-4"></i> Import Leads (CSV)
+        <button @click="outreachSubTab = 'csv'" :class="outreachSubTab === 'csv' ? 'border-[#5B4BFF] text-[#5B4BFF] font-extrabold' : 'border-transparent text-slate-500 hover:text-slate-800 font-semibold'" class="px-5 py-3 border-b-2 text-xs transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>📤</span> Import Leads (CSV)
         </button>
-        <button @click="outreachSubTab = 'templates'" :class="outreachSubTab === 'templates' ? 'border-brand-500 text-brand-500 font-extrabold' : 'border-transparent text-slate-500 hover:text-slate-800 font-semibold'" class="px-5 py-3 border-b-2 text-xs transition-all flex items-center gap-2">
-            <i data-lucide="file-text" class="w-4 h-4"></i> Pitch Templates
+        <button @click="outreachSubTab = 'templates'" :class="outreachSubTab === 'templates' ? 'border-[#5B4BFF] text-[#5B4BFF] font-extrabold' : 'border-transparent text-slate-500 hover:text-slate-800 font-semibold'" class="px-5 py-3 border-b-2 text-xs transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>📝</span> Template Maker
         </button>
     </div>
 
     <!-- Find Prospects Tab Content -->
-    <div x-show="outreachSubTab === 'find'" class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
+    <div x-show="outreachSubTab === 'find'" class="saas-card p-6 sm:p-8 space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
                 <span>🔎</span> Find Prospects & Generate Pitches
             </h3>
-            <div class="flex items-center bg-slate-100 p-1 rounded-xl">
-                <button @click="searchMode = 'simple'" :class="searchMode === 'simple' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all">Simple Niche</button>
-                <button @click="searchMode = 'custom'" :class="searchMode === 'custom' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all">Custom Query</button>
+            <div class="flex items-center bg-slate-100/80 p-1 rounded-xl">
+                <button @click="searchMode = 'simple'" :class="searchMode === 'simple' ? 'bg-white text-[#5B4BFF] shadow-xs' : 'text-slate-500 hover:text-slate-800'" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer">Simple Niche</button>
+                <button @click="searchMode = 'custom'" :class="searchMode === 'custom' ? 'bg-white text-[#5B4BFF] shadow-xs' : 'text-slate-500 hover:text-slate-800'" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer">Custom Query</button>
             </div>
         </div>
 

@@ -1,155 +1,151 @@
 {% extends "base.html" %}
-{% block title %}Setup Guide — MarketFlow AI{% endblock %}
+{% block title %}Setup Guide - MarketFlow Admin{% endblock %}
 {% block header_title %}Setup Guide & System Documentation{% endblock %}
 
 {% block content %}
 <div class="space-y-6 max-w-5xl">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Setup Guide & Integration Docs</h1>
-            <p class="text-xs text-slate-500 font-medium mt-0.5">Step-by-step instructions for connecting Gemini AI, Facebook Messenger, WhatsApp & Google Calendar</p>
+            <h3 class="text-xl font-bold text-slate-900">📖 Setup Guide & Integration Tutorials</h3>
+            <p class="text-xs text-slate-500 font-medium mt-1">MarketFlow AI চ্যাটবট, সোশ্যাল এপিআই এবং সার্ভিস ইন্টিগ্রেশন করার সহজ নির্দেশিকা</p>
         </div>
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Integration Docs
+        <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1.5 rounded-full border border-indigo-100 flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Step-by-Step Docs</span>
         </span>
     </div>
 
     <!-- Quick Status Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="surface-card p-4 flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center font-bold">
-                <i data-lucide="cpu" class="w-5 h-5"></i>
-            </div>
+        <div class="saas-card saas-card-hover p-4 flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-[#5B4BFF] flex items-center justify-center text-xl font-bold shrink-0">✨</div>
             <div>
-                <div class="text-xs font-extrabold text-slate-900">Gemini AI</div>
-                <div class="text-[11px] font-bold flex items-center gap-1 {% if has_gemini %}text-emerald-600{% else %}text-amber-600{% endif %}">
-                    {% if has_gemini %}<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Connected{% else %}<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Not Connected{% endif %}
+                <div class="text-xs font-bold text-slate-900">Gemini AI</div>
+                <div class="text-[11px] font-semibold {% if has_gemini %}text-emerald-600{% else %}text-amber-600{% endif %}">
+                    {% if has_gemini %}Connected ✅{% else %}Not Connected ⚠️{% endif %}
                 </div>
             </div>
         </div>
 
-        <div class="surface-card p-4 flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                <i data-lucide="message-circle" class="w-5 h-5"></i>
-            </div>
+        <div class="saas-card saas-card-hover p-4 flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-bold shrink-0">📘</div>
             <div>
-                <div class="text-xs font-extrabold text-slate-900">Messenger</div>
-                <div class="text-[11px] font-bold flex items-center gap-1 {% if has_fb %}text-emerald-600{% else %}text-amber-600{% endif %}">
-                    {% if has_fb %}<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Connected{% else %}<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Not Connected{% endif %}
+                <div class="text-xs font-bold text-slate-900">Facebook Messenger</div>
+                <div class="text-[11px] font-semibold {% if has_fb %}text-emerald-600{% else %}text-amber-600{% endif %}">
+                    {% if has_fb %}Connected ✅{% else %}Not Connected ⚠️{% endif %}
                 </div>
             </div>
         </div>
 
-        <div class="surface-card p-4 flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                <i data-lucide="phone-call" class="w-5 h-5"></i>
-            </div>
+        <div class="saas-card saas-card-hover p-4 flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold shrink-0">🟢</div>
             <div>
-                <div class="text-xs font-extrabold text-slate-900">WhatsApp</div>
-                <div class="text-[11px] font-bold flex items-center gap-1 {% if has_wa %}text-emerald-600{% else %}text-amber-600{% endif %}">
-                    {% if has_wa %}<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Connected{% else %}<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Not Connected{% endif %}
+                <div class="text-xs font-bold text-slate-900">WhatsApp Cloud</div>
+                <div class="text-[11px] font-semibold {% if has_wa %}text-emerald-600{% else %}text-amber-600{% endif %}">
+                    {% if has_wa %}Connected ✅{% else %}Not Connected ⚠️{% endif %}
                 </div>
             </div>
         </div>
 
-        <div class="surface-card p-4 flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
-                <i data-lucide="calendar" class="w-5 h-5"></i>
-            </div>
+        <div class="saas-card saas-card-hover p-4 flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl font-bold shrink-0">📅</div>
             <div>
-                <div class="text-xs font-extrabold text-slate-900">Google Calendar</div>
-                <div class="text-[11px] font-bold flex items-center gap-1 {% if has_calendar %}text-emerald-600{% else %}text-amber-600{% endif %}">
-                    {% if has_calendar %}<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Connected{% else %}<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Not Connected{% endif %}
+                <div class="text-xs font-bold text-slate-900">Google Calendar</div>
+                <div class="text-[11px] font-semibold {% if has_calendar %}text-emerald-600{% else %}text-amber-600{% endif %}">
+                    {% if has_calendar %}Connected ✅{% else %}Not Connected ⚠️{% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Guides Accordions -->
+    <!-- Guides Accordions / Cards -->
     <div class="space-y-5">
 
         <!-- Step 1: Gemini AI -->
-        <div class="surface-card p-6 space-y-3">
-            <div class="flex items-center space-x-3 border-b border-slate-200/80 pb-3">
-                <span class="w-8 h-8 rounded-xl bg-brand-500 text-white text-xs font-extrabold flex items-center justify-center shadow-md">1</span>
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-3">
+            <div class="flex items-center space-x-3 border-b border-slate-100 pb-3">
+                <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white text-sm font-bold flex items-center justify-center shadow-md shadow-indigo-600/20">1</span>
                 <div>
-                    <h3 class="text-sm font-extrabold text-slate-900">Google Gemini API Key Setup</h3>
-                    <p class="text-xs text-slate-500">Free API Key setup for Gemini 3.6 AI Bot Engine</p>
+                    <h4 class="text-sm font-bold text-slate-900">Google Gemini API Key নেওয়া (সম্পূর্ণ ফ্রি)</h4>
+                    <p class="text-xs text-slate-500">বটের স্বয়ংক্রিয় উত্তরের জন্য বিনামূল্যে Gemini API কী যুক্ত করুন</p>
                 </div>
             </div>
             <div class="text-xs text-slate-600 space-y-2 leading-relaxed pl-11">
-                <p>1. Navigate to <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-brand-500 font-bold underline inline-flex items-center gap-1">Google AI Studio <i data-lucide="external-link" class="w-3 h-3"></i></a>.</p>
-                <p>2. Sign in with your Google account.</p>
-                <p>3. Click <strong>"Create API key"</strong> and copy the generated API key string.</p>
-                <p>4. Go to <a href="/admin/settings" class="text-brand-500 font-bold underline">Bot Settings > Social APIs</a>, paste your key in the <code>Gemini API Key</code> field and save.</p>
+                <p>১. প্রথমে <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 underline font-bold">Google AI Studio (aistudio.google.com)</a> ওয়েবসাইটে যান।</p>
+                <p>২. আপনার যেকোনো জিমেইল একাউন্ট দিয়ে লগইন করুন।</p>
+                <p>৩. নীল রঙের <strong>"Create API key"</strong> বাটনে চাপ দিন এবং উৎপন্ন কী (Key) টি কপি করে নিন।</p>
+                <p>৪. <a href="/admin/settings" class="text-indigo-600 font-bold underline">Bot Settings > Step 2: Social APIs</a> পেজে গিয়ে <code>Gemini API Key</code> বক্সে পেস্ট করে সেভ করুন।</p>
             </div>
         </div>
 
         <!-- Step 2: Facebook Messenger -->
-        <div class="surface-card p-6 space-y-3" x-data="{ copiedMsg: false, domain: window.location.origin }">
-            <div class="flex items-center space-x-3 border-b border-slate-200/80 pb-3">
-                <span class="w-8 h-8 rounded-xl bg-blue-600 text-white text-xs font-extrabold flex items-center justify-center shadow-md">2</span>
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-3" x-data="{ copiedMsg: false, domain: window.location.origin }">
+            <div class="flex items-center space-x-3 border-b border-slate-100 pb-3">
+                <span class="w-8 h-8 rounded-xl bg-blue-600 text-white text-sm font-bold flex items-center justify-center shadow-md shadow-blue-600/20">2</span>
                 <div>
-                    <h3 class="text-sm font-extrabold text-slate-900">Facebook Messenger & Comment Setup</h3>
-                    <p class="text-xs text-slate-500">Configure Facebook Page Webhook Callback & Access Token</p>
+                    <h4 class="text-sm font-bold text-slate-900">Facebook Messenger & Post Comment ইন্টিগ্রেশন</h4>
+                    <p class="text-xs text-slate-500">ফেসবুক পেজ ইনবক্স ও পেজ কমেন্টে অটোমেটিক এআই রিপ্লাই সেটআপ</p>
                 </div>
             </div>
             <div class="text-xs text-slate-600 space-y-2 leading-relaxed pl-11">
-                <p>1. Open <a href="https://developers.facebook.com/" target="_blank" class="text-blue-600 font-bold underline inline-flex items-center gap-1">Meta for Developers <i data-lucide="external-link" class="w-3 h-3"></i></a> and create a <strong>Business App</strong>.</p>
-                <p>2. Add <strong>Messenger</strong> to products, connect your Facebook Page, and generate a <strong>Page Access Token</strong>.</p>
-                <p>3. In <strong>Webhooks</strong>, add a <strong>Page</strong> subscription with the Callback URL below:</p>
+                <p>১. <a href="https://developers.facebook.com/" target="_blank" class="text-blue-600 underline font-bold">Meta for Developers Console</a> এ যান এবং আপনার একাউন্ট দিয়ে একটি <strong>Business App</strong> তৈরি করুন।</p>
+                <p>২. প্রোডাক্ট লিস্ট থেকে <strong>Messenger</strong> যুক্ত করে আপনার ফেসবুক পেজ কানেক্ট করুন এবং <strong>Page Access Token</strong> জেনারেট করে সেভ করুন।</p>
+                <p>৩. <strong>Webhooks</strong> অপশনে গিয়ে <strong>Page</strong> সাবস্ক্রিপশন যুক্ত করুন এবং নিচের Callback URL ও Verify Token সেট করুন:</p>
                 
                 <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2 mt-2">
                     <div class="flex items-center justify-between">
-                        <span class="font-bold text-slate-800 text-xs">Facebook Webhook Callback URL:</span>
-                        <button type="button" @click="navigator.clipboard.writeText(domain + '/webhook/messenger'); copiedMsg = true; setTimeout(() => copiedMsg = false, 2000)" class="btn-primary py-1 px-3 text-xs">
+                        <span class="font-bold text-slate-800 text-[11px]">Facebook Webhook Callback URL:</span>
+                        <button type="button" @click="navigator.clipboard.writeText(domain + '/webhook/messenger'); copiedMsg = true; setTimeout(() => copiedMsg = false, 2000)" class="text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg font-semibold transition-all shadow-sm">
                             <span x-text="copiedMsg ? 'Copied! ✅' : 'Copy URL 📋'"></span>
                         </button>
                     </div>
-                    <code class="block font-mono text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 select-all" x-text="domain + '/webhook/messenger'"></code>
+                    <code class="block font-mono text-[11px] text-slate-700 bg-white p-2 rounded-lg border border-slate-200 select-all" x-text="domain + '/webhook/messenger'"></code>
                 </div>
             </div>
         </div>
 
         <!-- Step 3: Google Calendar -->
-        <div class="surface-card p-6 space-y-3">
-            <div class="flex items-center space-x-3 border-b border-slate-200/80 pb-3">
-                <span class="w-8 h-8 rounded-xl bg-purple-600 text-white text-xs font-extrabold flex items-center justify-center shadow-md">3</span>
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-3">
+            <div class="flex items-center space-x-3 border-b border-slate-100 pb-3">
+                <span class="w-8 h-8 rounded-xl bg-purple-600 text-white text-sm font-bold flex items-center justify-center shadow-md shadow-purple-600/20">3</span>
                 <div>
-                    <h3 class="text-sm font-extrabold text-slate-900">Google Calendar Integration Setup</h3>
-                    <p class="text-xs text-slate-500">Service Account Key integration for automated appointment scheduling</p>
+                    <h4 class="text-sm font-bold text-slate-900">Google Calendar Integration Setup</h4>
+                    <p class="text-xs text-slate-500">গ্রাহকদের কথা অনুযায়ী গুগল ক্যালেন্ডারে মিটিং শিডিউল করার উপায়</p>
                 </div>
             </div>
             <div class="text-xs text-slate-600 space-y-2 leading-relaxed pl-11">
-                <p>1. Open <a href="https://console.cloud.google.com/" target="_blank" class="text-purple-600 font-bold underline inline-flex items-center gap-1">Google Cloud Console <i data-lucide="external-link" class="w-3 h-3"></i></a> and create a project.</p>
-                <p>2. Enable the <strong>Google Calendar API</strong> from the API Library.</p>
-                <p>3. Create a <strong>Service Account</strong> under Credentials and generate a <strong>JSON Key</strong>.</p>
-                <p>4. Upload the JSON key file under <a href="/admin/settings" class="text-purple-600 font-bold underline">Bot Settings > Calendar</a>.</p>
+                <p>১. <a href="https://console.cloud.google.com/" target="_blank" class="text-purple-600 underline font-bold">Google Cloud Console</a>-এ যান এবং নতুন একটি প্রজেক্ট তৈরি করুন।</p>
+                <p>২. <strong>APIs & Services > Library</strong> থেকে <strong>Google Calendar API</strong> এনাবল (Enable) করুন।</p>
+                <p>৩. <strong>Credentials > Create Credentials > Service Account</strong> দিয়ে একটি সার্ভিস একাউন্ট তৈরি করুন।</p>
+                <p>৪. সার্ভিস একাউন্টের <strong>Keys > Add Key > Create New Key > JSON</strong> অপশন দিয়ে ডেসটপে ডাউনলোড করুন।</p>
+                <p>৫. <a href="/admin/settings" class="text-purple-600 font-bold underline">Bot Settings > Step 3: Calendar</a> ট্যাবে ১-ক্লিকে JSON ফাইলটি আপলোড করে কানেক্ট সম্পন্ন করুন।</p>
             </div>
         </div>
 
-        <!-- Step 4: Facebook Catalog Feed -->
-        <div class="surface-card p-6 space-y-3" x-data="{ copiedFeed: false, domain: window.location.origin }">
-            <div class="flex items-center space-x-3 border-b border-slate-200/80 pb-3">
-                <span class="w-8 h-8 rounded-xl bg-blue-600 text-white text-xs font-extrabold flex items-center justify-center shadow-md">4</span>
+        <!-- Step 5: Facebook Catalog Feed -->
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-3" x-data="{ copiedFeed: false, domain: window.location.origin }">
+            <div class="flex items-center space-x-3 border-b border-slate-100 pb-3">
+                <span class="w-8 h-8 rounded-xl bg-blue-600 text-white text-sm font-bold flex items-center justify-center shadow-md shadow-blue-600/20">5</span>
                 <div>
-                    <h3 class="text-sm font-extrabold text-slate-900">Facebook Commerce Catalog Sync</h3>
-                    <p class="text-xs text-slate-500">Sync Knowledge Base product catalog to Meta Commerce Manager</p>
+                    <h4 class="text-sm font-bold text-slate-900">Facebook Commerce Catalog Sync</h4>
+                    <p class="text-xs text-slate-500">আপনার নলেজ বেসের প্রোডাক্টগুলো ফেসবুক কমার্স ক্যাটালগে অটো-সিঙ্ক করার উপায়</p>
                 </div>
             </div>
             <div class="text-xs text-slate-600 space-y-2 leading-relaxed pl-11">
-                <p>1. Open <a href="https://business.facebook.com/commerce" target="_blank" class="text-blue-600 font-bold underline inline-flex items-center gap-1">Meta Commerce Manager <i data-lucide="external-link" class="w-3 h-3"></i></a>.</p>
-                <p>2. Under <strong>Data sources > Add items > Data feed</strong>, choose <strong>Scheduled Feed</strong> and set the URL below:</p>
+                <p>১. <a href="https://business.facebook.com/commerce" target="_blank" class="text-blue-600 underline font-bold">Meta Commerce Manager</a>-এ যান এবং আপনার বিজনেসের জন্য একটি <strong>Catalog</strong> তৈরি করুন।</p>
+                <p>২. <strong>Data sources > Add items > Data feed</strong> সিলেক্ট করুন।</p>
+                <p>৩. <strong>Scheduled Feed</strong> বেছে নিন এবং নিচের Feed URL টি পেস্ট করুন (যেমন: প্রতিদিন স্বয়ংক্রিয়ভাবে সিঙ্ক হবে):</p>
                 
                 <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2 mt-2">
                     <div class="flex items-center justify-between">
-                        <span class="font-bold text-slate-800 text-xs">Meta Data Feed URL:</span>
-                        <button type="button" @click="navigator.clipboard.writeText(domain + '/catalog/feed.xml'); copiedFeed = true; setTimeout(() => copiedFeed = false, 2000)" class="btn-primary py-1 px-3 text-xs">
+                        <span class="font-bold text-slate-800 text-[11px]">Meta Data Feed URL:</span>
+                        <button type="button" @click="navigator.clipboard.writeText(domain + '/catalog/feed.xml'); copiedFeed = true; setTimeout(() => copiedFeed = false, 2000)" class="text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg font-semibold transition-all shadow-sm">
                             <span x-text="copiedFeed ? 'Copied! ✅' : 'Copy Feed URL 📋'"></span>
                         </button>
                     </div>
-                    <code class="block font-mono text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 select-all" x-text="domain + '/catalog/feed.xml'"></code>
+                    <code class="block font-mono text-[11px] text-slate-700 bg-white p-2 rounded-lg border border-slate-200 select-all" x-text="domain + '/catalog/feed.xml'"></code>
                 </div>
+                <p class="text-[11px] text-slate-500 mt-1">💡 অথবা আপনার Meta App-এ <code>Catalog ID</code> থাকলে <a href="/admin/settings" class="text-indigo-600 font-bold underline">Bot Settings</a>-এ দিয়ে ১-ক্লিকে Graph API দিয়ে সরাসরি ইনস্ট্যান্ট সিঙ্ক করতে পারবেন।</p>
             </div>
         </div>
 

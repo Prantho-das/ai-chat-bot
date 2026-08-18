@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Live Diagnostics & Logs — MarketFlow AI{% endblock %}
+{% block title %}Live System Logs & Error Monitor | MarketFlow{% endblock %}
 {% block header_title %}Live System Logs & Error Monitor{% endblock %}
 
 {% block content %}
@@ -30,46 +30,45 @@
     }
 }">
 
-    <!-- Top Action Bar -->
-    <div class="surface-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <!-- Top Action Bar & Live Status -->
+    <div class="saas-card p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 font-bold">
-                <i data-lucide="activity" class="w-5 h-5"></i>
+            <div class="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-xl">
+                📡
             </div>
             <div>
-                <h1 class="font-extrabold text-base text-slate-900 tracking-tight flex items-center gap-2">
+                <h3 class="font-extrabold text-base text-slate-900 tracking-tight flex items-center gap-2">
                     Live System & Webhook Diagnostics
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 animate-pulse">LIVE</span>
-                </h1>
-                <p class="text-xs text-slate-500 font-medium">Real-time Graph API requests, Meta Webhook payloads, and Gemini AI execution feed.</p>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700 animate-pulse">LIVE</span>
+                </h3>
+                <p class="text-xs text-slate-500 font-medium">Real-time Graph API, Meta Webhook payloads, and AI generation activity.</p>
             </div>
         </div>
 
         <div class="flex items-center space-x-3">
             <button @click="autoRefresh = !autoRefresh" 
-                    :class="autoRefresh ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'"
-                    class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center space-x-1.5">
+                    :class="autoRefresh ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80' : 'bg-slate-100 text-slate-600 border-slate-200'"
+                    class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center space-x-1.5 cursor-pointer">
                 <span class="w-2 h-2 rounded-full" :class="autoRefresh ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'"></span>
-                <span x-text="autoRefresh ? 'Auto Sync (2.5s)' : 'Sync Paused'"></span>
+                <span x-text="autoRefresh ? 'Auto Syncing (2.5s)' : 'Sync Paused'"></span>
             </button>
-            <button @click="fetchLogs()" class="btn-primary text-xs py-1.5 px-3.5">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Refresh</span>
+            <button @click="fetchLogs()" class="bg-gradient-to-r from-[#5B4BFF] to-[#7C3AED] hover:from-[#4C3CE6] text-white px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-[#5B4BFF]/20 cursor-pointer border-0">
+                🔄 Refresh Logs
             </button>
         </div>
     </div>
 
-    <!-- Filter Toolbar -->
-    <div class="flex items-center space-x-2 surface-card p-2 w-fit text-xs font-semibold">
-        <button @click="filter = 'ALL'" :class="filter === 'ALL' ? 'bg-brand-500 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'" class="px-3.5 py-1.5 rounded-lg transition-all">All Logs</button>
-        <button @click="filter = 'ERROR'" :class="filter === 'ERROR' ? 'bg-rose-600 text-white font-bold' : 'text-rose-600 hover:bg-rose-50'" class="px-3.5 py-1.5 rounded-lg transition-all">Errors Only</button>
-        <button @click="filter = 'WARNING'" :class="filter === 'WARNING' ? 'bg-amber-600 text-white font-bold' : 'text-amber-700 hover:bg-amber-50'" class="px-3.5 py-1.5 rounded-lg transition-all">Warnings</button>
-        <button @click="filter = 'SUCCESS'" :class="filter === 'SUCCESS' ? 'bg-emerald-600 text-white font-bold' : 'text-emerald-700 hover:bg-emerald-50'" class="px-3.5 py-1.5 rounded-lg transition-all">Success</button>
-        <button @click="filter = 'INFO'" :class="filter === 'INFO' ? 'bg-slate-800 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'" class="px-3.5 py-1.5 rounded-lg transition-all">Info</button>
+    <!-- Filter Buttons -->
+    <div class="flex items-center space-x-2 bg-white p-2 rounded-xl border border-slate-200/80 w-fit text-xs font-bold">
+        <button @click="filter = 'ALL'" :class="filter === 'ALL' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'" class="px-3.5 py-1.5 rounded-lg transition-all">All Logs</button>
+        <button @click="filter = 'ERROR'" :class="filter === 'ERROR' ? 'bg-rose-600 text-white' : 'text-rose-600 hover:bg-rose-50'" class="px-3.5 py-1.5 rounded-lg transition-all">❌ Errors Only</button>
+        <button @click="filter = 'WARNING'" :class="filter === 'WARNING' ? 'bg-amber-600 text-white' : 'text-amber-700 hover:bg-amber-50'" class="px-3.5 py-1.5 rounded-lg transition-all">⚠️ Warnings</button>
+        <button @click="filter = 'SUCCESS'" :class="filter === 'SUCCESS' ? 'bg-emerald-600 text-white' : 'text-emerald-700 hover:bg-emerald-50'" class="px-3.5 py-1.5 rounded-lg transition-all">✅ Success</button>
+        <button @click="filter = 'INFO'" :class="filter === 'INFO' ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100'" class="px-3.5 py-1.5 rounded-lg transition-all">ℹ️ Info</button>
     </div>
 
-    <!-- Console Output Feed -->
-    <div class="bg-[#0B1020] text-slate-200 rounded-2xl border border-slate-800 shadow-xl overflow-hidden font-mono text-xs">
+    <!-- Logs Console Feed -->
+    <div class="bg-slate-950 text-slate-200 rounded-2xl border border-slate-800 shadow-xl overflow-hidden font-mono text-xs">
         <div class="bg-slate-900/90 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
             <div class="flex items-center space-x-2">
                 <span class="w-3 h-3 rounded-full bg-rose-500"></span>
@@ -80,9 +79,9 @@
             <span class="text-slate-500 text-[11px]" x-text="logs.length + ' events loaded'"></span>
         </div>
 
-        <div class="divide-y divide-slate-900 max-h-[580px] overflow-y-auto p-2">
+        <div class="divide-y divide-slate-900 max-h-[600px] overflow-y-auto p-2">
             <template x-for="(log, idx) in logs.filter(l => filter === 'ALL' || l.level === filter)" :key="idx">
-                <div class="p-3 hover:bg-slate-900/80 rounded-xl transition-all cursor-pointer space-y-1" @click="selectedLog = log">
+                <div class="p-3 hover:bg-slate-900/60 rounded-xl transition-all cursor-pointer space-y-1" @click="selectedLog = log">
                     <div class="flex items-center justify-between text-[11px]">
                         <div class="flex items-center space-x-2">
                             <span class="font-bold px-2 py-0.5 rounded text-[10px]"
@@ -99,8 +98,8 @@
                     </div>
 
                     <template x-if="log.details">
-                        <div class="mt-1 pl-4 text-[11px] text-slate-400 bg-slate-900/90 p-2 rounded-lg border border-slate-800 truncate">
-                            <span class="text-slate-500">Payload:</span> <span x-text="log.details"></span>
+                        <div class="mt-1 pl-4 text-[11px] text-slate-400 bg-slate-900/80 p-2 rounded-lg border border-slate-800/80 truncate">
+                            <span class="text-slate-500">Payload / Details:</span> <span x-text="log.details"></span>
                         </div>
                     </template>
                 </div>
@@ -108,24 +107,24 @@
 
             <template x-if="logs.length === 0">
                 <div class="p-12 text-center text-slate-500 space-y-2">
-                    <i data-lucide="terminal" class="w-8 h-8 text-slate-600 mx-auto"></i>
-                    <p class="font-medium text-xs">No log entries found in feed.</p>
+                    <div class="text-3xl">📭</div>
+                    <p class="font-medium">No log entries found. Send a test message or webhook trigger to monitor events in real-time.</p>
                 </div>
             </template>
         </div>
     </div>
 
-    <!-- Log Payload Detail Modal -->
-    <div x-show="selectedLog !== null" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;">
+    <!-- Modal for Detailed Log Inspection -->
+    <div x-show="selectedLog !== null" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;">
         <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 border border-slate-200">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h4 class="font-bold text-base text-slate-900 flex items-center gap-2">
-                    <span>Log Entry Inspector</span>
+                    <span>🔍 Log Entry Detail</span>
                     <span class="text-xs px-2.5 py-0.5 rounded-full font-bold"
                           :class="selectedLog?.level === 'ERROR' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'"
                           x-text="selectedLog?.level"></span>
                 </h4>
-                <button @click="selectedLog = null" class="text-slate-400 hover:text-slate-600 font-bold text-base">✕</button>
+                <button @click="selectedLog = null" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
             </div>
 
             <div class="space-y-3 text-xs">
@@ -134,22 +133,22 @@
                     <p class="font-mono text-slate-800 font-bold" x-text="selectedLog?.timestamp"></p>
                 </div>
                 <div>
-                    <span class="text-slate-500 font-semibold">Source Module:</span>
+                    <span class="text-slate-500 font-semibold">Source:</span>
                     <p class="font-bold text-slate-800" x-text="selectedLog?.source"></p>
                 </div>
                 <div>
-                    <span class="text-slate-500 font-semibold">Event Message:</span>
+                    <span class="text-slate-500 font-semibold">Message:</span>
                     <p class="font-medium text-slate-900 bg-slate-50 p-2.5 rounded-xl border border-slate-200" x-text="selectedLog?.message"></p>
                 </div>
                 <div>
-                    <span class="text-slate-500 font-semibold">Raw Payload Details:</span>
-                    <pre class="bg-[#0B1020] text-emerald-400 p-3 rounded-xl font-mono text-[11px] overflow-x-auto max-h-60 mt-1" x-text="selectedLog?.details || 'No additional payload details.'"></pre>
+                    <span class="text-slate-500 font-semibold">Full Payload / Trace Details:</span>
+                    <pre class="bg-slate-950 text-emerald-400 p-3 rounded-xl font-mono text-[11px] overflow-x-auto max-h-60 mt-1" x-text="selectedLog?.details || 'No additional payload details.'"></pre>
                 </div>
             </div>
 
             <div class="pt-3 border-t border-slate-100 flex justify-end">
-                <button @click="selectedLog = null" class="btn-primary text-xs py-2 px-5">
-                    Close Inspector
+                <button @click="selectedLog = null" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-5 py-2 rounded-xl transition-all">
+                    Close Window
                 </button>
             </div>
         </div>
