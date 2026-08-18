@@ -69,7 +69,12 @@ def get_current_user_context(request: Request) -> dict | None:
         return {"user": settings.ADMIN_USERNAME, "role": "super_admin", "company_id": None}
     try:
         data = serializer.loads(token, max_age=TOKEN_MAX_AGE)
-        return data
+        if isinstance(data, dict):
+            # Backward compatibility: existing cookies that only had {'user': 'admin'}
+            if "role" not in data:
+                data["role"] = "super_admin"
+            return data
+        return {"user": settings.ADMIN_USERNAME, "role": "super_admin", "company_id": None}
     except (BadSignature, SignatureExpired):
         return None
 
