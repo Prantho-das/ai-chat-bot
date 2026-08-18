@@ -78,12 +78,27 @@
                             </div>
                         </div>
 
-                        <!-- System Prompt Snippet -->
-                        {% if comp.system_prompt %}
-                        <div class="p-2.5 rounded-xl bg-slate-100 text-[11px] text-slate-700 font-mono line-clamp-2">
-                            <span class="font-bold text-slate-500">PROMPT:</span> {{ comp.system_prompt }}
+                        <!-- Action Bar: Enter Company Workspace & Configure -->
+                        <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                            <form action="/admin/companies/switch" method="POST" class="inline m-0">
+                                <input type="hidden" name="company_id" value="{{ comp.id }}">
+                                <button type="submit" class="saas-btn-primary text-xs flex items-center gap-1.5 py-1.5 px-3">
+                                    <span>👉</span> Enter {{ comp.name }} Workspace
+                                </button>
+                            </form>
+
+                            <div class="flex items-center gap-1.5">
+                                <a href="/admin/conversations" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ comp.id }}'})})" class="text-[11px] font-semibold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 px-2 py-1 rounded-lg">
+                                    💬 Chats
+                                </a>
+                                <a href="/admin/leads" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ comp.id }}'})})" class="text-[11px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-1 rounded-lg">
+                                    🔥 Leads
+                                </a>
+                                <a href="/admin/knowledge" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ comp.id }}'})})" class="text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-1 rounded-lg">
+                                    🧠 RAG
+                                </a>
+                            </div>
                         </div>
-                        {% endif %}
                     </div>
                     {% else %}
                     <div class="text-center py-8 text-slate-400 text-sm">

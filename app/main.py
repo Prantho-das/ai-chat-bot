@@ -18,6 +18,25 @@ from contextlib import asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        
+        # Auto-migration for PostgreSQL missing columns
+        from sqlalchemy import text
+        columns_to_ensure = [
+            ("admin_users", "full_name", "VARCHAR(100)"),
+            ("admin_users", "role", "VARCHAR(30) DEFAULT 'super_admin'"),
+            ("admin_users", "company_id", "INTEGER REFERENCES companies(id) ON DELETE SET NULL"),
+            ("admin_users", "is_active", "BOOLEAN DEFAULT TRUE"),
+            ("conversations", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE"),
+            ("knowledge_entries", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE"),
+            ("appointments", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE"),
+            ("system_logs", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE"),
+            ("leads", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE")
+        ]
+        for tbl, col, col_def in columns_to_ensure:
+            try:
+                await conn.execute(text(f"ALTER TABLE {tbl} ADD COLUMN IF NOT EXISTS {col} {col_def};"))
+            except Exception:
+                pass
     
     # Auto-seed default company
     try:
