@@ -89,11 +89,20 @@ class AIService:
         return self._generate_fallback_vector(text)
 
 
-    async def get_fallback_message(self, db: AsyncSession) -> str:
-
+    async def get_fallback_message(self, db: AsyncSession, company_id: int = None) -> str:
+        if company_id and db:
+            from app.models import Company
+            comp = await db.get(Company, company_id)
+            if comp and comp.fallback_message:
+                return comp.fallback_message
         return await get_bot_setting(db, "fallback_message", DEFAULT_FALLBACK_MESSAGE)
 
-    async def get_system_prompt(self, db: AsyncSession) -> str:
+    async def get_system_prompt(self, db: AsyncSession, company_id: int = None) -> str:
+        if company_id and db:
+            from app.models import Company
+            comp = await db.get(Company, company_id)
+            if comp and comp.system_prompt:
+                return comp.system_prompt
         return await get_bot_setting(db, "system_prompt", DEFAULT_SYSTEM_PROMPT)
 
     async def get_response_length(self, db: AsyncSession) -> str:
@@ -113,8 +122,11 @@ class AIService:
         records = result.scalars().all()
         return {r.key: r.value for r in records}
 
-    async def get_knowledge_base_data_with_entries(self, db: AsyncSession, user_message: str = "") -> tuple[str, str, list, str]:
-        stmt = select(KnowledgeEntry).where(KnowledgeEntry.is_active == True).order_by(KnowledgeEntry.category, KnowledgeEntry.id)
+    async def get_knowledge_base_data_with_entries(self, db: AsyncSession, user_message: str = "", company_id: int = None) -> tuple[str, str, list, str]:
+        stmt = select(KnowledgeEntry).where(KnowledgeEntry.is_active == True)
+        if company_id is not None:
+            stmt = stmt.where(KnowledgeEntry.company_id == company_id)
+        stmt = stmt.order_by(KnowledgeEntry.category, KnowledgeEntry.id)
         result = await db.execute(stmt)
         entries = result.scalars().all()
 
@@ -389,9 +401,10 @@ class AIService:
         image_mime: str = None,
         audio_bytes: bytes = None,
         audio_mime: str = None,
-        user_identifier: str = None
+        user_identifier: str = None,
+        company_id: int = None
     ) -> tuple[str, bool, dict]:
-        fallback_msg = await self.get_fallback_message(db) if db else DEFAULT_FALLBACK_MESSAGE
+        fallback_msg = await self.get_fallback_message(db, company_id=company_id) if db else DEFAULT_FALLBACK_MESSAGE
         token_stats = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
         try:
@@ -438,7 +451,7 @@ class AIService:
                 print(f"[AI SERVICE WARNING] Missing or invalid API Key for provider '{provider}'! Returning fallback message.")
                 return fallback_msg, False, token_stats
 
-            sys_prompt = await self.get_system_prompt(db) if db else DEFAULT_SYSTEM_PROMPT
+            sys_prompt = await self.get_system_prompt(db, company_id=company_id) if db else DEFAULT_SYSTEM_PROMPT
             if bot_name:
                 sys_prompt = f"তোমার নাম {bot_name}। নিজেকে পরিচয় দিলে শুধু '{bot_name}' বলবে, 'AI অ্যাসিস্ট্যান্ট' বলবে না।\n" + sys_prompt
             
@@ -467,7 +480,7 @@ class AIService:
 
             # 2. Normalized Query for Higher Cache Hits
             clean_q = re.sub(r'[^\w\s]', '', clean_raw).strip()
-            kb_text, kb_hash, selected_entries, search_method, query_emb_json = await self.get_knowledge_base_data_with_entries(db, user_message) if db else ("Empty", "empty", [], "none", None)
+            kb_text, kb_hash, selected_entries, search_method, query_emb_json = await self.get_knowledge_base_data_with_entries(db, user_message, company_id=company_id) if db else ("Empty", "empty", [], "none", None)
 
             cache_key = hashlib.md5(f"{clean_q}:{kb_hash}".encode("utf-8")).hexdigest()
             if db and not booking_action_info and not image_bytes and not audio_bytes:

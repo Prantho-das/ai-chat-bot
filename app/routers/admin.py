@@ -19,7 +19,7 @@ except ImportError:
     SignatureExpired = Exception
 
 from app.database import get_db, engine, Base
-from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog, Lead, QAIssueReport
+from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog, Lead, QAIssueReport, Company, ChannelAccount
 from app.services.ai_service import ai_service, DEFAULT_FALLBACK_MESSAGE, DEFAULT_SYSTEM_PROMPT
 from app.services.log_service import log_service
 from app.helpers import get_bot_setting, upsert_bot_setting
@@ -35,29 +35,85 @@ async def migrate_db(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+        
+        # Ensure default company exists
+        comp_stmt = select(Company).where(Company.id == 1)
+        res = await db.execute(comp_stmt)
+        if not res.scalar_one_or_none():
+            default_comp = Company(
+                id=1,
+                name="Default Company",
+                slug="default",
+                description="Default Primary Company for bot operations",
+                system_prompt=DEFAULT_SYSTEM_PROMPT,
+                ai_model="gemini-2.5-flash",
+                temperature=0.7
+            )
+            db.add(default_comp)
+            await db.commit()
+
         await log_service.log("INFO", "DB Migration", "Database schema migration executed successfully by Admin.")
         return RedirectResponse(url="/admin/settings?msg=migration_success", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
         await log_service.log("ERROR", "DB Migration", f"Database migration failed: {e}")
         return RedirectResponse(url="/admin/settings?error=migration_failed", status_code=status.HTTP_303_SEE_OTHER)
+
 COOKIE_NAME = "admin_token"
 TOKEN_MAX_AGE = 8 * 3600 # 8 Hours
 
-def is_authenticated(request: Request) -> bool:
+def get_current_user_context(request: Request) -> dict | None:
     token = request.cookies.get(COOKIE_NAME) or request.cookies.get("admin_session")
     if not token:
-        return False
-    if token == "authenticated": # Backward compatibility fallback
-        return True
+        return None
+    if token == "authenticated":
+        return {"user": settings.ADMIN_USERNAME, "role": "super_admin", "company_id": None}
     try:
         data = serializer.loads(token, max_age=TOKEN_MAX_AGE)
-        return data.get("user") == settings.ADMIN_USERNAME
+        return data
     except (BadSignature, SignatureExpired):
-        return False
+        return None
+
+def is_authenticated(request: Request) -> bool:
+    return get_current_user_context(request) is not None
 
 async def render_admin_page(template_name: str, request: Request, db: AsyncSession, context: dict):
+    user_ctx = get_current_user_context(request) or {}
+    context["current_user"] = user_ctx
+    context["is_super_admin"] = (user_ctx.get("role") == "super_admin")
+
     simplified_mode = await get_bot_setting(db, "simplified_client_mode", "false")
     context["simplified_client_mode"] = (simplified_mode == "true")
+
+    # Fetch companies for global company switcher
+    try:
+        comps_res = await db.execute(select(Company).order_by(Company.id.asc()))
+        all_companies = comps_res.scalars().all()
+        if not all_companies:
+            # Seed default company
+            default_comp = Company(
+                id=1,
+                name="Default Company",
+                slug="default",
+                description="Default Primary Company",
+                system_prompt=DEFAULT_SYSTEM_PROMPT
+            )
+            db.add(default_comp)
+            await db.commit()
+            all_companies = [default_comp]
+        
+        # If company user, lock to their company
+        if user_ctx.get("role") == "company_user" and user_ctx.get("company_id"):
+            user_comp_id = user_ctx.get("company_id")
+            context["all_companies"] = [c for c in all_companies if c.id == user_comp_id]
+            context["active_company_id"] = str(user_comp_id)
+        else:
+            context["all_companies"] = all_companies
+            active_comp_id = request.cookies.get("active_company_id", "all")
+            context["active_company_id"] = active_comp_id
+    except Exception as e:
+        context["all_companies"] = []
+        context["active_company_id"] = "all"
+
     context["request"] = request
     try:
         return templates.TemplateResponse(request, template_name, context)
@@ -73,13 +129,41 @@ async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 @router.post("/login")
-async def login_submit(request: Request, username: str = Form(...), password: str = Form(...)):
-    if username == settings.ADMIN_USERNAME and password == settings.ADMIN_PASSWORD:
+async def login_submit(request: Request, username: str = Form(...), password: str = Form(...), db: AsyncSession = Depends(get_db)):
+    clean_username = username.strip()
+    clean_password = password.strip()
+
+    # 1. Master Super Admin Check (.env fallback)
+    if clean_username == settings.ADMIN_USERNAME and clean_password == settings.ADMIN_PASSWORD:
         response = RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
-        token = serializer.dumps({"user": username})
+        token = serializer.dumps({
+            "user": clean_username,
+            "role": "super_admin",
+            "company_id": None
+        })
         response.set_cookie(key=COOKIE_NAME, value=token, httponly=True, max_age=TOKEN_MAX_AGE)
         return response
+
+    # 2. Database User Check (Master or Company Specific User)
+    stmt = select(AdminUser).where(AdminUser.username == clean_username, AdminUser.is_active == True)
+    res = await db.execute(stmt)
+    user = res.scalar_one_or_none()
+
+    if user and user.password_hash == clean_password:
+        response = RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
+        token = serializer.dumps({
+            "user": user.username,
+            "role": user.role or "company_user",
+            "company_id": user.company_id,
+            "full_name": user.full_name or user.username
+        })
+        response.set_cookie(key=COOKIE_NAME, value=token, httponly=True, max_age=TOKEN_MAX_AGE)
+        if user.company_id:
+            response.set_cookie(key="active_company_id", value=str(user.company_id), max_age=TOKEN_MAX_AGE)
+        return response
+
     return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid username or password"})
+
 
 @router.get("/logout")
 async def logout():
@@ -115,9 +199,24 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
-    total_convs = await db.scalar(select(func.count(Conversation.id))) or 0
+    user_ctx = get_current_user_context(request) or {}
+    active_comp_id = request.cookies.get("active_company_id", "all")
+    if user_ctx.get("role") == "company_user" and user_ctx.get("company_id"):
+        target_company_id = user_ctx.get("company_id")
+    elif active_comp_id and active_comp_id != "all":
+        try:
+            target_company_id = int(active_comp_id)
+        except ValueError:
+            target_company_id = None
+    else:
+        target_company_id = None
+
+    conv_filter = [Conversation.company_id == target_company_id] if target_company_id else []
+    kb_filter = [KnowledgeEntry.company_id == target_company_id] if target_company_id else []
+
+    total_convs = await db.scalar(select(func.count(Conversation.id)).where(*conv_filter)) or 0
     total_msgs = await db.scalar(select(func.count(Message.id))) or 0
-    total_kb = await db.scalar(select(func.count(KnowledgeEntry.id))) or 0
+    total_kb = await db.scalar(select(func.count(KnowledgeEntry.id)).where(*kb_filter)) or 0
     cached_msgs = await db.scalar(select(func.count(Message.id)).where(Message.is_cached == True)) or 0
     
     # Fetch key reset timestamp
@@ -202,7 +301,10 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     ai_msgs_total = await db.scalar(select(func.count(Message.id)).where(Message.role == "assistant")) or 0
     savings_pct = round((cached_msgs / ai_msgs_total * 100), 1) if ai_msgs_total > 0 else 0.0
 
-    stmt = select(Conversation).order_by(Conversation.updated_at.desc()).limit(10)
+    stmt = select(Conversation)
+    if conv_filter:
+        stmt = stmt.where(*conv_filter)
+    stmt = stmt.order_by(Conversation.updated_at.desc()).limit(10)
     result = await db.execute(stmt)
     recent_conversations = result.scalars().all()
 
@@ -240,13 +342,23 @@ async def knowledge_base_page(
     q: str = None,
     category: str = None,
     status_filter: str = None,
+    company_filter: str = None,
     db: AsyncSession = Depends(get_db)
 ):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
+    active_comp_id = request.cookies.get("active_company_id", "all")
+    selected_comp = company_filter or active_comp_id
+
     # Base query
     stmt = select(KnowledgeEntry)
+
+    if selected_comp and selected_comp != "all":
+        try:
+            stmt = stmt.where(KnowledgeEntry.company_id == int(selected_comp))
+        except ValueError:
+            pass
 
     if q and q.strip():
         search_term = f"%{q.strip()}%"
@@ -267,7 +379,6 @@ async def knowledge_base_page(
     result = await db.execute(stmt)
     entries = result.scalars().all()
 
-
     # Stats calculation
     all_result = await db.execute(select(KnowledgeEntry))
     all_entries = all_result.scalars().all()
@@ -285,6 +396,7 @@ async def knowledge_base_page(
         "q": q or "",
         "category_filter": category or "all",
         "status_filter": status_filter or "all",
+        "company_filter": selected_comp or "all",
         "saved": request.query_params.get("saved"),
         "reembedded": request.query_params.get("reembedded"),
         "error": request.query_params.get("error")
@@ -297,6 +409,7 @@ async def add_knowledge(
     title: str = Form(...),
     content: str = Form(...),
     is_active: bool = Form(False),
+    company_id: int = Form(1),
     db: AsyncSession = Depends(get_db)
 ):
     if not is_authenticated(request):
@@ -310,7 +423,8 @@ async def add_knowledge(
         title=title.strip(),
         content=content.strip(),
         embedding_json=embedding_vector_json,
-        is_active=is_active
+        is_active=is_active,
+        company_id=company_id
     )
     db.add(entry)
     await db.commit()
@@ -456,6 +570,16 @@ async def conversations_page(
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
     stmt = select(Conversation)
+
+    user_ctx = get_current_user_context(request) or {}
+    active_comp_id = request.cookies.get("active_company_id", "all")
+    if user_ctx.get("role") == "company_user" and user_ctx.get("company_id"):
+        stmt = stmt.where(Conversation.company_id == user_ctx.get("company_id"))
+    elif active_comp_id and active_comp_id != "all":
+        try:
+            stmt = stmt.where(Conversation.company_id == int(active_comp_id))
+        except ValueError:
+            pass
 
     if platform and platform != "all":
         stmt = stmt.where(Conversation.platform == platform)
@@ -1005,7 +1129,22 @@ async def captured_leads_page(request: Request, db: AsyncSession = Depends(get_d
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
-    stmt = select(Lead).order_by(Lead.id.desc())
+    user_ctx = get_current_user_context(request) or {}
+    active_comp_id = request.cookies.get("active_company_id", "all")
+    if user_ctx.get("role") == "company_user" and user_ctx.get("company_id"):
+        target_company_id = user_ctx.get("company_id")
+    elif active_comp_id and active_comp_id != "all":
+        try:
+            target_company_id = int(active_comp_id)
+        except ValueError:
+            target_company_id = None
+    else:
+        target_company_id = None
+
+    stmt = select(Lead)
+    if target_company_id:
+        stmt = stmt.where(Lead.company_id == target_company_id)
+    stmt = stmt.order_by(Lead.id.desc())
     res = await db.execute(stmt)
     leads = res.scalars().all()
 
@@ -1191,5 +1330,192 @@ async def qa_learn_issue_api(report_id: int, request: Request, db: AsyncSession 
     await log_service.log("SUCCESS", "AI Learned Correction", f"AI learned correction for QA Report #{report_id}")
 
     return {"status": "success", "message": "Correction successfully converted to Knowledge Base entry for AI learning!"}
+
+
+# ==========================================
+# MULTI-COMPANY & CHANNEL MANAGEMENT ROUTES
+# ==========================================
+
+@router.get("/companies", response_class=HTMLResponse)
+async def companies_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user_ctx = get_current_user_context(request)
+    if not user_ctx or user_ctx.get("role") != "super_admin":
+        return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
+
+    comps_res = await db.execute(select(Company).order_by(Company.id.asc()))
+    companies = comps_res.scalars().all()
+
+    channels_res = await db.execute(select(ChannelAccount).order_by(ChannelAccount.id.desc()))
+    channels = channels_res.scalars().all()
+
+    users_res = await db.execute(select(AdminUser).where(AdminUser.role == "company_user").order_by(AdminUser.id.desc()))
+    company_users = users_res.scalars().all()
+
+    return await render_admin_page("companies.html", request, db, {
+        "page_title": "Multi-Company & Channels",
+        "companies": companies,
+        "channels": channels,
+        "company_users": company_users
+    })
+
+@router.post("/companies/switch")
+async def switch_active_company(request: Request, company_id: str = Form(...)):
+    user_ctx = get_current_user_context(request)
+    if not user_ctx or user_ctx.get("role") != "super_admin":
+        return RedirectResponse(url="/admin", status_code=status.HTTP_303_SEE_OTHER)
+
+    referer = request.headers.get("referer", "/admin")
+    response = RedirectResponse(url=referer, status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="active_company_id", value=str(company_id), max_age=TOKEN_MAX_AGE)
+    return response
+
+@router.post("/companies/create")
+async def create_company(
+    request: Request,
+    name: str = Form(...),
+    slug: str = Form(...),
+    description: str = Form(""),
+    system_prompt: str = Form(""),
+    ai_model: str = Form("gemini-2.5-flash"),
+    temperature: float = Form(0.7),
+    db: AsyncSession = Depends(get_db)
+):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    try:
+        new_company = Company(
+            name=name.strip(),
+            slug=slug.strip().lower().replace(" ", "-"),
+            description=description.strip(),
+            system_prompt=system_prompt.strip() or DEFAULT_SYSTEM_PROMPT,
+            ai_model=ai_model,
+            temperature=temperature
+        )
+        db.add(new_company)
+        await db.commit()
+        await log_service.log("SUCCESS", "Company Created", f"Created company '{name}' with slug '{slug}'")
+    except Exception as e:
+        await log_service.log("ERROR", "Company Create Error", str(e))
+
+    return RedirectResponse(url="/admin/companies?msg=company_created", status_code=status.HTTP_303_SEE_OTHER)
+
+@router.post("/companies/edit/{company_id}")
+async def edit_company(
+    company_id: int,
+    request: Request,
+    name: str = Form(...),
+    description: str = Form(""),
+    system_prompt: str = Form(""),
+    ai_model: str = Form("gemini-2.5-flash"),
+    fallback_message: str = Form(""),
+    db: AsyncSession = Depends(get_db)
+):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    comp = await db.get(Company, company_id)
+    if comp:
+        comp.name = name.strip()
+        comp.description = description.strip()
+        comp.system_prompt = system_prompt.strip()
+        comp.ai_model = ai_model
+        comp.fallback_message = fallback_message.strip()
+        await db.commit()
+        await log_service.log("INFO", "Company Updated", f"Updated company ID #{company_id} ('{name}')")
+
+    return RedirectResponse(url="/admin/companies?msg=company_updated", status_code=status.HTTP_303_SEE_OTHER)
+
+@router.post("/channels/create")
+async def create_channel_account(
+    request: Request,
+    company_id: int = Form(...),
+    platform: str = Form(...),
+    platform_account_id: str = Form(...),
+    account_name: str = Form(""),
+    access_token: str = Form(""),
+    verify_token: str = Form(""),
+    db: AsyncSession = Depends(get_db)
+):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    try:
+        new_channel = ChannelAccount(
+            company_id=company_id,
+            platform=platform,
+            platform_account_id=platform_account_id.strip(),
+            account_name=account_name.strip(),
+            access_token=access_token.strip(),
+            verify_token=verify_token.strip()
+        )
+        db.add(new_channel)
+        await db.commit()
+        await log_service.log("SUCCESS", "Channel Linked", f"Linked {platform} ID '{platform_account_id}' to Company #{company_id}")
+    except Exception as e:
+        await log_service.log("ERROR", "Channel Link Error", str(e))
+
+    return RedirectResponse(url="/admin/companies?msg=channel_linked", status_code=status.HTTP_303_SEE_OTHER)
+
+@router.post("/channels/delete/{channel_id}")
+async def delete_channel_account(channel_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    channel = await db.get(ChannelAccount, channel_id)
+    if channel:
+        await db.delete(channel)
+        await db.commit()
+        await log_service.log("INFO", "Channel Removed", f"Removed channel account #{channel_id}")
+
+    return RedirectResponse(url="/admin/companies?msg=channel_deleted", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/company-users/create")
+async def create_company_user(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    full_name: str = Form(""),
+    company_id: int = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    user_ctx = get_current_user_context(request)
+    if not user_ctx or user_ctx.get("role") != "super_admin":
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    try:
+        new_user = AdminUser(
+            username=username.strip().lower(),
+            password_hash=password.strip(),
+            full_name=full_name.strip(),
+            role="company_user",
+            company_id=company_id,
+            is_active=True
+        )
+        db.add(new_user)
+        await db.commit()
+        await log_service.log("SUCCESS", "Company User Created", f"Created user '{username}' for Company #{company_id}")
+    except Exception as e:
+        await log_service.log("ERROR", "User Create Error", str(e))
+
+    return RedirectResponse(url="/admin/companies?msg=user_created", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/company-users/delete/{user_id}")
+async def delete_company_user(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user_ctx = get_current_user_context(request)
+    if not user_ctx or user_ctx.get("role") != "super_admin":
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    user = await db.get(AdminUser, user_id)
+    if user:
+        await db.delete(user)
+        await db.commit()
+        await log_service.log("INFO", "User Removed", f"Deleted user account #{user_id}")
+
+    return RedirectResponse(url="/admin/companies?msg=user_deleted", status_code=status.HTTP_303_SEE_OTHER)
+
+
 
 

@@ -13,7 +13,22 @@ from app.services.lead_extractor_service import lead_extractor_service
 router = APIRouter(prefix="/webhook/messenger", tags=["Messenger Webhook"])
 
 
-async def get_fb_tokens(db: AsyncSession) -> tuple[str, str]:
+from app.models import Conversation, Message, BotSetting, ChannelAccount, Company
+
+async def get_fb_tokens_for_page(db: AsyncSession, page_id: str = None) -> tuple[str, str, int | None]:
+    """Retrieve verify_token, access_token, and company_id for a given page_id or fallback to default settings."""
+    if page_id:
+        stmt = select(ChannelAccount).where(
+            ChannelAccount.platform == "messenger",
+            ChannelAccount.platform_account_id == str(page_id),
+            ChannelAccount.is_active == True
+        )
+        res = await db.execute(stmt)
+        channel = res.scalar_one_or_none()
+        if channel:
+            return channel.verify_token or "", channel.access_token or "", channel.company_id
+
+    # Fallback to global bot settings
     stmt = select(BotSetting).where(BotSetting.key.in_(["fb_verify_token", "fb_page_access_token"]))
     res = await db.execute(stmt)
     records = res.scalars().all()
@@ -21,7 +36,7 @@ async def get_fb_tokens(db: AsyncSession) -> tuple[str, str]:
 
     verify_token = setting_dict.get("fb_verify_token", "")
     access_token = setting_dict.get("fb_page_access_token", "")
-    return verify_token, access_token
+    return verify_token, access_token, 1
 
 
 @router.get("")
@@ -31,10 +46,17 @@ async def verify_webhook(
     hub_challenge: str = Query(None, alias="hub.challenge"),
     db: AsyncSession = Depends(get_db)
 ):
-    expected_verify_token, _ = await get_fb_tokens(db)
-
+    # Check if hub_token matches global or any channel account
+    expected_verify_token, _, _ = await get_fb_tokens_for_page(db)
     if hub_mode == "subscribe" and hub_token == expected_verify_token:
         return Response(content=hub_challenge, media_type="text/plain")
+
+    # Check channels
+    stmt = select(ChannelAccount).where(ChannelAccount.verify_token == hub_token, ChannelAccount.is_active == True)
+    res = await db.execute(stmt)
+    if res.scalar_one_or_none():
+        return Response(content=hub_challenge, media_type="text/plain")
+
     return Response(content="Verification failed", status_code=403)
 
 
@@ -70,7 +92,7 @@ def _extract_user_text(messaging_event: dict) -> tuple[str | None, str | None, s
     return user_text, image_url, audio_url
 
 
-async def _get_or_create_conversation(db: AsyncSession, sender_id: str, access_token: str = None) -> "Conversation":
+async def _get_or_create_conversation(db: AsyncSession, sender_id: str, access_token: str = None, company_id: int = 1) -> "Conversation":
     """Get existing conversation or create new one for a messenger sender."""
     stmt = select(Conversation).where(
         Conversation.platform == "messenger",
@@ -88,21 +110,25 @@ async def _get_or_create_conversation(db: AsyncSession, sender_id: str, access_t
         conversation = Conversation(
             platform="messenger",
             sender_id=sender_id,
-            sender_name=user_name
+            sender_name=user_name,
+            company_id=company_id
         )
         db.add(conversation)
         await db.commit()
         await db.refresh(conversation)
-    elif conversation.sender_name.startswith("FB User"):
-        profile = await messenger_service.get_user_profile(sender_id, access_token)
-        if profile and profile.get("name"):
-            conversation.sender_name = profile["name"]
-            await db.commit()
+    else:
+        if company_id and conversation.company_id != company_id:
+            conversation.company_id = company_id
+        if conversation.sender_name.startswith("FB User"):
+            profile = await messenger_service.get_user_profile(sender_id, access_token)
+            if profile and profile.get("name"):
+                conversation.sender_name = profile["name"]
+        await db.commit()
 
     return conversation
 
 
-async def _process_dm(sender_id: str, user_text: str, access_token: str, db: AsyncSession, image_url: str = None, audio_url: str = None):
+async def _process_dm(sender_id: str, user_text: str, access_token: str, db: AsyncSession, image_url: str = None, audio_url: str = None, company_id: int = 1):
     """Process a single DM: save message, generate AI reply, send back."""
     try:
         # Immediate typing indicator for smooth user experience
@@ -110,7 +136,7 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
 
         await log_service.log("INFO", "Messenger DM", f"Received DM from {sender_id}: '{user_text[:100]}'")
 
-        conversation = await _get_or_create_conversation(db, sender_id, access_token)
+        conversation = await _get_or_create_conversation(db, sender_id, access_token, company_id=company_id)
 
         user_msg = Message(
             conversation_id=conversation.id,
@@ -173,7 +199,8 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
             image_mime=image_mime,
             audio_bytes=audio_bytes,
             audio_mime=audio_mime,
-            user_identifier=sender_id
+            user_identifier=sender_id,
+            company_id=company_id
         )
         await log_service.log("INFO", "AI Engine", f"AI reply for {sender_id}: '{ai_reply[:100]}'")
 
@@ -194,7 +221,6 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
         await messenger_service.send_text_message(sender_id, ai_reply, access_token)
     except Exception as e:
         await log_service.log("ERROR", "Messenger DM", f"Error processing DM from {sender_id}: {e}")
-        # Send a fallback reply so the user is not left without a response
         try:
             fallback = "দুঃখিত, এই মুহূর্তে একটি সমস্যা হয়েছে। অনুগ্রহ করে একটু পরে আবার চেষ্টা করুন।"
             await messenger_service.send_text_message(sender_id, fallback, access_token)
@@ -202,7 +228,7 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
             pass
 
 
-async def _process_comment(entry_page_id: str, change: dict, access_token: str, db: AsyncSession):
+async def _process_comment(entry_page_id: str, change: dict, access_token: str, db: AsyncSession, company_id: int = 1):
     """Process a single FB comment: save, generate AI reply, reply to comment."""
     val = change.get("value", {})
     comment_id = str(val.get("comment_id") or val.get("id") or "")
@@ -227,7 +253,8 @@ async def _process_comment(entry_page_id: str, change: dict, access_token: str, 
             conversation = Conversation(
                 platform="fb_comment",
                 sender_id=sender_id,
-                sender_name=sender_name
+                sender_name=sender_name,
+                company_id=company_id
             )
             db.add(conversation)
             await db.commit()
@@ -250,7 +277,7 @@ async def _process_comment(entry_page_id: str, change: dict, access_token: str, 
         history_res = await db.execute(stmt_msg)
         history = history_res.scalars().all()
 
-        ai_reply, is_cached, rag_info = await ai_service.generate_response(comment_text, history, db)
+        ai_reply, is_cached, rag_info = await ai_service.generate_response(comment_text, history, db, company_id=company_id)
         await log_service.log("INFO", "AI Engine", f"Comment AI reply: '{ai_reply[:100]}'")
 
         token_data = rag_info.get("tokens", {}) if isinstance(rag_info, dict) else {}
@@ -279,7 +306,7 @@ from typing import Dict, List
 _MESSAGE_BUFFERS: Dict[str, List[dict]] = {}
 _MESSAGE_TIMERS: Dict[str, asyncio.Task] = {}
 
-async def _debounced_process_dm(sender_id: str, access_token: str):
+async def _debounced_process_dm(sender_id: str, access_token: str, company_id: int = 1):
     await asyncio.sleep(2.0) # Wait 2.0s for follow-up messages
     events = _MESSAGE_BUFFERS.pop(sender_id, [])
     _MESSAGE_TIMERS.pop(sender_id, None)
@@ -314,7 +341,8 @@ async def _debounced_process_dm(sender_id: str, access_token: str):
             access_token=access_token,
             db=db,
             image_url=image_url,
-            audio_url=audio_url
+            audio_url=audio_url,
+            company_id=company_id
         )
 
 
@@ -322,20 +350,17 @@ async def process_messenger_event(data: dict):
     try:
         await log_service.log("INFO", "Messenger Webhook", "Received webhook payload from Meta", json.dumps(data))
         async with AsyncSessionLocal() as db:
-            _, access_token = await get_fb_tokens(db)
-
             for entry in data.get("entry", []):
                 page_id = str(entry.get("id", ""))
+                _, access_token, company_id = await get_fb_tokens_for_page(db, page_id)
 
                 # 1. Handle Messenger Direct Messages with Debouncing
                 for messaging_event in entry.get("messaging", []):
-                    # Check for Real Human Admin Reply from Meta Business Suite (Echo Event)
                     message_data = messaging_event.get("message", {})
                     if message_data.get("is_echo"):
                         recipient_id = str(messaging_event.get("recipient", {}).get("id", ""))
                         admin_text = message_data.get("text", "[Admin sent media/attachment]")
                         
-                        # Fetch and pause AI for this user so real agent can chat freely
                         stmt = select(Conversation).where(
                             Conversation.platform == "messenger",
                             Conversation.sender_id == recipient_id
@@ -360,7 +385,6 @@ async def process_messenger_event(data: dict):
 
                     user_text, image_url, audio_url = _extract_user_text(messaging_event)
                     if user_text or image_url or audio_url:
-                        # Send immediate typing bubble as soon as message hits server
                         asyncio.create_task(messenger_service.send_typing_indicator(sender_id, access_token))
 
                         _MESSAGE_BUFFERS.setdefault(sender_id, []).append({
@@ -369,12 +393,10 @@ async def process_messenger_event(data: dict):
                             "audio_url": audio_url
                         })
 
-                        # Cancel existing timer if follow-up arrived within window
                         if sender_id in _MESSAGE_TIMERS:
                             _MESSAGE_TIMERS[sender_id].cancel()
 
-                        # Schedule debounced processing task
-                        task = asyncio.create_task(_debounced_process_dm(sender_id, access_token))
+                        task = asyncio.create_task(_debounced_process_dm(sender_id, access_token, company_id=company_id))
                         _MESSAGE_TIMERS[sender_id] = task
                     else:
                         await log_service.log("DEBUG", "Messenger DM", f"Unhandled event from {sender_id}", json.dumps(messaging_event))
@@ -383,7 +405,7 @@ async def process_messenger_event(data: dict):
                 for change in entry.get("changes", []):
                     field_name = change.get("field")
                     if field_name in ["feed", "comments", "mention"]:
-                        await _process_comment(page_id, change, access_token, db)
+                        await _process_comment(page_id, change, access_token, db, company_id=company_id)
     except Exception as e:
         await log_service.log("ERROR", "Messenger Webhook", f"Exception processing event: {e}")
 

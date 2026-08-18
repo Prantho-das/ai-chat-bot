@@ -3,13 +3,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.config import settings
 from app.database import get_db, AsyncSessionLocal
-from app.models import Conversation, Message, BotSetting
+from app.models import Conversation, Message, BotSetting, ChannelAccount, Company
 from app.services.ai_service import ai_service
 from app.services.whatsapp_service import whatsapp_service
 
 router = APIRouter(prefix="/webhook/whatsapp", tags=["WhatsApp Webhook"])
 
-async def get_wa_tokens(db: AsyncSession) -> tuple[str, str, str]:
+async def get_wa_tokens(db: AsyncSession, phone_id: str = None) -> tuple[str, str, str, int | None]:
+    if phone_id:
+        stmt = select(ChannelAccount).where(
+            ChannelAccount.platform == "whatsapp",
+            ChannelAccount.platform_account_id == str(phone_id),
+            ChannelAccount.is_active == True
+        )
+        res = await db.execute(stmt)
+        channel = res.scalar_one_or_none()
+        if channel:
+            return channel.verify_token or "", channel.access_token or "", str(phone_id), channel.company_id
+
     stmt = select(BotSetting).where(BotSetting.key.in_(["wa_verify_token", "wa_access_token", "wa_phone_number_id"]))
     res = await db.execute(stmt)
     records = res.scalars().all()
@@ -17,8 +28,8 @@ async def get_wa_tokens(db: AsyncSession) -> tuple[str, str, str]:
 
     verify_token = setting_dict.get("wa_verify_token", "")
     access_token = setting_dict.get("wa_access_token", "")
-    phone_id = setting_dict.get("wa_phone_number_id", "")
-    return verify_token, access_token, phone_id
+    phone_id_val = setting_dict.get("wa_phone_number_id", "")
+    return verify_token, access_token, phone_id_val, 1
 
 
 @router.get("")
@@ -28,23 +39,31 @@ async def verify_webhook(
     hub_challenge: str = Query(None, alias="hub.challenge"),
     db: AsyncSession = Depends(get_db)
 ):
-    expected_verify_token, _, _ = await get_wa_tokens(db)
+    expected_verify_token, _, _, _ = await get_wa_tokens(db)
 
     if hub_mode == "subscribe" and hub_token == expected_verify_token:
         return Response(content=hub_challenge, media_type="text/plain")
+
+    stmt = select(ChannelAccount).where(ChannelAccount.verify_token == hub_token, ChannelAccount.is_active == True)
+    res = await db.execute(stmt)
+    if res.scalar_one_or_none():
+        return Response(content=hub_challenge, media_type="text/plain")
+
     return Response(content="Verification failed", status_code=403)
 
 
 async def process_whatsapp_event(data: dict):
     async with AsyncSessionLocal() as db:
-        _, access_token, phone_id = await get_wa_tokens(db)
-        
         try:
             entries = data.get("entry", [])
             for entry in entries:
                 changes = entry.get("changes", [])
                 for change in changes:
                     value = change.get("value", {})
+                    metadata = value.get("metadata", {})
+                    phone_number_id = str(metadata.get("phone_number_id", ""))
+
+                    _, access_token, phone_id, company_id = await get_wa_tokens(db, phone_number_id)
                     messages = value.get("messages", [])
                     
                     for msg_data in messages:
@@ -66,11 +85,16 @@ async def process_whatsapp_event(data: dict):
                                 conversation = Conversation(
                                     platform="whatsapp",
                                     sender_id=sender_id,
-                                    sender_name=sender_name
+                                    sender_name=sender_name,
+                                    company_id=company_id
                                 )
                                 db.add(conversation)
                                 await db.commit()
                                 await db.refresh(conversation)
+                            else:
+                                if company_id and conversation.company_id != company_id:
+                                    conversation.company_id = company_id
+                                    await db.commit()
 
                             from app.services.lead_extractor_service import lead_extractor_service
                             await lead_extractor_service.process_chat_lead(
@@ -94,7 +118,7 @@ async def process_whatsapp_event(data: dict):
                             history_res = await db.execute(stmt_msg)
                             history = history_res.scalars().all()
 
-                            ai_reply, is_cached, rag_info = await ai_service.generate_response(user_text, history, db)
+                            ai_reply, is_cached, rag_info = await ai_service.generate_response(user_text, history, db, company_id=company_id)
 
                             token_data = rag_info.get("tokens", {}) if isinstance(rag_info, dict) else {}
                             ai_msg = Message(

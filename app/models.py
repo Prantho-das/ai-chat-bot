@@ -1,7 +1,40 @@
 from datetime import datetime
-from sqlalchemy import String, Text, DateTime, ForeignKey, Boolean, Integer
+from sqlalchemy import String, Text, DateTime, ForeignKey, Boolean, Integer, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
+
+class Company(Base):
+    __tablename__ = "companies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(150), unique=True, index=True)
+    slug: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    system_prompt: Mapped[str] = mapped_column(Text, nullable=True)
+    ai_model: Mapped[str] = mapped_column(String(50), default="gemini-2.5-flash")
+    temperature: Mapped[float] = mapped_column(Float, default=0.7)
+    fallback_message: Mapped[str] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    channels: Mapped[list["ChannelAccount"]] = relationship("ChannelAccount", back_populates="company", cascade="all, delete-orphan")
+    knowledge_entries: Mapped[list["KnowledgeEntry"]] = relationship("KnowledgeEntry", back_populates="company", cascade="all, delete-orphan")
+    conversations: Mapped[list["Conversation"]] = relationship("Conversation", back_populates="company", cascade="all, delete-orphan")
+
+class ChannelAccount(Base):
+    __tablename__ = "channel_accounts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), index=True)
+    platform: Mapped[str] = mapped_column(String(30), index=True)  # messenger, whatsapp, instagram
+    platform_account_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)  # Page ID, WhatsApp Phone Number ID
+    account_name: Mapped[str] = mapped_column(String(150), nullable=True)
+    access_token: Mapped[str] = mapped_column(Text, nullable=True)
+    verify_token: Mapped[str] = mapped_column(String(100), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    company: Mapped["Company"] = relationship("Company", back_populates="channels")
 
 class AdminUser(Base):
     __tablename__ = "admin_users"
@@ -9,12 +42,19 @@ class AdminUser(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    full_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    role: Mapped[str] = mapped_column(String(30), default="super_admin")  # super_admin, company_user
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    company: Mapped["Company"] = relationship("Company", lazy="selectin")
 
 class Conversation(Base):
     __tablename__ = "conversations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, default=1, index=True)
     platform: Mapped[str] = mapped_column(String(20), index=True) # messenger, whatsapp, or fb_comment
     sender_id: Mapped[str] = mapped_column(String(100), index=True) # platform specific user ID
     sender_name: Mapped[str] = mapped_column(String(100), nullable=True)
@@ -22,6 +62,7 @@ class Conversation(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    company: Mapped["Company"] = relationship("Company", back_populates="conversations", lazy="selectin")
     messages: Mapped[list["Message"]] = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
 
 class Message(Base):
@@ -45,6 +86,7 @@ class KnowledgeEntry(Base):
     __tablename__ = "knowledge_entries"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, default=1, index=True)
     category: Mapped[str] = mapped_column(String(50), default="general") # product, faq, policy, general
     title: Mapped[str] = mapped_column(String(200))
     content: Mapped[str] = mapped_column(Text)
@@ -52,6 +94,8 @@ class KnowledgeEntry(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    company: Mapped["Company"] = relationship("Company", back_populates="knowledge_entries", lazy="selectin")
 
 class BotSetting(Base):
     __tablename__ = "bot_settings"
@@ -75,6 +119,7 @@ class Appointment(Base):
     __tablename__ = "appointments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, default=1, index=True)
     customer_name: Mapped[str] = mapped_column(String(100), nullable=True)
     customer_phone: Mapped[str] = mapped_column(String(50), nullable=True)
     summary: Mapped[str] = mapped_column(String(255))
@@ -100,6 +145,7 @@ class SystemLog(Base):
     __tablename__ = "system_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, default=1, index=True)
     level: Mapped[str] = mapped_column(String(20), default="INFO", index=True) # INFO, SUCCESS, WARNING, ERROR
     source: Mapped[str] = mapped_column(String(50), index=True) # Messenger, WhatsApp, Instagram, AI, System
     message: Mapped[str] = mapped_column(Text)
@@ -111,6 +157,7 @@ class Lead(Base):
     __tablename__ = "leads"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, default=1, index=True)
     customer_name: Mapped[str] = mapped_column(String(100), nullable=True)
     business_name: Mapped[str] = mapped_column(String(200), nullable=True, index=True)
     niche: Mapped[str] = mapped_column(String(100), nullable=True, index=True)
@@ -164,5 +211,6 @@ class EmailTemplate(Base):
     subject: Mapped[str] = mapped_column(String(200), nullable=True)
     body: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
 
 

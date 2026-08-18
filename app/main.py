@@ -18,6 +18,29 @@ from contextlib import asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    
+    # Auto-seed default company
+    try:
+        from app.database import AsyncSessionLocal
+        from app.models import Company
+        from sqlalchemy import select
+        async with AsyncSessionLocal() as db:
+            comp_res = await db.execute(select(Company).where(Company.id == 1))
+            if not comp_res.scalar_one_or_none():
+                default_comp = Company(
+                    id=1,
+                    name="Default Company",
+                    slug="default",
+                    description="Primary default company for bot operations",
+                    system_prompt="তুমি প্রফেশনাল AI সাপোর্ট।",
+                    ai_model="gemini-2.5-flash",
+                    temperature=0.7
+                )
+                db.add(default_comp)
+                await db.commit()
+    except Exception as e:
+        print(f"[STARTUP SEED INFO] {e}")
+
     yield
 
 app = FastAPI(
