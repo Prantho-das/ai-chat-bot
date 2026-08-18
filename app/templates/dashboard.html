@@ -82,41 +82,38 @@
         </div>
     </div>
 
-    <!-- AI ENGINE / SYSTEM STATUS PANEL -->
-    <div class="bg-gradient-to-r from-[#0B1020] via-[#0F172A] to-[#1E1B4B] text-white rounded-2xl p-6 shadow-xl border border-indigo-500/20 relative overflow-hidden">
-        <!-- Glow accents -->
-        <div class="absolute -top-10 -right-10 w-48 h-48 bg-[#5B4BFF]/20 rounded-full blur-3xl pointer-events-none"></div>
-        
+    <!-- AI ENGINE / SYSTEM STATUS PANEL - White Modern SaaS Theme -->
+    <div class="saas-card p-6 bg-gradient-to-r from-indigo-50/60 via-white to-purple-50/60 border border-indigo-100 relative overflow-hidden">
         <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div class="space-y-2">
                 <div class="flex items-center space-x-3">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#5B4BFF]/20 text-indigo-300 border border-[#5B4BFF]/40 tracking-wide uppercase">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#5B4BFF]/10 text-[#5B4BFF] border border-[#5B4BFF]/20 tracking-wide uppercase">
                         AI SYSTEM STATUS
                     </span>
-                    <span class="text-xs text-slate-400 font-medium">({{ stats.provider_info.tier }})</span>
+                    <span class="text-xs text-slate-500 font-medium">({{ stats.provider_info.tier }})</span>
                 </div>
-                <h3 class="text-xl font-extrabold text-white flex items-center gap-2 tracking-tight">
-                    {{ stats.provider_info.name }} <span class="text-slate-500">•</span> <span class="font-mono text-indigo-300 font-semibold text-lg">{{ stats.active_model }}</span>
+                <h3 class="text-xl font-extrabold text-slate-900 flex items-center gap-2 tracking-tight">
+                    {{ stats.provider_info.name }} <span class="text-slate-300">•</span> <span class="font-mono text-[#5B4BFF] font-extrabold text-lg">{{ stats.active_model }}</span>
                 </h3>
-                <p class="text-xs text-slate-300">বর্তমান এআই প্রোভাইডারের ক্যাপাসিটি, আরপিডি ও টোকেন লিমিট প্যারামিটার</p>
+                <p class="text-xs text-slate-500 font-medium">বর্তমান এআই প্রোভাইডারের ক্যাপাসিটি, আরপিডি ও টোকেন লিমিট প্যারামিটার</p>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-xs">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs">
                 <div class="px-2">
                     <div class="text-[9px] uppercase font-extrabold tracking-wider text-slate-400">Daily Quota (RPD)</div>
-                    <div class="text-sm font-extrabold text-emerald-400 mt-1">{{ stats.provider_info.rpd }}</div>
+                    <div class="text-sm font-extrabold text-emerald-600 mt-1">{{ stats.provider_info.rpd }}</div>
                 </div>
-                <div class="px-2 border-l border-white/10">
+                <div class="px-2 border-l border-slate-100">
                     <div class="text-[9px] uppercase font-extrabold tracking-wider text-slate-400">RPM Limit</div>
-                    <div class="text-sm font-extrabold text-indigo-300 mt-1">{{ stats.provider_info.rpm }}</div>
+                    <div class="text-sm font-extrabold text-[#5B4BFF] mt-1">{{ stats.provider_info.rpm }}</div>
                 </div>
-                <div class="px-2 border-l border-white/10">
+                <div class="px-2 border-l border-slate-100">
                     <div class="text-[9px] uppercase font-extrabold tracking-wider text-slate-400">TPM Limit</div>
-                    <div class="text-sm font-extrabold text-amber-300 mt-1">{{ stats.provider_info.tpm }}</div>
+                    <div class="text-sm font-extrabold text-amber-600 mt-1">{{ stats.provider_info.tpm }}</div>
                 </div>
-                <div class="px-2 border-l border-white/10">
+                <div class="px-2 border-l border-slate-100">
                     <div class="text-[9px] uppercase font-extrabold tracking-wider text-slate-400">Context Window</div>
-                    <div class="text-sm font-extrabold text-purple-300 mt-1">{{ stats.provider_info.context_window }}</div>
+                    <div class="text-sm font-extrabold text-purple-600 mt-1">{{ stats.provider_info.context_window }}</div>
                 </div>
             </div>
         </div>
