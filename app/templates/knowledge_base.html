@@ -3,7 +3,7 @@
 {% block header_title %}Knowledge Base{% endblock %}
 
 {% block content %}
-<div class="space-y-6" x-data="{ showModal: false, showEditModal: false, editItem: {id: '', category: '', title: '', content: '', is_active: true} }">
+<div class="space-y-6" x-data="{ showModal: false, showEditModal: false, viewTitle: '', viewContent: '', editItem: {id: '', category: '', title: '', content: '', is_active: true} }">
     
     <!-- Top Header & Action -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -144,10 +144,10 @@
                             <div class="flex items-center space-x-2">
                                 <span class="truncate block max-w-[200px] text-slate-600">{{ item.content }}</span>
                                 <button type="button"
-                                    data-title="{{ item.title }}"
-                                    data-content="{{ item.content }}"
+                                    data-title="{{ item.title | e }}"
+                                    data-content="{{ item.content | e }}"
                                     @click="viewTitle = $el.dataset.title; viewContent = $el.dataset.content"
-                                    class="text-[11px] text-indigo-600 hover:text-indigo-700 font-bold hover:underline shrink-0">View Full</button>
+                                    class="text-[11px] text-blue-600 hover:text-blue-700 font-bold hover:underline shrink-0 cursor-pointer">View Full</button>
                             </div>
                         </td>
                         <td class="px-6 py-4">
@@ -204,22 +204,22 @@
                         </td>
                     </tr>
                     {% endfor %}
-
-                    <!-- View Full Modal -->
-                    <div x-show="viewContent" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" x-cloak>
-                        <div class="bg-white border border-slate-200/80 rounded-2xl w-full max-w-2xl p-6 space-y-4 shadow-2xl flex flex-col max-h-[85vh]" @click.away="viewContent = ''">
-                            <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
-                                <h4 class="text-sm font-bold text-slate-900" x-text="viewTitle"></h4>
-                                <button type="button" @click="viewContent = ''" class="text-slate-400 hover:text-slate-600 text-xs">✕ Close</button>
-                            </div>
-                            <div class="overflow-y-auto text-xs text-slate-700 leading-relaxed font-medium bg-slate-50 p-4 rounded-xl border border-slate-200 whitespace-pre-wrap flex-1" x-text="viewContent"></div>
-                            <div class="flex justify-end pt-2 shrink-0">
-                                <button type="button" @click="viewContent = ''" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold">Done</button>
-                            </div>
-                        </div>
-                    </div>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- View Full Modal -->
+    <div x-show="viewContent" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" x-cloak>
+        <div class="bg-white border border-slate-200/80 rounded-2xl w-full max-w-2xl p-6 space-y-4 shadow-2xl flex flex-col max-h-[85vh]" @click.away="viewContent = ''">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+                <h4 class="text-sm font-bold text-slate-900" x-text="viewTitle"></h4>
+                <button type="button" @click="viewContent = ''" class="text-slate-400 hover:text-slate-600 text-xs cursor-pointer">✕ Close</button>
+            </div>
+            <div class="overflow-y-auto text-xs text-slate-700 leading-relaxed font-medium bg-slate-50 p-4 rounded-xl border border-slate-200 whitespace-pre-wrap flex-1" x-text="viewContent"></div>
+            <div class="flex justify-end pt-2 shrink-0">
+                <button type="button" @click="viewContent = ''" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">Done</button>
+            </div>
         </div>
     </div>
 
