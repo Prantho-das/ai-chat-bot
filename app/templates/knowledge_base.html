@@ -1,25 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Knowledge Base - MarketFlow Admin{% endblock %}
-{% block header_title %}Knowledge Base{% endblock %}
+{% block title %}Knowledge Base — MarketFlow AI{% endblock %}
+{% block header_title %}AI Knowledge Management{% endblock %}
 
 {% block content %}
 <div class="space-y-6" x-data="{ showModal: false, showEditModal: false, editItem: {id: '', category: '', title: '', content: '', is_active: true} }">
     
-    <!-- Top Header & Action -->
+    <!-- Top Action Bar -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h3 class="text-lg font-extrabold text-slate-900 tracking-tight">Business Knowledge Base</h3>
-            <p class="text-xs text-slate-500 font-medium">এই তথ্যগুলোর উপর ভিত্তি করে AI কাস্টমারদের প্রশ্নের অটোমেটিক উত্তর তৈরি করবে</p>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Business Knowledge Base</h1>
+            <p class="text-xs text-slate-500 font-medium mt-0.5">Manage business facts, products, FAQs and policies used by Gemini AI</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
             <form action="/admin/knowledge/generate-missing-embeddings" method="POST" class="inline">
-                <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md shadow-amber-600/20 flex items-center justify-center space-x-2 shrink-0">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    <span>Generate Missing Embeddings{% if missing_embed_count %} ({{ missing_embed_count }}){% endif %}</span>
+                <button type="submit" class="btn-secondary py-2 px-3 text-xs">
+                    <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i>
+                    <span>Generate Embeddings{% if missing_embed_count %} ({{ missing_embed_count }}){% endif %}</span>
                 </button>
             </form>
-            <button @click="showModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center space-x-2 shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <button @click="showModal = true" class="btn-primary py-2 px-4 text-xs">
+                <i data-lucide="plus" class="w-4 h-4"></i>
                 <span>Add Knowledge Item</span>
             </button>
         </div>
@@ -27,69 +27,69 @@
 
     <!-- Alert Notifications -->
     {% if saved %}
-    <div class="p-4 bg-emerald-50 border border-emerald-200/80 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center space-x-2 shadow-sm animate-fade-in">
-        <span class="text-base">✅</span>
-        <span>নলেজ বেস আইটেম সফলভাবে সংরক্ষিত হয়েছে! (Knowledge Base Updated)</span>
+    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center gap-2">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+        <span>Knowledge item successfully saved!</span>
     </div>
     {% endif %}
 
     {% if reembedded %}
-    <div class="p-4 bg-indigo-50 border border-indigo-200/80 rounded-2xl text-indigo-800 text-xs font-semibold flex items-center space-x-2 shadow-sm animate-fade-in">
-        <span class="text-base">✨</span>
-        <span>{{ reembedded }} টি নলেজ আইটেমের জন্য এম্বেডিং সফলভাবে তৈরি করা হয়েছে! (Embeddings Generated)</span>
+    <div class="p-4 bg-brand-50 border border-brand-200 rounded-2xl text-brand-700 text-xs font-semibold flex items-center gap-2">
+        <i data-lucide="sparkles" class="w-4 h-4 text-brand-500 shrink-0"></i>
+        <span>Generated vector embeddings for {{ reembedded }} knowledge items!</span>
     </div>
     {% endif %}
 
     {% if error %}
-    <div class="p-4 bg-rose-50 border border-rose-200/80 rounded-2xl text-rose-800 text-xs font-semibold flex items-center space-x-2 shadow-sm animate-fade-in">
-        <span class="text-base">⚠️</span>
-        <span>ফাইল আপলোড বা প্রসেস করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।</span>
+    <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs font-semibold flex items-center gap-2">
+        <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 shrink-0"></i>
+        <span>Failed to process knowledge upload. Please try again.</span>
     </div>
     {% endif %}
 
-    <!-- Stats Cards -->
+    <!-- 3 Stat Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm flex items-center space-x-4">
-            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-                📚
+        <div class="surface-card p-4 flex items-center space-x-4">
+            <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center font-bold">
+                <i data-lucide="book-open" class="w-5 h-5"></i>
             </div>
             <div>
-                <div class="text-xs font-semibold text-slate-400 uppercase">Total Entries</div>
+                <div class="text-[10px] font-extrabold text-slate-400 uppercase">Total Entries</div>
                 <div class="text-xl font-extrabold text-slate-900">{{ total_count }}</div>
             </div>
         </div>
-        <div class="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm flex items-center space-x-4">
+
+        <div class="surface-card p-4 flex items-center space-x-4">
             <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                ⚡
+                <i data-lucide="check-circle-2" class="w-5 h-5"></i>
             </div>
             <div>
-                <div class="text-xs font-semibold text-slate-400 uppercase">Active for AI</div>
+                <div class="text-[10px] font-extrabold text-slate-400 uppercase">Active for AI</div>
                 <div class="text-xl font-extrabold text-emerald-600">{{ active_count }}</div>
             </div>
         </div>
-        <div class="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm flex items-center space-x-4">
-            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                🏷️
+
+        <div class="surface-card p-4 flex items-center space-x-4">
+            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                <i data-lucide="layers" class="w-5 h-5"></i>
             </div>
             <div>
-                <div class="text-xs font-semibold text-slate-400 uppercase">Categories</div>
+                <div class="text-[10px] font-extrabold text-slate-400 uppercase">Categories</div>
                 <div class="text-xl font-extrabold text-slate-900">{{ categories_count }}</div>
             </div>
         </div>
     </div>
 
-    <!-- Search & Filter Bar -->
-    <div class="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm">
+    <!-- Search & Filter Toolbar -->
+    <div class="surface-card p-4">
         <form method="GET" action="/admin/knowledge" class="flex flex-col md:flex-row items-center gap-3">
             <div class="relative flex-1 w-full">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-                    🔍
-                </span>
-                <input type="text" name="q" value="{{ q }}" placeholder="Search title or content..." class="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                <input type="text" name="q" value="{{ q }}" placeholder="Search title or content..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-500">
             </div>
 
             <div class="flex items-center gap-2 w-full md:w-auto shrink-0">
-                <select name="category" class="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 transition-all">
+                <select name="category" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-brand-500">
                     <option value="all" {% if category_filter == 'all' %}selected{% endif %}>All Categories</option>
                     <option value="general" {% if category_filter == 'general' %}selected{% endif %}>General Info</option>
                     <option value="product" {% if category_filter == 'product' %}selected{% endif %}>Product & Pricing</option>
@@ -97,49 +97,49 @@
                     <option value="policy" {% if category_filter == 'policy' %}selected{% endif %}>Policy / Delivery</option>
                 </select>
 
-                <select name="status_filter" class="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 transition-all">
+                <select name="status_filter" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-brand-500">
                     <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
                     <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
                     <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive Only</option>
                 </select>
 
-                <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0">Filter</button>
+                <button type="submit" class="btn-primary py-2 px-4 text-xs">Filter</button>
                 {% if q or category_filter != 'all' or status_filter != 'all' %}
-                <a href="/admin/knowledge" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0">Clear</a>
+                <a href="/admin/knowledge" class="btn-secondary py-2 px-3 text-xs">Clear</a>
                 {% endif %}
             </div>
         </form>
     </div>
 
-    <!-- Knowledge Base Entries Table -->
-    <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+    <!-- Data Table -->
+    <div class="surface-card overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-600">
-                <thead class="bg-slate-50/80 text-[11px] uppercase font-bold tracking-wider text-slate-400 border-b border-slate-100">
+            <table class="w-full text-left text-xs sm:text-sm text-slate-600">
+                <thead class="bg-slate-50/80 text-[11px] uppercase font-bold text-slate-400 border-b border-slate-200/80">
                     <tr>
                         <th class="px-6 py-4">Category</th>
                         <th class="px-6 py-4">Title</th>
                         <th class="px-6 py-4">Content Snippet</th>
-                        <th class="px-6 py-4">Embedding</th>
+                        <th class="px-6 py-4">Vector Embedding</th>
                         <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4 text-right">Action</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100" x-data="{ viewContent: '', viewTitle: '' }">
+                <tbody class="divide-y divide-slate-200/60" x-data="{ viewContent: '', viewTitle: '' }">
                     {% for item in entries %}
-                    <tr class="hover:bg-slate-50/50 transition-colors">
+                    <tr class="hover:bg-slate-50/80 transition-colors">
                         <td class="px-6 py-4">
                             {% if item.category == 'product' %}
-                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 uppercase">Product</span>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">Product</span>
                             {% elif item.category == 'faq' %}
-                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/60 uppercase">FAQ</span>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 uppercase">FAQ</span>
                             {% elif item.category == 'policy' %}
-                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/60 uppercase">Policy</span>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 uppercase">Policy</span>
                             {% else %}
-                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60 uppercase">{{ item.category }}</span>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200 uppercase">{{ item.category }}</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 font-semibold text-slate-900">{{ item.title }}</td>
+                        <td class="px-6 py-4 font-bold text-slate-900">{{ item.title }}</td>
                         <td class="px-6 py-4 text-slate-500 text-xs max-w-xs">
                             <div class="flex items-center space-x-2">
                                 <span class="truncate block max-w-[200px] text-slate-600">{{ item.content }}</span>
@@ -147,37 +147,36 @@
                                     data-title="{{ item.title }}"
                                     data-content="{{ item.content }}"
                                     @click="viewTitle = $el.dataset.title; viewContent = $el.dataset.content"
-                                    class="text-[11px] text-indigo-600 hover:text-indigo-700 font-bold hover:underline shrink-0">View Full</button>
+                                    class="text-xs text-brand-500 hover:underline font-bold shrink-0">View Full</button>
                             </div>
                         </td>
                         <td class="px-6 py-4">
                             {% if item.embedding_json and item.embedding_json != "[]" %}
-                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60 inline-flex items-center space-x-1">
-                                <span>✨ Ready</span>
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                <i data-lucide="sparkles" class="w-3 h-3 text-blue-500"></i> Vector Ready
                             </span>
                             {% else %}
-                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/60 inline-flex items-center space-x-1">
-                                <span>⚠️ Missing</span>
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                <i data-lucide="alert-triangle" class="w-3 h-3 text-amber-500"></i> Missing
                             </span>
                             {% endif %}
                         </td>
                         <td class="px-6 py-4">
                             <form action="/admin/knowledge/toggle/{{ item.id }}" method="POST" class="inline">
-                                <button type="submit" class="group flex items-center space-x-1.5 focus:outline-none">
+                                <button type="submit">
                                     {% if item.is_active %}
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 group-hover:bg-emerald-100 transition-all flex items-center space-x-1">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        <span>Active</span>
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Active
                                     </span>
                                     {% else %}
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 group-hover:bg-slate-200 transition-all">
-                                        <span>Inactive</span>
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                                        Inactive
                                     </span>
                                     {% endif %}
                                 </button>
                             </form>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end space-x-2">
                                 <button type="button"
                                     data-id="{{ item.id }}"
@@ -186,35 +185,35 @@
                                     data-content="{{ item.content }}"
                                     data-active="{{ '1' if item.is_active else '0' }}"
                                     @click="editItem = { id: $el.dataset.id, category: $el.dataset.category, title: $el.dataset.title, content: $el.dataset.content, is_active: $el.dataset.active === '1' }; showEditModal = true"
-                                    class="text-xs text-indigo-600 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg font-semibold transition-all border border-indigo-100">Edit</button>
+                                    class="btn-secondary py-1 px-2.5 text-xs">Edit</button>
 
                                 <form action="/admin/knowledge/delete/{{ item.id }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this item?')">
-                                    <button type="submit" class="text-xs text-rose-600 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg font-semibold transition-all border border-rose-100">Delete</button>
+                                    <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200">Delete</button>
                                 </form>
                             </div>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-slate-400 text-xs font-medium">
-                            <div class="space-y-2">
-                                <span class="text-2xl block">🔍</span>
-                                <p>No knowledge items found matching your criteria.</p>
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                            <div class="max-w-xs mx-auto space-y-2">
+                                <i data-lucide="book-open" class="w-8 h-8 text-slate-300 mx-auto"></i>
+                                <p class="text-xs font-semibold text-slate-600">No knowledge items found</p>
                             </div>
                         </td>
                     </tr>
                     {% endfor %}
 
-                    <!-- View Full Modal -->
-                    <div x-show="viewContent" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" x-cloak>
-                        <div class="bg-white border border-slate-200/80 rounded-2xl w-full max-w-2xl p-6 space-y-4 shadow-2xl flex flex-col max-h-[85vh]" @click.away="viewContent = ''">
-                            <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
-                                <h4 class="text-sm font-bold text-slate-900" x-text="viewTitle"></h4>
-                                <button type="button" @click="viewContent = ''" class="text-slate-400 hover:text-slate-600 text-xs">✕ Close</button>
+                    <!-- View Full Content Modal -->
+                    <div x-show="viewContent" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" x-cloak style="display: none;">
+                        <div class="bg-white rounded-2xl w-full max-w-2xl p-6 space-y-4 shadow-2xl border border-slate-200" @click.away="viewContent = ''">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <h4 class="text-sm font-extrabold text-slate-900" x-text="viewTitle"></h4>
+                                <button type="button" @click="viewContent = ''" class="text-slate-400 hover:text-slate-600 text-xs">✕</button>
                             </div>
-                            <div class="overflow-y-auto text-xs text-slate-700 leading-relaxed font-medium bg-slate-50 p-4 rounded-xl border border-slate-200 whitespace-pre-wrap flex-1" x-text="viewContent"></div>
-                            <div class="flex justify-end pt-2 shrink-0">
-                                <button type="button" @click="viewContent = ''" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold">Done</button>
+                            <div class="overflow-y-auto text-xs text-slate-700 font-medium bg-slate-50 p-4 rounded-xl border border-slate-200 whitespace-pre-wrap max-h-96" x-text="viewContent"></div>
+                            <div class="flex justify-end">
+                                <button type="button" @click="viewContent = ''" class="btn-primary text-xs py-1.5 px-4">Done</button>
                             </div>
                         </div>
                     </div>
@@ -224,21 +223,21 @@
     </div>
 
     <!-- Add Entry Modal -->
-    <div x-show="showModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50" x-cloak>
-        <div class="bg-white border border-slate-200/80 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl" @click.away="showModal = false" x-data="{ tab: 'manual' }">
+    <div x-show="showModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" x-cloak style="display: none;">
+        <div class="bg-white rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl border border-slate-200" @click.away="showModal = false" x-data="{ tab: 'manual' }">
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                <h3 class="text-base font-bold text-slate-900">Add Knowledge Item</h3>
+                <h3 class="text-base font-extrabold text-slate-900">Add Knowledge Item</h3>
                 <div class="flex space-x-1 bg-slate-100 p-1 rounded-xl">
-                    <button type="button" @click="tab = 'manual'" :class="tab === 'manual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'" class="px-3 py-1 text-xs rounded-lg font-semibold transition-all">Manual Input</button>
-                    <button type="button" @click="tab = 'file'" :class="tab === 'file' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'" class="px-3 py-1 text-xs rounded-lg font-semibold transition-all">📄 Upload File</button>
+                    <button type="button" @click="tab = 'manual'" :class="tab === 'manual' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500'" class="px-3 py-1 text-xs rounded-lg font-semibold">Manual</button>
+                    <button type="button" @click="tab = 'file'" :class="tab === 'file' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500'" class="px-3 py-1 text-xs rounded-lg font-semibold">Upload File</button>
                 </div>
             </div>
 
-            <!-- Manual Form -->
+            <!-- Manual Entry Form -->
             <form x-show="tab === 'manual'" action="/admin/knowledge/add" method="POST" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Category</label>
-                    <select name="category" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Category</label>
+                    <select name="category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-800">
                         <option value="general">General Info</option>
                         <option value="product">Product & Pricing</option>
                         <option value="faq">FAQ</option>
@@ -246,28 +245,28 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Title</label>
-                    <input type="text" name="title" required placeholder="e.g. Delivery Charge & Delivery Time" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Title</label>
+                    <input type="text" name="title" required placeholder="e.g. Return Policy & Delivery Fees" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-800">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Content</label>
-                    <textarea name="content" rows="4" required placeholder="Write detailed instructions or facts..." class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"></textarea>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Content</label>
+                    <textarea name="content" rows="4" required placeholder="Detailed facts or instructions..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-800"></textarea>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <input type="checkbox" name="is_active" id="add_is_active" value="true" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                    <label for="add_is_active" class="text-xs font-medium text-slate-700">Enable immediately for AI bot</label>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="is_active" id="add_is_active" value="true" checked class="rounded border-slate-300 text-brand-500">
+                    <label for="add_is_active" class="text-xs font-medium text-slate-700">Enable for Gemini AI</label>
                 </div>
                 <div class="flex items-center justify-end space-x-3 pt-2">
-                    <button type="button" @click="showModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-600/20">Save Entry</button>
+                    <button type="button" @click="showModal = false" class="btn-secondary text-xs py-2 px-4">Cancel</button>
+                    <button type="submit" class="btn-primary text-xs py-2 px-4">Save Entry</button>
                 </div>
             </form>
 
             <!-- File Upload Form -->
             <form x-show="tab === 'file'" action="/admin/knowledge/upload" method="POST" enctype="multipart/form-data" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Category</label>
-                    <select name="category" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Category</label>
+                    <select name="category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-800">
                         <option value="general">General Info</option>
                         <option value="product">Product & Pricing</option>
                         <option value="faq">FAQ</option>
@@ -275,30 +274,29 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Upload File (.txt, .md, .csv, .json)</label>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">File (.txt, .md, .csv, .json)</label>
                     <input type="file" name="file" accept=".txt,.md,.csv,.json" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600">
                 </div>
-
                 <div class="flex items-center justify-end space-x-3 pt-2">
-                    <button type="button" @click="showModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-600/20">Upload & Save</button>
+                    <button type="button" @click="showModal = false" class="btn-secondary text-xs py-2 px-4">Cancel</button>
+                    <button type="submit" class="btn-primary text-xs py-2 px-4">Upload File</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Edit Entry Modal -->
-    <div x-show="showEditModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50" x-cloak>
-        <div class="bg-white border border-slate-200/80 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl" @click.away="showEditModal = false">
+    <div x-show="showEditModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" x-cloak style="display: none;">
+        <div class="bg-white rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl border border-slate-200" @click.away="showEditModal = false">
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                <h3 class="text-base font-bold text-slate-900">Edit Knowledge Item</h3>
-                <button type="button" @click="showEditModal = false" class="text-slate-400 hover:text-slate-600 text-xs">✕ Close</button>
+                <h3 class="text-base font-extrabold text-slate-900">Edit Knowledge Item</h3>
+                <button type="button" @click="showEditModal = false" class="text-slate-400 hover:text-slate-600 text-xs">✕</button>
             </div>
 
             <form :action="'/admin/knowledge/edit/' + editItem.id" method="POST" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Category</label>
-                    <select name="category" x-model="editItem.category" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Category</label>
+                    <select name="category" x-model="editItem.category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-800">
                         <option value="general">General Info</option>
                         <option value="product">Product & Pricing</option>
                         <option value="faq">FAQ</option>
@@ -306,23 +304,24 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Title</label>
-                    <input type="text" name="title" x-model="editItem.title" required class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Title</label>
+                    <input type="text" name="title" x-model="editItem.title" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-800">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Content</label>
-                    <textarea name="content" rows="5" x-model="editItem.content" required class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600"></textarea>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Content</label>
+                    <textarea name="content" rows="5" x-model="editItem.content" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-800"></textarea>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <input type="checkbox" name="is_active" id="edit_is_active" value="true" :checked="editItem.is_active" @change="editItem.is_active = $el.checked" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="is_active" id="edit_is_active" value="true" :checked="editItem.is_active" @change="editItem.is_active = $el.checked" class="rounded border-slate-300 text-brand-500">
                     <label for="edit_is_active" class="text-xs font-medium text-slate-700">Active status for AI bot</label>
                 </div>
                 <div class="flex items-center justify-end space-x-3 pt-2">
-                    <button type="button" @click="showEditModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-600/20">Update Knowledge</button>
+                    <button type="button" @click="showEditModal = false" class="btn-secondary text-xs py-2 px-4">Cancel</button>
+                    <button type="submit" class="btn-primary text-xs py-2 px-4">Update Knowledge</button>
                 </div>
             </form>
         </div>
     </div>
+
 </div>
 {% endblock %}

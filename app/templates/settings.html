@@ -1,137 +1,102 @@
-{% extends "base.html" %} {% block title %}Bot Settings - MarketFlow Admin{%
-endblock %} {% block header_title %}Settings & Integrations{% endblock %} {%
-block content %}
-<div
-  class="space-y-6 max-w-4xl"
-  x-data="{ activeTab: new URLSearchParams(window.location.search).get('tab') || 'general' }"
->
-  <div class="flex items-center justify-between">
+{% extends "base.html" %}
+{% block title %}Bot Settings — MarketFlow AI{% endblock %}
+{% block header_title %}Bot Settings & Integrations{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-5xl" x-data="{ activeTab: new URLSearchParams(window.location.search).get('tab') || 'general' }">
+  
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
     <div>
-      <h3 class="text-lg font-bold text-slate-900">
-        Bot Settings & Integrations
-      </h3>
-      <p class="text-xs text-slate-500 font-medium">
-        সহজ চ্যাটবট, সোশ্যাল ও মার্কেটিং টুলস সেটআপ করুন
-      </p>
+      <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Bot Settings & Integrations</h1>
+      <p class="text-xs text-slate-500 font-medium mt-0.5">Configure AI persona, social messaging APIs, Google Calendar, and marketing tools</p>
     </div>
-    <span
-      class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1.5 rounded-full border border-indigo-100 flex items-center space-x-1.5"
-    >
-      <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
-      <span>Easy Setup Manager</span>
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200 shadow-2xs">
+      <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+      <span>Setup Manager</span>
     </span>
   </div>
 
   {% if request.query_params.get('msg') == 'migration_success' %}
-  <div
-    class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in"
-  >
-    <div class="flex items-center space-x-2">
-      <span>✅</span>
-      <span
-        >ডাটাবেস মাইগ্রেশন সফলভাবে সম্পন্ন হয়েছে! (Database Schema Sync
-        Complete)</span
-      >
-    </div>
+  <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center gap-2">
+    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+    <span>Database Schema Migration Completed Successfully!</span>
   </div>
-  {% endif %} {% if request.query_params.get('saved') or message %}
-  <div
-    class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in"
-  >
-    <div class="flex items-center space-x-2">
-      <span>✅</span>
-      <span
-        >সেটিংস সফলভাবে সংরক্ষিত ও আপডেট করা হয়েছে! (Settings Saved
-        Successfully)</span
-      >
-    </div>
+  {% endif %}
+
+  {% if request.query_params.get('saved') or message %}
+  <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center gap-2">
+    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+    <span>Settings Saved & Updated Successfully!</span>
   </div>
-  {% endif %} {% if not simplified_client_mode %}
-  <div
-    class="p-4 bg-slate-900 text-white rounded-2xl flex items-center justify-between shadow-md"
-  >
+  {% endif %}
+
+  {% if not simplified_client_mode %}
+  <div class="dark-glass-panel bg-[#0B1020] text-white rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-800 shadow-lg">
     <div class="flex items-center space-x-3">
-      <div class="p-2.5 bg-slate-800 rounded-xl text-indigo-400">⚡</div>
+      <div class="p-2.5 bg-slate-800/80 rounded-xl text-brand-accent">
+        <i data-lucide="database" class="w-5 h-5"></i>
+      </div>
       <div>
-        <h4 class="text-xs font-bold">Database Schema Migration</h4>
-        <p class="text-[11px] text-slate-400">
-          কোডবেসে নতুন কোনো SQL ফিল্ড বা মডেল যুক্ত হলে ডাটাবেস সিঙ্ক করতে এই
-          বাটন চাপুন।
-        </p>
+        <h4 class="text-xs font-extrabold text-white">Database Schema Migration</h4>
+        <p class="text-[11px] text-slate-400">Click to sync new SQL fields or database model changes in production.</p>
       </div>
     </div>
     <form action="/admin/migrate-db" method="POST">
-      <button
-        type="submit"
-        onclick="
-          return confirm('আপনি কি নিশ্চিত যে ডাটাবেস মাইগ্রেট করতে চান?');
-        "
-        class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center space-x-1.5"
-      >
-        <span>🔄 Sync Database Schema</span>
+      <button type="submit" onclick="return confirm('Confirm database schema migration?');" class="btn-primary text-xs py-2 px-3.5">
+        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+        <span>Sync Database Schema</span>
       </button>
     </form>
   </div>
   {% endif %}
 
-  <div
-    class="grid {% if simplified_client_mode %}grid-cols-1 max-w-xs{% else %}grid-cols-2 sm:grid-cols-5{% endif %} gap-3"
-  >
-    <button
-      @click="activeTab = 'general'"
-      :class="activeTab === 'general' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
-      class="p-3.5 rounded-2xl text-left transition-all"
-    >
-      <div class="text-lg mb-1">🤖</div>
-      <div class="text-xs font-bold">Step 1: AI Persona</div>
-      <div class="text-[10px] opacity-80 font-medium">বটের উত্তর ও সাইজ</div>
+  <!-- Tabbed Section Navigation Buttons -->
+  <div class="grid {% if simplified_client_mode %}grid-cols-1 max-w-xs{% else %}grid-cols-2 sm:grid-cols-5{% endif %} gap-3">
+    
+    <button @click="activeTab = 'general'"
+      :class="activeTab === 'general' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25 ring-2 ring-brand-500' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+      class="p-3.5 rounded-2xl text-left transition-all">
+      <div class="flex items-center gap-2 text-xs font-bold mb-1">
+        <i data-lucide="bot" class="w-4 h-4"></i> Step 1: AI Persona
+      </div>
+      <div class="text-[10px] opacity-80 font-medium">Bot prompts & length</div>
     </button>
 
     {% if not simplified_client_mode %}
-    <button
-      @click="activeTab = 'credentials'"
-      :class="activeTab === 'credentials' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
-      class="p-3.5 rounded-2xl text-left transition-all"
-    >
-      <div class="text-lg mb-1">🔑</div>
-      <div class="text-xs font-bold">Step 2: Social APIs</div>
+    <button @click="activeTab = 'credentials'"
+      :class="activeTab === 'credentials' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25 ring-2 ring-brand-500' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+      class="p-3.5 rounded-2xl text-left transition-all">
+      <div class="flex items-center gap-2 text-xs font-bold mb-1">
+        <i data-lucide="key" class="w-4 h-4"></i> Step 2: Social APIs
+      </div>
       <div class="text-[10px] opacity-80 font-medium">FB, WA & Gemini Keys</div>
     </button>
 
-    <button
-      @click="activeTab = 'calendar'"
-      :class="activeTab === 'calendar' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
-      class="p-3.5 rounded-2xl text-left transition-all"
-    >
-      <div class="text-lg mb-1">📅</div>
-      <div class="text-xs font-bold">Step 3: Calendar</div>
-      <div class="text-[10px] opacity-80 font-medium">
-        Google Calendar Setup
+    <button @click="activeTab = 'calendar'"
+      :class="activeTab === 'calendar' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25 ring-2 ring-brand-500' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+      class="p-3.5 rounded-2xl text-left transition-all">
+      <div class="flex items-center gap-2 text-xs font-bold mb-1">
+        <i data-lucide="calendar" class="w-4 h-4"></i> Step 3: Calendar
       </div>
+      <div class="text-[10px] opacity-80 font-medium">Google Calendar Setup</div>
     </button>
 
-    <button
-      @click="activeTab = 'marketing'"
-      :class="activeTab === 'marketing' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
-      class="p-3.5 rounded-2xl text-left transition-all"
-    >
-      <div class="text-lg mb-1">🚀</div>
-      <div class="text-xs font-bold">Step 4: Marketing</div>
-      <div class="text-[10px] opacity-80 font-medium">
-        Mailchimp, Push, Sheets
+    <button @click="activeTab = 'marketing'"
+      :class="activeTab === 'marketing' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25 ring-2 ring-brand-500' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+      class="p-3.5 rounded-2xl text-left transition-all">
+      <div class="flex items-center gap-2 text-xs font-bold mb-1">
+        <i data-lucide="megaphone" class="w-4 h-4"></i> Step 4: Marketing
       </div>
+      <div class="text-[10px] opacity-80 font-medium">Mailchimp, Push, Sheets</div>
     </button>
 
-    <button
-      @click="activeTab = 'keywords'"
-      :class="activeTab === 'keywords' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-600 ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
-      class="p-3.5 rounded-2xl text-left transition-all"
-    >
-      <div class="text-lg mb-1">📌</div>
-      <div class="text-xs font-bold">Step 5: Keywords</div>
-      <div class="text-[10px] opacity-80 font-medium">
-        স্পেশাল ট্র্রিগার ম্যানেজার
+    <button @click="activeTab = 'keywords'"
+      :class="activeTab === 'keywords' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25 ring-2 ring-brand-500' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+      class="p-3.5 rounded-2xl text-left transition-all">
+      <div class="flex items-center gap-2 text-xs font-bold mb-1">
+        <i data-lucide="zap" class="w-4 h-4"></i> Step 5: Triggers
       </div>
+      <div class="text-[10px] opacity-80 font-medium">Keyword trigger manager</div>
     </button>
     {% endif %}
   </div>
