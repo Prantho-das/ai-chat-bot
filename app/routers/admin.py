@@ -1430,7 +1430,7 @@ async def switch_active_company(request: Request, company_id: str = Form(...)):
 async def create_company(
     request: Request,
     name: str = Form(...),
-    slug: str = Form(...),
+    slug: str = Form(""),
     description: str = Form(""),
     system_prompt: str = Form(""),
     ai_model: str = Form("gemini-2.5-flash"),
@@ -1441,21 +1441,38 @@ async def create_company(
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
     try:
+        clean_name = name.strip()
+        if not clean_name:
+            return RedirectResponse(url="/admin/companies?error=name_required", status_code=status.HTTP_303_SEE_OTHER)
+
+        raw_slug = slug.strip().lower().replace(" ", "-") if slug else clean_name.lower().replace(" ", "-")
+        # Remove special characters from slug
+        import re
+        clean_slug = re.sub(r'[^a-z0-9_-]', '', raw_slug) or f"company-{int(datetime.utcnow().timestamp())}"
+
+        # Check for slug collision and ensure unique slug
+        existing_res = await db.execute(select(Company).where(Company.slug == clean_slug))
+        if existing_res.scalar_one_or_none():
+            clean_slug = f"{clean_slug}-{int(datetime.utcnow().timestamp())}"
+
         new_company = Company(
-            name=name.strip(),
-            slug=slug.strip().lower().replace(" ", "-"),
-            description=description.strip(),
+            name=clean_name,
+            slug=clean_slug,
+            description=description.strip() if description else "",
             system_prompt=system_prompt.strip() or DEFAULT_SYSTEM_PROMPT,
-            ai_model=ai_model,
-            temperature=temperature
+            ai_model=ai_model or "gemini-2.5-flash",
+            temperature=float(temperature) if temperature is not None else 0.7
         )
         db.add(new_company)
+        await db.flush()
+        new_comp_id = new_company.id
         await db.commit()
-        await log_service.log("SUCCESS", "Company Created", f"Created company '{name}' with slug '{slug}'")
-        return RedirectResponse(url=f"/admin/companies/{new_company.id}?msg=company_created", status_code=status.HTTP_303_SEE_OTHER)
+        await log_service.log("SUCCESS", "Company Created", f"Created company '{clean_name}' with slug '{clean_slug}' (ID #{new_comp_id})")
+        return RedirectResponse(url=f"/admin/companies/{new_comp_id}?msg=company_created", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
+        await db.rollback()
         await log_service.log("ERROR", "Company Create Error", str(e))
-        return RedirectResponse(url="/admin/companies?error=create_failed", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=f"/admin/companies?error=create_failed", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/companies/edit/{company_id}")
 async def edit_company(

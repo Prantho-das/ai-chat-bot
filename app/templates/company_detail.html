@@ -6,6 +6,43 @@
 {% block content %}
 <div class="space-y-6">
 
+    {% if request.query_params.get("msg") == "company_created" %}
+    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between">
+        <span>✅ Company entity created successfully! Welcome to your new workspace.</span>
+        <a href="/admin/companies/{{ company.id }}" class="text-emerald-600 hover:text-emerald-900">✕</a>
+    </div>
+    {% elif request.query_params.get("msg") == "company_updated" %}
+    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between">
+        <span>✅ Company settings & AI persona updated successfully!</span>
+        <a href="/admin/companies/{{ company.id }}" class="text-emerald-600 hover:text-emerald-900">✕</a>
+    </div>
+    {% elif request.query_params.get("msg") == "channel_linked" %}
+    <div class="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold flex items-center justify-between">
+        <span>✅ New channel linked to {{ company.name }}!</span>
+        <a href="/admin/companies/{{ company.id }}" class="text-blue-600 hover:text-blue-900">✕</a>
+    </div>
+    {% elif request.query_params.get("msg") == "channel_deleted" %}
+    <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-between">
+        <span>🗑️ Channel removed from {{ company.name }}.</span>
+        <a href="/admin/companies/{{ company.id }}" class="text-amber-600 hover:text-amber-900">✕</a>
+    </div>
+    {% elif request.query_params.get("msg") == "user_created" %}
+    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between">
+        <span>✅ Staff account created for {{ company.name }}!</span>
+        <a href="/admin/companies/{{ company.id }}" class="text-emerald-600 hover:text-emerald-900">✕</a>
+    </div>
+    {% elif request.query_params.get("msg") == "user_deleted" %}
+    <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-between">
+        <span>🗑️ Staff account removed.</span>
+        <a href="/admin/companies/{{ company.id }}" class="text-amber-600 hover:text-amber-900">✕</a>
+    </div>
+    {% elif request.query_params.get("error") %}
+    <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center justify-between">
+        <span>⚠️ Action failed: {{ request.query_params.get("error") }}</span>
+        <a href="/admin/companies/{{ company.id }}" class="text-rose-600 hover:text-rose-900">✕</a>
+    </div>
+    {% endif %}
+
     <!-- Top Header Banner -->
     <div class="saas-card p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 text-white relative overflow-hidden">
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
