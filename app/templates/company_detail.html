@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company.name }} — Company Workspace — Piku AI{% endblock %}
+{% block header_title %}{{ company.name }} Workspace{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Header Banner -->
+    <div class="saas-card p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 text-white relative overflow-hidden">
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="space-y-2">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold backdrop-blur-md border border-white/15 text-indigo-200">
+                    <a href="/admin/companies" class="hover:text-white transition-colors flex items-center gap-1">
+                        <span>←</span> All Companies
+                    </a>
+                    <span>•</span>
+                    <span>ID: {{ company.id }}</span>
+                    <span>•</span>
+                    <span class="text-emerald-300 font-mono">{{ company.slug }}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/30 border border-indigo-400/40 text-white flex items-center justify-center font-black text-xl shadow-inner">
+                        {{ company.name[:2]|upper }}
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+                            {{ company.name }}
+                            <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Active</span>
+                        </h1>
+                        <p class="text-xs text-slate-300">{{ company.description or "No description provided for this business entity." }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="openEditCompanyModal()" class="saas-btn-primary text-xs flex items-center gap-1.5 py-2 px-4 bg-indigo-600 hover:bg-indigo-500">
+                    <span>✏️</span> Edit Settings & AI
+                </button>
+                <form action="/admin/companies/switch" method="POST" class="inline m-0">
+                    <input type="hidden" name="company_id" value="{{ company.id }}">
+                    <button type="submit" class="text-xs font-bold text-white bg-white/15 hover:bg-white/25 border border-white/20 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5">
+                        <span>🎯</span> Set As Active Filter
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="absolute right-0 top-0 bottom-0 opacity-5 flex items-center pr-8 pointer-events-none">
+            <span class="text-9xl">🏢</span>
+        </div>
+    </div>
+
+    <!-- Quick Stats Metric Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a href="/admin/conversations" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="saas-card saas-card-hover p-4 bg-white border border-slate-200/80 block">
+            <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Conversations</span>
+                <span class="text-lg">💬</span>
+            </div>
+            <div class="text-2xl font-black text-slate-900">{{ stats.total_conversations }}</div>
+            <span class="text-[11px] text-blue-600 font-semibold hover:underline mt-1 inline-block">View Chats →</span>
+        </a>
+
+        <a href="/admin/leads" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="saas-card saas-card-hover p-4 bg-white border border-slate-200/80 block">
+            <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Captured Leads</span>
+                <span class="text-lg">🔥</span>
+            </div>
+            <div class="text-2xl font-black text-amber-600">{{ stats.total_leads }}</div>
+            <span class="text-[11px] text-amber-600 font-semibold hover:underline mt-1 inline-block">View Leads →</span>
+        </a>
+
+        <a href="/admin/knowledge" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="saas-card saas-card-hover p-4 bg-white border border-slate-200/80 block">
+            <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">RAG Knowledge</span>
+                <span class="text-lg">🧠</span>
+            </div>
+            <div class="text-2xl font-black text-indigo-600">{{ stats.total_kb }}</div>
+            <span class="text-[11px] text-indigo-600 font-semibold hover:underline mt-1 inline-block">Manage Docs →</span>
+        </a>
+
+        <div class="saas-card p-4 bg-white border border-slate-200/80">
+            <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Linked Channels</span>
+                <span class="text-lg">🔗</span>
+            </div>
+            <div class="text-2xl font-black text-emerald-600">{{ stats.total_channels }}</div>
+            <span class="text-[11px] text-slate-400 font-medium mt-1 inline-block">{{ channels|length }} Active</span>
+        </div>
+    </div>
+
+    <!-- Main Grid: Left Details & Right Integrations -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Column 1 & 2: Overview & AI Personality & Recent Activity -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- AI Personality & Configuration Card -->
+            <div class="saas-card p-6">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">🤖</span>
+                        <div>
+                            <h2 class="text-base font-black text-slate-900">AI Personality & Persona Rules</h2>
+                            <p class="text-xs text-slate-500">System prompt and AI model powering responses for this company</p>
+                        </div>
+                    </div>
+                    <button onclick="openEditCompanyModal()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-200 transition-all">
+                        ✏️ Edit AI
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                            <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">AI Model</span>
+                            <span class="font-bold text-slate-800 text-xs">{{ company.ai_model or 'gemini-2.5-flash' }}</span>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                            <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Temperature</span>
+                            <span class="font-bold text-slate-800 text-xs">{{ company.temperature or 0.7 }}</span>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                            <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Slug Identifier</span>
+                            <span class="font-mono text-slate-700 text-xs font-semibold">{{ company.slug }}</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Custom System Prompt</label>
+                        <div class="p-3.5 bg-slate-900 text-slate-200 rounded-xl text-xs font-mono leading-relaxed max-h-48 overflow-y-auto custom-scrollbar border border-slate-800">
+                            {{ company.system_prompt or "Default AI system prompt active." }}
+                        </div>
+                    </div>
+
+                    {% if company.fallback_message %}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Fallback Message</label>
+                        <div class="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs text-amber-900 font-medium">
+                            {{ company.fallback_message }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Conversations for this company -->
+            <div class="saas-card p-6">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">💬</span>
+                        <div>
+                            <h2 class="text-base font-black text-slate-900">Recent Conversations</h2>
+                            <p class="text-xs text-slate-500">Latest active customer conversations for {{ company.name }}</p>
+                        </div>
+                    </div>
+                    <a href="/admin/conversations" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                        View All →
+                    </a>
+                </div>
+
+                <div class="space-y-2.5">
+                    {% for conv in recent_conversations %}
+                    <div class="p-3 rounded-xl border border-slate-200/80 hover:border-blue-300 bg-slate-50/50 hover:bg-white transition-all flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                                {% if conv.platform == 'messenger' %}🔵{% elif conv.platform == 'whatsapp' %}🟢{% else %}📷{% endif %}
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-xs">{{ conv.sender_name or conv.sender_id }}</h4>
+                                <span class="text-[10px] text-slate-500 font-mono">{{ conv.platform|capitalize }} • {{ conv.created_at.strftime('%d %b, %I:%M %p') if conv.created_at else '' }}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold {% if conv.status == 'active' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-slate-100 text-slate-600{% endif %}">
+                                {{ conv.status|capitalize }}
+                            </span>
+                            <a href="/admin/conversations/{{ conv.id }}" class="text-xs font-bold text-blue-600 hover:text-blue-800 p-1">
+                                Open ↗
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-6 text-slate-400 text-xs">
+                        No conversations recorded yet for this company.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Recent Leads for this company -->
+            <div class="saas-card p-6">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">🔥</span>
+                        <div>
+                            <h2 class="text-base font-black text-slate-900">Recent Captured Leads</h2>
+                            <p class="text-xs text-slate-500">High-intent customers extracted by AI</p>
+                        </div>
+                    </div>
+                    <a href="/admin/leads" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="text-xs font-bold text-amber-700 hover:text-amber-900 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                        View All Leads →
+                    </a>
+                </div>
+
+                <div class="space-y-2.5">
+                    {% for lead in recent_leads %}
+                    <div class="p-3 rounded-xl border border-slate-200/80 hover:border-amber-300 bg-slate-50/50 hover:bg-white transition-all flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
+                                🎯
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-xs">{{ lead.customer_name or lead.business_name or 'Anonymous Customer' }}</h4>
+                                <div class="flex items-center gap-2 text-[10px] text-slate-500">
+                                    {% if lead.phone %}<span>📞 {{ lead.phone }}</span>{% endif %}
+                                    {% if lead.intent %}<span class="text-indigo-600 font-semibold">• {{ lead.intent }}</span>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            {{ lead.status }}
+                        </span>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-6 text-slate-400 text-xs">
+                        No leads captured yet for this company.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Column 3: Linked Channels & Staff Users -->
+        <div class="space-y-6">
+
+            <!-- Linked Channels Section -->
+            <div class="saas-card p-6">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                    <div>
+                        <h2 class="text-base font-black text-slate-900 flex items-center gap-1.5">
+                            <span>🔗</span> Linked Channels
+                        </h2>
+                        <p class="text-[11px] text-slate-500">Pages & WhatsApp numbers mapped to {{ company.name }}</p>
+                    </div>
+                    <button onclick="document.getElementById('linkChannelModal').classList.remove('hidden')" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200">
+                        + Link Channel
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    {% for channel in channels %}
+                    <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-all space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg">
+                                    {% if channel.platform == 'messenger' %}🔵{% elif channel.platform == 'whatsapp' %}🟢{% else %}📷{% endif %}
+                                </span>
+                                <div>
+                                    <h4 class="font-bold text-slate-900 text-xs">{{ channel.account_name or channel.platform_account_id }}</h4>
+                                    <span class="text-[10px] text-slate-500 font-mono">{{ channel.platform|capitalize }} ID: {{ channel.platform_account_id }}</span>
+                                </div>
+                            </div>
+                            <form action="/admin/channels/delete/{{ channel.id }}" method="POST" onsubmit="return confirm('Unlink this channel from {{ company.name }}?')">
+                                <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 text-xs">🗑️</button>
+                            </form>
+                        </div>
+                        <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] text-slate-500">
+                            <span>Status:</span>
+                            <span class="font-bold text-emerald-600">● Connected</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-6 text-slate-400 text-xs">
+                        No dedicated channels linked yet. Click '+ Link Channel' to connect FB Page or WhatsApp.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Company Staff Logins -->
+            <div class="saas-card p-6">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                    <div>
+                        <h2 class="text-base font-black text-slate-900 flex items-center gap-1.5">
+                            <span>👥</span> Staff Accounts
+                        </h2>
+                        <p class="text-[11px] text-slate-500">Users with access locked to {{ company.name }}</p>
+                    </div>
+                    <button onclick="document.getElementById('createUserModal').classList.remove('hidden')" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                        + Add Staff
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    {% for u in company_users %}
+                    <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-all space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                                    👤
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-900 text-xs">{{ u.username }}</h4>
+                                    <span class="text-[10px] text-slate-500">{{ u.full_name or 'Company Staff' }}</span>
+                                </div>
+                            </div>
+                            <form action="/admin/company-users/delete/{{ u.id }}" method="POST" onsubmit="return confirm('Delete user {{ u.username }}?')">
+                                <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 text-xs">🗑️</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-6 text-slate-400 text-xs">
+                        No assigned staff users. Click '+ Add Staff' to create a login for this company.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal: Edit Company & AI Prompt -->
+<div id="editCompanyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-black text-slate-900">Configure Company AI Persona</h3>
+            <button onclick="document.getElementById('editCompanyModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+        <form action="/admin/companies/edit/{{ company.id }}" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Company Name</label>
+                <input type="text" name="name" value="{{ company.name }}" required class="saas-input w-full">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Description</label>
+                <input type="text" name="description" value="{{ company.description or '' }}" class="saas-input w-full">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">AI Model</label>
+                <select name="ai_model" class="saas-input w-full">
+                    <option value="gemini-2.5-flash" {% if company.ai_model == 'gemini-2.5-flash' %}selected{% endif %}>Gemini 2.5 Flash</option>
+                    <option value="gemini-2.5-pro" {% if company.ai_model == 'gemini-2.5-pro' %}selected{% endif %}>Gemini 2.5 Pro</option>
+                    <option value="gpt-4o-mini" {% if company.ai_model == 'gpt-4o-mini' %}selected{% endif %}>GPT-4o Mini</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Custom System Prompt</label>
+                <textarea name="system_prompt" rows="5" class="saas-input w-full font-mono text-xs">{{ company.system_prompt or '' }}</textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Fallback Message</label>
+                <textarea name="fallback_message" rows="2" class="saas-input w-full text-xs">{{ company.fallback_message or '' }}</textarea>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="document.getElementById('editCompanyModal').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
+                <button type="submit" class="saas-btn-primary text-xs px-5 py-2">Save Configurations</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Link Channel -->
+<div id="linkChannelModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-black text-slate-900">Link Channel to {{ company.name }}</h3>
+            <button onclick="document.getElementById('linkChannelModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+        <form action="/admin/channels/create" method="POST" class="space-y-4">
+            <input type="hidden" name="company_id" value="{{ company.id }}">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Platform</label>
+                    <select name="platform" class="saas-input w-full">
+                        <option value="messenger">Facebook Messenger Page</option>
+                        <option value="whatsapp">WhatsApp Business Number</option>
+                        <option value="instagram">Instagram Account</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Channel Label</label>
+                    <input type="text" name="account_name" placeholder="e.g. Official Page" class="saas-input w-full">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Platform Account ID (Page ID / Phone ID)</label>
+                <input type="text" name="platform_account_id" required placeholder="e.g. 102938475612345" class="saas-input w-full font-mono">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Page Access Token</label>
+                <input type="text" name="access_token" placeholder="EAA..." class="saas-input w-full font-mono text-xs">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Webhook Verify Token</label>
+                <input type="text" name="verify_token" placeholder="Optional custom verify token" class="saas-input w-full">
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="document.getElementById('linkChannelModal').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
+                <button type="submit" class="saas-btn-primary text-xs px-5 py-2">Link Channel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Create Staff User -->
+<div id="createUserModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-black text-slate-900">Create Staff for {{ company.name }}</h3>
+            <button onclick="document.getElementById('createUserModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+        <form action="/admin/company-users/create" method="POST" class="space-y-4">
+            <input type="hidden" name="role" value="company_user">
+            <input type="hidden" name="company_id" value="{{ company.id }}">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+                <input type="text" name="full_name" placeholder="e.g. Support Agent" class="saas-input w-full">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Username (Login ID)</label>
+                <input type="text" name="username" required placeholder="e.g. agent_1" class="saas-input w-full font-mono">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Password</label>
+                <input type="password" name="password" required placeholder="••••••••" class="saas-input w-full">
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="document.getElementById('createUserModal').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
+                <button type="submit" class="saas-btn-primary text-xs px-5 py-2">Create Staff User</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditCompanyModal() {
+    document.getElementById('editCompanyModal').classList.remove('hidden');
+}
+</script>
+{% endblock %}

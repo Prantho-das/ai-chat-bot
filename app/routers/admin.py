@@ -19,7 +19,7 @@ except ImportError:
     SignatureExpired = Exception
 
 from app.database import get_db, engine, Base
-from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog, Lead, QAIssueReport, Company, ChannelAccount
+from app.models import Conversation, Message, KnowledgeEntry, BotSetting, Appointment, SystemLog, Lead, QAIssueReport, Company, ChannelAccount, AdminUser
 from app.services.ai_service import ai_service, DEFAULT_FALLBACK_MESSAGE, DEFAULT_SYSTEM_PROMPT
 from app.services.log_service import log_service
 from app.helpers import get_bot_setting, upsert_bot_setting
@@ -1363,6 +1363,58 @@ async def companies_page(request: Request, db: AsyncSession = Depends(get_db)):
         "company_users": company_users
     })
 
+@router.get("/companies/{company_id}", response_class=HTMLResponse)
+async def company_detail_page(company_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user_ctx = get_current_user_context(request)
+    if not user_ctx:
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    if user_ctx.get("role") != "super_admin":
+        if user_ctx.get("company_id") != company_id:
+            return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
+
+    comp = await db.get(Company, company_id)
+    if not comp:
+        return RedirectResponse(url="/admin/companies", status_code=status.HTTP_302_FOUND)
+
+    # Channels for this company
+    channels_res = await db.execute(select(ChannelAccount).where(ChannelAccount.company_id == company_id).order_by(ChannelAccount.id.desc()))
+    channels = channels_res.scalars().all()
+
+    # Company staff users
+    users_res = await db.execute(select(AdminUser).where(AdminUser.company_id == company_id).order_by(AdminUser.id.desc()))
+    company_users = users_res.scalars().all()
+
+    # Stats
+    total_convs = await db.scalar(select(func.count(Conversation.id)).where(Conversation.company_id == company_id)) or 0
+    total_leads = await db.scalar(select(func.count(Lead.id)).where(Lead.company_id == company_id)) or 0
+    total_kb = await db.scalar(select(func.count(KnowledgeEntry.id)).where(KnowledgeEntry.company_id == company_id)) or 0
+
+    # Recent conversations (limit 5)
+    conv_res = await db.execute(select(Conversation).where(Conversation.company_id == company_id).order_by(Conversation.updated_at.desc()).limit(5))
+    recent_conversations = conv_res.scalars().all()
+
+    # Recent leads (limit 5)
+    lead_res = await db.execute(select(Lead).where(Lead.company_id == company_id).order_by(Lead.created_at.desc()).limit(5))
+    recent_leads = lead_res.scalars().all()
+
+    stats = {
+        "total_conversations": total_convs,
+        "total_leads": total_leads,
+        "total_kb": total_kb,
+        "total_channels": len(channels)
+    }
+
+    return await render_admin_page("company_detail.html", request, db, {
+        "page_title": f"{comp.name} — Workspace",
+        "company": comp,
+        "channels": channels,
+        "company_users": company_users,
+        "stats": stats,
+        "recent_conversations": recent_conversations,
+        "recent_leads": recent_leads
+    })
+
 @router.post("/companies/switch")
 async def switch_active_company(request: Request, company_id: str = Form(...)):
     user_ctx = get_current_user_context(request)
@@ -1400,10 +1452,10 @@ async def create_company(
         db.add(new_company)
         await db.commit()
         await log_service.log("SUCCESS", "Company Created", f"Created company '{name}' with slug '{slug}'")
+        return RedirectResponse(url=f"/admin/companies/{new_company.id}?msg=company_created", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
         await log_service.log("ERROR", "Company Create Error", str(e))
-
-    return RedirectResponse(url="/admin/companies?msg=company_created", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url="/admin/companies?error=create_failed", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/companies/edit/{company_id}")
 async def edit_company(
@@ -1429,7 +1481,9 @@ async def edit_company(
         await db.commit()
         await log_service.log("INFO", "Company Updated", f"Updated company ID #{company_id} ('{name}')")
 
-    return RedirectResponse(url="/admin/companies?msg=company_updated", status_code=status.HTTP_303_SEE_OTHER)
+    referer = request.headers.get("referer")
+    redirect_url = referer if referer and f"/admin/companies/{company_id}" in referer else f"/admin/companies/{company_id}"
+    return RedirectResponse(url=f"{redirect_url}?msg=company_updated", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/channels/create")
 async def create_channel_account(
@@ -1460,7 +1514,9 @@ async def create_channel_account(
     except Exception as e:
         await log_service.log("ERROR", "Channel Link Error", str(e))
 
-    return RedirectResponse(url="/admin/companies?msg=channel_linked", status_code=status.HTTP_303_SEE_OTHER)
+    referer = request.headers.get("referer")
+    redirect_url = referer if referer and f"/admin/companies" in referer else f"/admin/companies/{company_id}"
+    return RedirectResponse(url=f"{redirect_url}?msg=channel_linked", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/channels/delete/{channel_id}")
 async def delete_channel_account(channel_id: int, request: Request, db: AsyncSession = Depends(get_db)):
@@ -1473,8 +1529,9 @@ async def delete_channel_account(channel_id: int, request: Request, db: AsyncSes
         await db.commit()
         await log_service.log("INFO", "Channel Removed", f"Removed channel account #{channel_id}")
 
-    return RedirectResponse(url="/admin/companies?msg=channel_deleted", status_code=status.HTTP_303_SEE_OTHER)
-
+    referer = request.headers.get("referer")
+    redirect_url = referer if referer and f"/admin/companies" in referer else "/admin/companies"
+    return RedirectResponse(url=f"{redirect_url}?msg=channel_deleted", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/company-users/create")
 async def create_company_user(
@@ -1506,9 +1563,9 @@ async def create_company_user(
     except Exception as e:
         await log_service.log("ERROR", "User Create Error", str(e))
 
-    return RedirectResponse(url="/admin/companies?msg=user_created", status_code=status.HTTP_303_SEE_OTHER)
-
-
+    referer = request.headers.get("referer")
+    redirect_url = referer if referer and f"/admin/companies" in referer else "/admin/companies"
+    return RedirectResponse(url=f"{redirect_url}?msg=user_created", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/company-users/delete/{user_id}")
 async def delete_company_user(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
@@ -1522,7 +1579,9 @@ async def delete_company_user(user_id: int, request: Request, db: AsyncSession =
         await db.commit()
         await log_service.log("INFO", "User Removed", f"Deleted user account #{user_id}")
 
-    return RedirectResponse(url="/admin/companies?msg=user_deleted", status_code=status.HTTP_303_SEE_OTHER)
+    referer = request.headers.get("referer")
+    redirect_url = referer if referer and f"/admin/companies" in referer else "/admin/companies"
+    return RedirectResponse(url=f"{redirect_url}?msg=user_deleted", status_code=status.HTTP_303_SEE_OTHER)
 
 
 
