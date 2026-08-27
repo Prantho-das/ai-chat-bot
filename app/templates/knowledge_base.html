@@ -1,79 +1,94 @@
 {% extends "base.html" %}
-{% block title %}Knowledge Base - MarketFlow Admin{% endblock %}
-{% block header_title %}Knowledge Base{% endblock %}
+{% block title %}Knowledge Base — RAG Engine — Piku AI{% endblock %}
+{% block header_title %}Knowledge Base & RAG Engine{% endblock %}
 
 {% block content %}
 <div class="space-y-6" x-data="{ showModal: false, showEditModal: false, viewTitle: '', viewContent: '', editItem: {id: '', category: '', title: '', content: '', is_active: true} }">
     
-    <!-- Top Header & Action -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h3 class="text-lg font-extrabold text-slate-900 tracking-tight">Business Knowledge Base</h3>
-            <p class="text-xs text-slate-500 font-medium">এই তথ্যগুলোর উপর ভিত্তি করে AI কাস্টমারদের প্রশ্নের অটোমেটিক উত্তর তৈরি করবে</p>
-        </div>
-        <div class="flex items-center gap-2 shrink-0">
-            <form action="/admin/knowledge/generate-missing-embeddings" method="POST" class="inline">
-                <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md shadow-amber-600/20 flex items-center justify-center space-x-2 shrink-0 cursor-pointer border-0">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    <span>Generate Missing Embeddings{% if missing_embed_count %} ({{ missing_embed_count }}){% endif %}</span>
+    <!-- Top Header & Action Banner (Modern Linear / Vercel Style) -->
+    <div class="saas-card p-6 bg-slate-900 text-white relative overflow-hidden shadow-xl border border-slate-800">
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="space-y-2">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold backdrop-blur-md border border-white/15 text-indigo-200">
+                    <span>🧠 Vector RAG Knowledge Hub</span>
+                    <span>•</span>
+                    {% if target_company_id %}
+                    <span class="text-emerald-300 font-mono">Company ID: #{{ target_company_id }}</span>
+                    {% else %}
+                    <span class="text-indigo-300 font-mono">Master View (All Companies)</span>
+                    {% endif %}
+                </div>
+                <h1 class="text-2xl font-black tracking-tight text-white">Business Knowledge Base</h1>
+                <p class="text-xs text-slate-300">এই তথ্যের উপর ভিত্তি করে এআই কাস্টমারদের প্রশ্নের শতভাগ সঠিক উত্তর দেবে এবং বাইরে থেকে কোনো তথ্য বানাবে না।</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                <form action="/admin/knowledge/generate-missing-embeddings" method="POST" class="inline m-0">
+                    <button type="submit" class="text-xs font-bold text-amber-200 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm">
+                        <span>⚡</span>
+                        <span>Generate Embeddings{% if missing_embed_count %} ({{ missing_embed_count }}){% endif %}</span>
+                    </button>
+                </form>
+                <button @click="showModal = true" class="saas-btn-primary text-xs flex items-center gap-1.5 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 shadow-md cursor-pointer">
+                    <span>+</span>
+                    <span>Add Knowledge Item</span>
                 </button>
-            </form>
-            <button @click="showModal = true" class="bg-gradient-to-r from-[#5B4BFF] to-[#7C3AED] hover:from-[#4C3CE6] text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md shadow-[#5B4BFF]/20 flex items-center justify-center space-x-2 shrink-0 cursor-pointer border-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                <span>Add Knowledge Item</span>
-            </button>
+            </div>
+        </div>
+        <div class="absolute right-0 top-0 bottom-0 opacity-5 flex items-center pr-8 pointer-events-none">
+            <span class="text-9xl">🧠</span>
         </div>
     </div>
 
     <!-- Alert Notifications -->
     {% if saved %}
-    <div class="p-4 bg-emerald-50 border border-emerald-200/80 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center space-x-2 shadow-sm animate-fade-in">
+    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center space-x-2 shadow-sm animate-fade-in">
         <span class="text-base">✅</span>
-        <span>নলেজ বেস আইটেম সফলভাবে সংরক্ষিত হয়েছে! (Knowledge Base Updated)</span>
+        <span>নলেজ বেস সফলভাবে সংরক্ষিত হয়েছে! (Knowledge Base Updated)</span>
     </div>
     {% endif %}
 
     {% if reembedded %}
-    <div class="p-4 bg-indigo-50 border border-indigo-200/80 rounded-2xl text-indigo-800 text-xs font-semibold flex items-center space-x-2 shadow-sm animate-fade-in">
+    <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-800 text-xs font-semibold flex items-center space-x-2 shadow-sm animate-fade-in">
         <span class="text-base">✨</span>
         <span>{{ reembedded }} টি নলেজ আইটেমের জন্য এম্বেডিং সফলভাবে তৈরি করা হয়েছে! (Embeddings Generated)</span>
     </div>
     {% endif %}
 
     {% if error %}
-    <div class="p-4 bg-rose-50 border border-rose-200/80 rounded-2xl text-rose-800 text-xs font-semibold flex items-center space-x-2 shadow-sm animate-fade-in">
+    <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs font-semibold flex items-center space-x-2 shadow-sm animate-fade-in">
         <span class="text-base">⚠️</span>
         <span>ফাইল আপলোড বা প্রসেস করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।</span>
     </div>
     {% endif %}
 
-    <!-- Stats Cards -->
+    <!-- Stats Cards (Scoped to Current Active Company) -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm flex items-center space-x-4">
-            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+            <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
                 📚
             </div>
             <div>
-                <div class="text-xs font-semibold text-slate-400 uppercase">Total Entries</div>
-                <div class="text-xl font-extrabold text-slate-900">{{ total_count }}</div>
+                <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Entries</div>
+                <div class="text-2xl font-black text-slate-900">{{ total_count }}</div>
             </div>
         </div>
         <div class="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm flex items-center space-x-4">
-            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
                 ⚡
             </div>
             <div>
-                <div class="text-xs font-semibold text-slate-400 uppercase">Active for AI</div>
-                <div class="text-xl font-extrabold text-emerald-600">{{ active_count }}</div>
+                <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active for AI</div>
+                <div class="text-2xl font-black text-emerald-600">{{ active_count }}</div>
             </div>
         </div>
         <div class="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm flex items-center space-x-4">
-            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
                 🏷️
             </div>
             <div>
-                <div class="text-xs font-semibold text-slate-400 uppercase">Categories</div>
-                <div class="text-xl font-extrabold text-slate-900">{{ categories_count }}</div>
+                <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Categories</div>
+                <div class="text-2xl font-black text-slate-900">{{ categories_count }}</div>
             </div>
         </div>
     </div>
@@ -82,14 +97,23 @@
     <div class="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm">
         <form method="GET" action="/admin/knowledge" class="flex flex-col md:flex-row items-center gap-3">
             <div class="relative flex-1 w-full">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400 text-xs">
                     🔍
                 </span>
-                <input type="text" name="q" value="{{ q }}" placeholder="Search title or content..." class="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all">
+                <input type="text" name="q" value="{{ q }}" placeholder="Search title or content in knowledge base..." class="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-9 pr-3.5 py-2.5 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all">
             </div>
 
-            <div class="flex items-center gap-2 w-full md:w-auto shrink-0">
-                <select name="category" class="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 transition-all">
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto shrink-0">
+                {% if all_companies and all_companies|length > 1 %}
+                <select name="company_filter" onchange="this.form.submit()" class="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-600 transition-all cursor-pointer">
+                    <option value="all" {% if company_filter == 'all' %}selected{% endif %}>🏢 All Companies</option>
+                    {% for comp in all_companies %}
+                    <option value="{{ comp.id }}" {% if company_filter == comp.id|string %}selected{% endif %}>{{ comp.name }}</option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+
+                <select name="category" class="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:border-indigo-600 transition-all">
                     <option value="all" {% if category_filter == 'all' %}selected{% endif %}>All Categories</option>
                     <option value="general" {% if category_filter == 'general' %}selected{% endif %}>General Info</option>
                     <option value="product" {% if category_filter == 'product' %}selected{% endif %}>Product & Pricing</option>
@@ -97,14 +121,14 @@
                     <option value="policy" {% if category_filter == 'policy' %}selected{% endif %}>Policy / Delivery</option>
                 </select>
 
-                <select name="status_filter" class="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600 transition-all">
+                <select name="status_filter" class="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:border-indigo-600 transition-all">
                     <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
                     <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
                     <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive Only</option>
                 </select>
 
-                <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0">Filter</button>
-                {% if q or category_filter != 'all' or status_filter != 'all' %}
+                <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer shadow-sm">Filter</button>
+                {% if q or category_filter != 'all' or status_filter != 'all' or (company_filter and company_filter != 'all') %}
                 <a href="/admin/knowledge" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0">Clear</a>
                 {% endif %}
             </div>
@@ -119,6 +143,7 @@
                     <tr>
                         <th class="px-6 py-4">Category</th>
                         <th class="px-6 py-4">Title</th>
+                        <th class="px-6 py-4">Company</th>
                         <th class="px-6 py-4">Content Snippet</th>
                         <th class="px-6 py-4">Embedding</th>
                         <th class="px-6 py-4">Status</th>
@@ -130,55 +155,60 @@
                     <tr class="hover:bg-slate-50/50 transition-colors">
                         <td class="px-6 py-4">
                             {% if item.category == 'product' %}
-                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 uppercase">Product</span>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60 uppercase">Product</span>
                             {% elif item.category == 'faq' %}
-                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/60 uppercase">FAQ</span>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/60 uppercase">FAQ</span>
                             {% elif item.category == 'policy' %}
-                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/60 uppercase">Policy</span>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200/60 uppercase">Policy</span>
                             {% else %}
-                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60 uppercase">{{ item.category }}</span>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60 uppercase">{{ item.category }}</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 font-semibold text-slate-900">{{ item.title }}</td>
+                        <td class="px-6 py-4 font-bold text-slate-900 text-xs">{{ item.title }}</td>
+                        <td class="px-6 py-4">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                                {{ item.company.name if item.company else 'Default (ID: 1)' }}
+                            </span>
+                        </td>
                         <td class="px-6 py-4 text-slate-500 text-xs max-w-xs">
                             <div class="flex items-center space-x-2">
-                                <span class="truncate block max-w-[200px] text-slate-600">{{ item.content }}</span>
+                                <span class="truncate block max-w-[180px] text-slate-600">{{ item.content }}</span>
                                 <button type="button"
                                     data-title="{{ item.title | e }}"
                                     data-content="{{ item.content | e }}"
                                     @click="viewTitle = $el.dataset.title; viewContent = $el.dataset.content"
-                                    class="text-[11px] text-blue-600 hover:text-blue-700 font-bold hover:underline shrink-0 cursor-pointer">View Full</button>
+                                    class="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline shrink-0 cursor-pointer">View</button>
                             </div>
                         </td>
                         <td class="px-6 py-4">
                             {% if item.embedding_json and item.embedding_json != "[]" %}
-                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60 inline-flex items-center space-x-1">
-                                <span>✨ Ready</span>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center space-x-1">
+                                <span>✨ Vector OK</span>
                             </span>
                             {% else %}
-                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/60 inline-flex items-center space-x-1">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center space-x-1">
                                 <span>⚠️ Missing</span>
                             </span>
                             {% endif %}
                         </td>
                         <td class="px-6 py-4">
                             <form action="/admin/knowledge/toggle/{{ item.id }}" method="POST" class="inline">
-                                <button type="submit" class="group flex items-center space-x-1.5 focus:outline-none">
+                                <button type="submit" class="group flex items-center space-x-1.5 focus:outline-none cursor-pointer">
                                     {% if item.is_active %}
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 group-hover:bg-emerald-100 transition-all flex items-center space-x-1">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 group-hover:bg-emerald-100 transition-all flex items-center space-x-1">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                         <span>Active</span>
                                     </span>
                                     {% else %}
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 group-hover:bg-slate-200 transition-all">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 group-hover:bg-slate-200 transition-all">
                                         <span>Inactive</span>
                                     </span>
                                     {% endif %}
                                 </button>
                             </form>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center justify-end space-x-2">
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end space-x-1.5">
                                 <button type="button"
                                     data-id="{{ item.id }}"
                                     data-category="{{ item.category }}"
@@ -186,20 +216,20 @@
                                     data-content="{{ item.content }}"
                                     data-active="{{ '1' if item.is_active else '0' }}"
                                     @click="editItem = { id: $el.dataset.id, category: $el.dataset.category, title: $el.dataset.title, content: $el.dataset.content, is_active: $el.dataset.active === '1' }; showEditModal = true"
-                                    class="text-xs text-indigo-600 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg font-semibold transition-all border border-indigo-100">Edit</button>
+                                    class="text-xs text-indigo-600 hover:bg-indigo-50 px-2.5 py-1 rounded-lg font-semibold transition-all border border-indigo-100 cursor-pointer">Edit</button>
 
-                                <form action="/admin/knowledge/delete/{{ item.id }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this item?')">
-                                    <button type="submit" class="text-xs text-rose-600 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg font-semibold transition-all border border-rose-100">Delete</button>
+                                <form action="/admin/knowledge/delete/{{ item.id }}" method="POST" onsubmit="return confirm('Delete this knowledge item?')">
+                                    <button type="submit" class="text-xs text-rose-600 hover:bg-rose-50 px-2.5 py-1 rounded-lg font-semibold transition-all border border-rose-100 cursor-pointer">Delete</button>
                                 </form>
                             </div>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-slate-400 text-xs font-medium">
+                        <td colspan="7" class="px-6 py-12 text-center text-slate-400 text-xs font-medium">
                             <div class="space-y-2">
                                 <span class="text-2xl block">🔍</span>
-                                <p>No knowledge items found matching your criteria.</p>
+                                <p>No knowledge items found for this company view.</p>
                             </div>
                         </td>
                     </tr>
@@ -210,7 +240,7 @@
     </div>
 
     <!-- View Full Modal -->
-    <div x-show="viewContent" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" x-cloak>
+    <div x-show="viewContent" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" x-cloak>
         <div class="bg-white border border-slate-200/80 rounded-2xl w-full max-w-2xl p-6 space-y-4 shadow-2xl flex flex-col max-h-[85vh]" @click.away="viewContent = ''">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
                 <h4 class="text-sm font-bold text-slate-900" x-text="viewTitle"></h4>
@@ -224,28 +254,31 @@
     </div>
 
     <!-- Add Entry Modal -->
-    <div x-show="showModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50" x-cloak>
+    <div x-show="showModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" x-cloak>
         <div class="bg-white border border-slate-200/80 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl" @click.away="showModal = false" x-data="{ tab: 'manual' }">
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
                 <h3 class="text-base font-bold text-slate-900">Add Knowledge Item</h3>
                 <div class="flex space-x-1 bg-slate-100 p-1 rounded-xl">
-                    <button type="button" @click="tab = 'manual'" :class="tab === 'manual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'" class="px-3 py-1 text-xs rounded-lg font-semibold transition-all">Manual Input</button>
-                    <button type="button" @click="tab = 'file'" :class="tab === 'file' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'" class="px-3 py-1 text-xs rounded-lg font-semibold transition-all">📄 Upload File</button>
+                    <button type="button" @click="tab = 'manual'" :class="tab === 'manual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'" class="px-3 py-1 text-xs rounded-lg font-semibold transition-all cursor-pointer">Manual Input</button>
+                    <button type="button" @click="tab = 'file'" :class="tab === 'file' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'" class="px-3 py-1 text-xs rounded-lg font-semibold transition-all cursor-pointer">📄 Upload File</button>
                 </div>
             </div>
 
             <!-- Manual Form -->
             <form x-show="tab === 'manual'" action="/admin/knowledge/add" method="POST" class="space-y-4">
-                {% if all_companies %}
+                {% if all_companies and all_companies|length > 1 %}
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Company / Business Entity</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Assign to Company</label>
                     <select name="company_id" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
                         {% for comp in all_companies %}
-                        <option value="{{ comp.id }}" {% if active_company_id == comp.id|string %}selected{% endif %}>{{ comp.name }} (ID: {{ comp.id }})</option>
+                        <option value="{{ comp.id }}" {% if (target_company_id and target_company_id == comp.id) or (active_company_id == comp.id|string) %}selected{% endif %}>{{ comp.name }} (ID: {{ comp.id }})</option>
                         {% endfor %}
                     </select>
                 </div>
+                {% elif target_company_id %}
+                <input type="hidden" name="company_id" value="{{ target_company_id }}">
                 {% endif %}
+
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Category</label>
                     <select name="category" class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-600">
@@ -268,8 +301,8 @@
                     <label for="add_is_active" class="text-xs font-medium text-slate-700">Enable immediately for AI bot</label>
                 </div>
                 <div class="flex items-center justify-end space-x-3 pt-2">
-                    <button type="button" @click="showModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-600/20">Save Entry</button>
+                    <button type="button" @click="showModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer">Cancel</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-600/20 cursor-pointer">Save Entry</button>
                 </div>
             </form>
 
@@ -290,19 +323,19 @@
                 </div>
 
                 <div class="flex items-center justify-end space-x-3 pt-2">
-                    <button type="button" @click="showModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-600/20">Upload & Save</button>
+                    <button type="button" @click="showModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer">Cancel</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-600/20 cursor-pointer">Upload & Save</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Edit Entry Modal -->
-    <div x-show="showEditModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50" x-cloak>
+    <div x-show="showEditModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" x-cloak>
         <div class="bg-white border border-slate-200/80 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl" @click.away="showEditModal = false">
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
                 <h3 class="text-base font-bold text-slate-900">Edit Knowledge Item</h3>
-                <button type="button" @click="showEditModal = false" class="text-slate-400 hover:text-slate-600 text-xs">✕ Close</button>
+                <button type="button" @click="showEditModal = false" class="text-slate-400 hover:text-slate-600 text-xs cursor-pointer">✕ Close</button>
             </div>
 
             <form :action="'/admin/knowledge/edit/' + editItem.id" method="POST" class="space-y-4">
@@ -328,8 +361,8 @@
                     <label for="edit_is_active" class="text-xs font-medium text-slate-700">Active status for AI bot</label>
                 </div>
                 <div class="flex items-center justify-end space-x-3 pt-2">
-                    <button type="button" @click="showEditModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-600/20">Update Knowledge</button>
+                    <button type="button" @click="showEditModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer">Cancel</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition-all shadow-md shadow-indigo-600/20 cursor-pointer">Update Knowledge</button>
                 </div>
             </form>
         </div>

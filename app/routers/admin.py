@@ -7,6 +7,7 @@ from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
+from sqlalchemy.orm import selectinload
 try:
     from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
     serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
@@ -353,17 +354,35 @@ async def knowledge_base_page(
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
+    user_ctx = get_current_user_context(request) or {}
     active_comp_id = request.cookies.get("active_company_id", "all")
-    selected_comp = company_filter or active_comp_id
-
-    # Base query
-    stmt = select(KnowledgeEntry)
-
-    if selected_comp and selected_comp != "all":
+    
+    if user_ctx.get("role") == "company_user" and user_ctx.get("company_id"):
+        target_company_id = user_ctx.get("company_id")
+        selected_comp = str(target_company_id)
+    elif company_filter and company_filter != "all":
         try:
-            stmt = stmt.where(KnowledgeEntry.company_id == int(selected_comp))
+            target_company_id = int(company_filter)
+            selected_comp = str(target_company_id)
         except ValueError:
-            pass
+            target_company_id = None
+            selected_comp = "all"
+    elif active_comp_id and active_comp_id != "all":
+        try:
+            target_company_id = int(active_comp_id)
+            selected_comp = str(target_company_id)
+        except ValueError:
+            target_company_id = None
+            selected_comp = "all"
+    else:
+        target_company_id = None
+        selected_comp = "all"
+
+    # Base query with eager loaded company
+    stmt = select(KnowledgeEntry).options(selectinload(KnowledgeEntry.company))
+
+    if target_company_id:
+        stmt = stmt.where(KnowledgeEntry.company_id == target_company_id)
 
     if q and q.strip():
         search_term = f"%{q.strip()}%"
@@ -384,8 +403,11 @@ async def knowledge_base_page(
     result = await db.execute(stmt)
     entries = result.scalars().all()
 
-    # Stats calculation
-    all_result = await db.execute(select(KnowledgeEntry))
+    # Scoped Stats calculation
+    stat_stmt = select(KnowledgeEntry)
+    if target_company_id:
+        stat_stmt = stat_stmt.where(KnowledgeEntry.company_id == target_company_id)
+    all_result = await db.execute(stat_stmt)
     all_entries = all_result.scalars().all()
     total_count = len(all_entries)
     active_count = sum(1 for e in all_entries if e.is_active)
@@ -402,6 +424,7 @@ async def knowledge_base_page(
         "category_filter": category or "all",
         "status_filter": status_filter or "all",
         "company_filter": selected_comp or "all",
+        "target_company_id": target_company_id,
         "saved": request.query_params.get("saved"),
         "reembedded": request.query_params.get("reembedded"),
         "error": request.query_params.get("error")
@@ -420,6 +443,19 @@ async def add_knowledge(
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
+    user_ctx = get_current_user_context(request) or {}
+    if user_ctx.get("role") == "company_user" and user_ctx.get("company_id"):
+        final_company_id = user_ctx.get("company_id")
+    else:
+        active_comp_id = request.cookies.get("active_company_id", "all")
+        if active_comp_id != "all":
+            try:
+                final_company_id = int(active_comp_id)
+            except ValueError:
+                final_company_id = company_id or 1
+        else:
+            final_company_id = company_id or 1
+
     text_to_embed = f"{title.strip()}\n{content.strip()}"
     embedding_vector_json = await ai_service.generate_embedding(text_to_embed, db=db)
 
@@ -429,7 +465,7 @@ async def add_knowledge(
         content=content.strip(),
         embedding_json=embedding_vector_json,
         is_active=is_active,
-        company_id=company_id
+        company_id=final_company_id
     )
     db.add(entry)
     await db.commit()
@@ -1361,10 +1397,10 @@ async def companies_page(request: Request, db: AsyncSession = Depends(get_db)):
     if not user_ctx or user_ctx.get("role") != "super_admin":
         return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
 
-    comps_res = await db.execute(select(Company).order_by(Company.id.asc()))
+    comps_res = await db.execute(select(Company).options(selectinload(Company.channels)).order_by(Company.id.asc()))
     companies = comps_res.scalars().all()
 
-    channels_res = await db.execute(select(ChannelAccount).order_by(ChannelAccount.id.desc()))
+    channels_res = await db.execute(select(ChannelAccount).options(selectinload(ChannelAccount.company)).order_by(ChannelAccount.id.desc()))
     channels = channels_res.scalars().all()
 
     users_res = await db.execute(select(AdminUser).where(AdminUser.role == "company_user").order_by(AdminUser.id.desc()))
@@ -1462,6 +1498,7 @@ async def company_detail_page(company_id: int, request: Request, db: AsyncSessio
         "gmail_app_password": await get_company_setting(db, company_id, "gmail_app_password", getattr(settings, "GMAIL_APP_PASSWORD", "")),
     }
     available_models = ai_service.get_available_models(creds["gemini_api_key"])
+    settings_dict = creds
 
     return await render_admin_page("company_detail.html", request, db, {
         "page_title": f"{comp.name} — Workspace",
@@ -1474,7 +1511,7 @@ async def company_detail_page(company_id: int, request: Request, db: AsyncSessio
         "creds": creds,
         "settings_dict": settings_dict,
         "available_models": available_models,
-        "system_prompt": comp.system_prompt or settings_dict.get("system_prompt", DEFAULT_SYSTEM_PROMPT),
+        "system_prompt": comp.system_prompt or creds.get("system_prompt", DEFAULT_SYSTEM_PROMPT),
         "fallback_message": creds["fallback_message"]
     })
 
