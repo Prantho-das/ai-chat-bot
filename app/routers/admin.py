@@ -1419,51 +1419,47 @@ async def company_detail_page(company_id: int, request: Request, db: AsyncSessio
         "total_channels": len(channels)
     }
 
-    stmt_settings = select(BotSetting)
-    res_settings = await db.execute(stmt_settings)
-    records = res_settings.scalars().all()
-    settings_dict = {r.key: r.value for r in records}
-
+    from app.helpers import get_company_setting
     creds = {
-        "fb_page_access_token": settings_dict.get("fb_page_access_token", getattr(settings, "FB_PAGE_ACCESS_TOKEN", "")),
-        "fb_verify_token": settings_dict.get("fb_verify_token", getattr(settings, "FB_VERIFY_TOKEN", "")),
-        "fb_catalog_id": settings_dict.get("fb_catalog_id", getattr(settings, "FB_CATALOG_ID", "")),
-        "wa_access_token": settings_dict.get("wa_access_token", getattr(settings, "WA_ACCESS_TOKEN", "")),
-        "wa_phone_number_id": settings_dict.get("wa_phone_number_id", getattr(settings, "WA_PHONE_NUMBER_ID", "")),
-        "wa_verify_token": settings_dict.get("wa_verify_token", getattr(settings, "WA_VERIFY_TOKEN", "")),
-        "google_client_id": settings_dict.get("google_client_id", getattr(settings, "GOOGLE_CLIENT_ID", "")),
-        "google_client_secret": settings_dict.get("google_client_secret", getattr(settings, "GOOGLE_CLIENT_SECRET", "")),
-        "google_refresh_token": settings_dict.get("google_refresh_token", getattr(settings, "GOOGLE_REFRESH_TOKEN", "")),
-        "google_calendar_id": settings_dict.get("google_calendar_id", getattr(settings, "GOOGLE_CALENDAR_ID", "")),
-        "google_calendar_token": settings_dict.get("google_calendar_token", ""),
-        "booking_keywords": settings_dict.get("booking_keywords", "meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, কল, ডেমো, ট্রায়াল"),
-        "detail_keywords": settings_dict.get("detail_keywords", getattr(settings, "DETAIL_KEYWORDS", "")),
-        "high_interest_keywords": settings_dict.get("high_interest_keywords", "বিকাশ, নগদ, কিনব, অর্ডার, পাঠাও, কত দাম, price, order, buy, send, bkash, nagad, cash, deliver, delivery, confirm"),
-        "price_keywords": settings_dict.get("price_keywords", "দাম কত, কত, মূল্য, রেট, চার্জ, প্রাইস, কত টাকা, price, cost, fee, charge, rate, how much, tk"),
-        "response_length": settings_dict.get("response_length", getattr(settings, "RESPONSE_LENGTH", "short")),
-        "fallback_message": comp.fallback_message or settings_dict.get("fallback_message", DEFAULT_FALLBACK_MESSAGE),
-        "max_history_turns": settings_dict.get("max_history_turns", "4"),
-        "company_name": comp.name or settings_dict.get("company_name", getattr(settings, "COMPANY_NAME", "PosTech")),
-        "missed_call_message": settings_dict.get("missed_call_message", "দুঃখিত, এই মুহূর্তে কল রিসিভ করা সম্ভব হয়নি। দয়া করে আপনার প্রশ্নটি এখানে লিখে বা ভয়েসে জানান, আমি সাহায্য করছি।"),
-        "emoji_reply_message": settings_dict.get("emoji_reply_message", "ধন্যবাদ! 😊 আপনাকে কীভাবে সাহায্য করতে পারি বলুন?"),
-        "ai_provider": settings_dict.get("ai_provider", getattr(settings, "AI_PROVIDER", "gemini")),
-        "gemini_api_key": settings_dict.get("gemini_api_key", getattr(settings, "GEMINI_API_KEY", "")),
-        "gemini_model": comp.ai_model or settings_dict.get("gemini_model", getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash")),
-        "openai_api_key": settings_dict.get("openai_api_key", getattr(settings, "OPENAI_API_KEY", "")),
-        "openai_model": settings_dict.get("openai_model", getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")),
-        "mailchimp_api_key": settings_dict.get("mailchimp_api_key", getattr(settings, "MAILCHIMP_API_KEY", "")),
-        "mailchimp_list_id": settings_dict.get("mailchimp_list_id", getattr(settings, "MAILCHIMP_LIST_ID", "")),
-        "mailchimp_server_prefix": settings_dict.get("mailchimp_server_prefix", getattr(settings, "MAILCHIMP_SERVER_PREFIX", "")),
-        "ig_access_token": settings_dict.get("ig_access_token", getattr(settings, "IG_ACCESS_TOKEN", "")),
-        "ig_verify_token": settings_dict.get("ig_verify_token", getattr(settings, "IG_VERIFY_TOKEN", "")),
-        "google_sheets_spreadsheet_id": settings_dict.get("google_sheets_spreadsheet_id", getattr(settings, "GOOGLE_SHEETS_SPREADSHEET_ID", "")),
-        "google_sheets_token_json": settings_dict.get("google_sheets_token_json", ""),
-        "fcm_server_key": settings_dict.get("fcm_server_key", getattr(settings, "FCM_SERVER_KEY", "")),
-        "vapid_public_key": settings_dict.get("vapid_public_key", getattr(settings, "VAPID_PUBLIC_KEY", "")),
-        "vapid_private_key": settings_dict.get("vapid_private_key", getattr(settings, "VAPID_PRIVATE_KEY", "")),
-        "vapid_claims_email": settings_dict.get("vapid_claims_email", getattr(settings, "VAPID_CLAIMS_EMAIL", "admin@example.com")),
-        "gmail_sender_email": settings_dict.get("gmail_sender_email", getattr(settings, "GMAIL_SENDER_EMAIL", "")),
-        "gmail_app_password": settings_dict.get("gmail_app_password", getattr(settings, "GMAIL_APP_PASSWORD", "")),
+        "fb_page_access_token": await get_company_setting(db, company_id, "fb_page_access_token", getattr(settings, "FB_PAGE_ACCESS_TOKEN", "")),
+        "fb_verify_token": await get_company_setting(db, company_id, "fb_verify_token", getattr(settings, "FB_VERIFY_TOKEN", "")),
+        "fb_catalog_id": await get_company_setting(db, company_id, "fb_catalog_id", getattr(settings, "FB_CATALOG_ID", "")),
+        "wa_access_token": await get_company_setting(db, company_id, "wa_access_token", getattr(settings, "WA_ACCESS_TOKEN", "")),
+        "wa_phone_number_id": await get_company_setting(db, company_id, "wa_phone_number_id", getattr(settings, "WA_PHONE_NUMBER_ID", "")),
+        "wa_verify_token": await get_company_setting(db, company_id, "wa_verify_token", getattr(settings, "WA_VERIFY_TOKEN", "")),
+        "google_client_id": await get_company_setting(db, company_id, "google_client_id", getattr(settings, "GOOGLE_CLIENT_ID", "")),
+        "google_client_secret": await get_company_setting(db, company_id, "google_client_secret", getattr(settings, "GOOGLE_CLIENT_SECRET", "")),
+        "google_refresh_token": await get_company_setting(db, company_id, "google_refresh_token", getattr(settings, "GOOGLE_REFRESH_TOKEN", "")),
+        "google_calendar_id": await get_company_setting(db, company_id, "google_calendar_id", getattr(settings, "GOOGLE_CALENDAR_ID", "")),
+        "google_calendar_token": await get_company_setting(db, company_id, "google_calendar_token", ""),
+        "booking_keywords": await get_company_setting(db, company_id, "booking_keywords", "meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, কল, ডেমো, ট্রায়াল"),
+        "detail_keywords": await get_company_setting(db, company_id, "detail_keywords", getattr(settings, "DETAIL_KEYWORDS", "")),
+        "high_interest_keywords": await get_company_setting(db, company_id, "high_interest_keywords", "বিকাশ, নগদ, কিনব, অর্ডার, পাঠাও, কত দাম, price, order, buy, send, bkash, nagad, cash, deliver, delivery, confirm"),
+        "price_keywords": await get_company_setting(db, company_id, "price_keywords", "দাম কত, কত, মূল্য, রেট, চার্জ, প্রাইস, কত টাকা, price, cost, fee, charge, rate, how much, tk"),
+        "response_length": await get_company_setting(db, company_id, "response_length", getattr(settings, "RESPONSE_LENGTH", "short")),
+        "fallback_message": comp.fallback_message or await get_company_setting(db, company_id, "fallback_message", DEFAULT_FALLBACK_MESSAGE),
+        "max_history_turns": await get_company_setting(db, company_id, "max_history_turns", "4"),
+        "company_name": comp.name or await get_company_setting(db, company_id, "company_name", getattr(settings, "COMPANY_NAME", "PosTech")),
+        "missed_call_message": await get_company_setting(db, company_id, "missed_call_message", "দুঃখিত, এই মুহূর্তে কল রিসিভ করা সম্ভব হয়নি। দয়া করে আপনার প্রশ্নটি এখানে লিখে বা ভয়েসে জানান, আমি সাহায্য করছি।"),
+        "emoji_reply_message": await get_company_setting(db, company_id, "emoji_reply_message", "ধন্যবাদ! 😊 আপনাকে কীভাবে সাহায্য করতে পারি বলুন?"),
+        "ai_provider": await get_company_setting(db, company_id, "ai_provider", getattr(settings, "AI_PROVIDER", "gemini")),
+        "gemini_api_key": await get_company_setting(db, company_id, "gemini_api_key", getattr(settings, "GEMINI_API_KEY", "")),
+        "gemini_model": comp.ai_model or await get_company_setting(db, company_id, "gemini_model", getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash")),
+        "openai_api_key": await get_company_setting(db, company_id, "openai_api_key", getattr(settings, "OPENAI_API_KEY", "")),
+        "openai_model": await get_company_setting(db, company_id, "openai_model", getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")),
+        "mailchimp_api_key": await get_company_setting(db, company_id, "mailchimp_api_key", getattr(settings, "MAILCHIMP_API_KEY", "")),
+        "mailchimp_list_id": await get_company_setting(db, company_id, "mailchimp_list_id", getattr(settings, "MAILCHIMP_LIST_ID", "")),
+        "mailchimp_server_prefix": await get_company_setting(db, company_id, "mailchimp_server_prefix", getattr(settings, "MAILCHIMP_SERVER_PREFIX", "")),
+        "ig_access_token": await get_company_setting(db, company_id, "ig_access_token", getattr(settings, "IG_ACCESS_TOKEN", "")),
+        "ig_verify_token": await get_company_setting(db, company_id, "ig_verify_token", getattr(settings, "IG_VERIFY_TOKEN", "")),
+        "google_sheets_spreadsheet_id": await get_company_setting(db, company_id, "google_sheets_spreadsheet_id", getattr(settings, "GOOGLE_SHEETS_SPREADSHEET_ID", "")),
+        "google_sheets_token_json": await get_company_setting(db, company_id, "google_sheets_token_json", ""),
+        "fcm_server_key": await get_company_setting(db, company_id, "fcm_server_key", getattr(settings, "FCM_SERVER_KEY", "")),
+        "vapid_public_key": await get_company_setting(db, company_id, "vapid_public_key", getattr(settings, "VAPID_PUBLIC_KEY", "")),
+        "vapid_private_key": await get_company_setting(db, company_id, "vapid_private_key", getattr(settings, "VAPID_PRIVATE_KEY", "")),
+        "vapid_claims_email": await get_company_setting(db, company_id, "vapid_claims_email", getattr(settings, "VAPID_CLAIMS_EMAIL", "admin@example.com")),
+        "gmail_sender_email": await get_company_setting(db, company_id, "gmail_sender_email", getattr(settings, "GMAIL_SENDER_EMAIL", "")),
+        "gmail_app_password": await get_company_setting(db, company_id, "gmail_app_password", getattr(settings, "GMAIL_APP_PASSWORD", "")),
     }
     available_models = ai_service.get_available_models(creds["gemini_api_key"])
 
@@ -1540,6 +1536,94 @@ async def create_company(
         await db.rollback()
         await log_service.log("ERROR", "Company Create Error", str(e))
         return RedirectResponse(url=f"/admin/companies?error=create_failed", status_code=status.HTTP_303_SEE_OTHER)
+
+@router.post("/companies/{company_id}/settings")
+async def save_company_settings(
+    company_id: int,
+    request: Request,
+    form_type: str = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    form_data = await request.form()
+    comp = await db.get(Company, company_id)
+    if not comp:
+        return RedirectResponse(url="/admin/companies", status_code=status.HTTP_302_FOUND)
+
+    from app.helpers import upsert_company_setting
+
+    if form_type in ["general", "prompt"]:
+        if "name" in form_data and form_data["name"].strip():
+            comp.name = form_data["name"].strip()
+        if "description" in form_data:
+            comp.description = form_data["description"].strip()
+        if "ai_model" in form_data and form_data["ai_model"].strip():
+            comp.ai_model = form_data["ai_model"].strip()
+        if "system_prompt" in form_data:
+            comp.system_prompt = form_data["system_prompt"].strip()
+        if "fallback_message" in form_data:
+            comp.fallback_message = form_data["fallback_message"].strip()
+        
+        for k in ["missed_call_message", "emoji_reply_message", "response_length", "max_history_turns"]:
+            if k in form_data and form_data[k] is not None:
+                await upsert_company_setting(db, company_id, k, str(form_data[k]).strip())
+        await db.commit()
+
+    elif form_type == "credentials":
+        if "fb_catalog_id" in form_data:
+            await upsert_company_setting(db, company_id, "fb_catalog_id", form_data["fb_catalog_id"].strip())
+        await db.commit()
+
+    elif form_type == "calendar":
+        for k in ["google_calendar_id", "google_client_id", "google_client_secret", "google_refresh_token"]:
+            if k in form_data and form_data[k] is not None and form_data[k].strip():
+                await upsert_company_setting(db, company_id, k, form_data[k].strip())
+        await db.commit()
+
+    elif form_type == "keywords":
+        for k in ["booking_keywords", "price_keywords", "high_interest_keywords", "detail_keywords"]:
+            if k in form_data and form_data[k] is not None:
+                await upsert_company_setting(db, company_id, k, form_data[k].strip())
+        await db.commit()
+
+    elif form_type == "marketing":
+        mkt_keys = [
+            "mailchimp_api_key", "mailchimp_list_id", "mailchimp_server_prefix",
+            "google_sheets_spreadsheet_id", "google_sheets_token_json",
+            "fcm_server_key", "vapid_public_key", "vapid_private_key", "vapid_claims_email",
+            "gmail_sender_email", "gmail_app_password"
+        ]
+        for k in mkt_keys:
+            if k in form_data and form_data[k] is not None and form_data[k].strip():
+                await upsert_company_setting(db, company_id, k, form_data[k].strip())
+        await db.commit()
+
+    await log_service.log("SUCCESS", "Company Settings", f"Updated {form_type} settings for Company #{company_id} ('{comp.name}')")
+    return RedirectResponse(url=f"/admin/companies/{company_id}?tab={form_type}&msg=company_updated", status_code=status.HTTP_303_SEE_OTHER)
+
+@router.post("/companies/{company_id}/calendar/upload-json")
+async def upload_company_calendar_json(
+    company_id: int,
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db)
+):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+
+    try:
+        content_bytes = await file.read()
+        json_str = content_bytes.decode("utf-8")
+        from app.helpers import upsert_company_setting
+        await upsert_company_setting(db, company_id, "google_calendar_token", json_str)
+        await db.commit()
+        await log_service.log("SUCCESS", "Google Calendar", f"Uploaded Service Account JSON key for Company #{company_id}")
+    except Exception as e:
+        print(f"Error uploading Google Calendar JSON key for company #{company_id}: {e}")
+
+    return RedirectResponse(url=f"/admin/companies/{company_id}?tab=calendar&msg=company_updated", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/companies/edit/{company_id}")
 async def edit_company(

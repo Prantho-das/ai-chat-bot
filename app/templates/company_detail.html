@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}{{ company.name }} — Company Workspace — Piku AI{% endblock %}
-{% block header_title %}{{ company.name }} Workspace & Setup{% endblock %}
+{% block title %}{{ company.name }} — Company Workspace & Setup — Piku AI{% endblock %}
+{% block header_title %}{{ company.name }} Workspace{% endblock %}
 
 {% block content %}
 <div class="space-y-6" x-data="{ activeTab: new URLSearchParams(window.location.search).get('tab') || 'overview' }">
@@ -13,7 +13,7 @@
     </div>
     {% elif request.query_params.get("msg") == "company_updated" or request.query_params.get("saved") %}
     <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
-        <span>✅ Company settings & integrations updated successfully!</span>
+        <span>✅ Company configuration & settings saved successfully!</span>
         <a href="/admin/companies/{{ company.id }}" class="text-emerald-600 hover:text-emerald-900">✕</a>
     </div>
     {% elif request.query_params.get("msg") == "channel_linked" %}
@@ -43,42 +43,42 @@
     </div>
     {% endif %}
 
-    <!-- Top Header Banner -->
-    <div class="saas-card p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 text-white relative overflow-hidden shadow-lg">
+    <!-- Top Header Banner (Modern Glassmorphic Dark UI) -->
+    <div class="saas-card p-6 bg-slate-900 text-white relative overflow-hidden shadow-xl border border-slate-800">
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div class="space-y-2">
+            <div class="space-y-2.5">
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold backdrop-blur-md border border-white/15 text-indigo-200">
                     <a href="/admin/companies" class="hover:text-white transition-colors flex items-center gap-1">
                         <span>←</span> All Companies
                     </a>
                     <span>•</span>
-                    <span>ID: {{ company.id }}</span>
+                    <span>Company ID: {{ company.id }}</span>
                     <span>•</span>
                     <span class="text-emerald-300 font-mono">{{ company.slug }}</span>
                 </div>
-                <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/30 border border-indigo-400/40 text-white flex items-center justify-center font-black text-xl shadow-inner">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-xl shadow-lg ring-2 ring-indigo-400/30">
                         {{ company.name[:2]|upper }}
                     </div>
                     <div>
                         <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
                             {{ company.name }}
-                            <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Active Workspace</span>
+                            <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Active Tenant</span>
                         </h1>
-                        <p class="text-xs text-slate-300">{{ company.description or "Business entity & custom automation configuration hub." }}</p>
+                        <p class="text-xs text-slate-300 mt-0.5">{{ company.description or "Business entity & custom multi-channel AI automation workspace." }}</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Quick Action Buttons -->
+            <!-- Header Actions -->
             <div class="flex flex-wrap items-center gap-2">
                 <button @click="activeTab = 'general'" class="saas-btn-primary text-xs flex items-center gap-1.5 py-2 px-4 bg-indigo-600 hover:bg-indigo-500 shadow-md">
                     <span>⚙️</span> Company Setup
                 </button>
                 <form action="/admin/companies/switch" method="POST" class="inline m-0">
                     <input type="hidden" name="company_id" value="{{ company.id }}">
-                    <button type="submit" class="text-xs font-bold text-white bg-white/15 hover:bg-white/25 border border-white/20 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5">
-                        <span>🎯</span> Set As Active Filter
+                    <button type="submit" class="text-xs font-bold text-white bg-white/15 hover:bg-white/25 border border-white/20 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer">
+                        <span>🎯</span> Active Filter
                     </button>
                 </form>
             </div>
@@ -88,7 +88,7 @@
         </div>
     </div>
 
-    <!-- Navigation Tabs Grid -->
+    <!-- Navigation Tabs Grid (Trending SaaS Tab Pills) -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         <button
             @click="activeTab = 'overview'"
@@ -107,7 +107,7 @@
         >
             <div class="text-base mb-1">🤖</div>
             <div class="text-xs font-bold">Step 1: AI Persona</div>
-            <div class="text-[10px] opacity-80 font-medium">বটের উত্তর ও রুলস</div>
+            <div class="text-[10px] opacity-80 font-medium">Model & Rules</div>
         </button>
 
         <button
@@ -117,7 +117,7 @@
         >
             <div class="text-base mb-1">🔑</div>
             <div class="text-xs font-bold">Step 2: Social APIs</div>
-            <div class="text-[10px] opacity-80 font-medium">FB, WA & Catalog</div>
+            <div class="text-[10px] opacity-80 font-medium">Pages & Catalog</div>
         </button>
 
         <button
@@ -137,7 +137,7 @@
         >
             <div class="text-base mb-1">📌</div>
             <div class="text-xs font-bold">Step 4: Keywords</div>
-            <div class="text-[10px] opacity-80 font-medium">Lead & Intent Triggers</div>
+            <div class="text-[10px] opacity-80 font-medium">Lead & Triggers</div>
         </button>
 
         <button
@@ -147,13 +147,13 @@
         >
             <div class="text-base mb-1">🚀</div>
             <div class="text-xs font-bold">Step 5: Marketing</div>
-            <div class="text-[10px] opacity-80 font-medium">Sheets, Mailchimp, Push</div>
+            <div class="text-[10px] opacity-80 font-medium">Sheets, Mail, Push</div>
         </button>
     </div>
 
     <!-- TAB 1: OVERVIEW & ACTIVITY -->
     <div x-show="activeTab === 'overview'" class="space-y-6">
-        <!-- Quick Stats Metric Grid -->
+        <!-- Quick Stats Metric Grid (5 Scoped Cards) -->
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
             <a href="/admin/conversations" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="saas-card saas-card-hover p-4 bg-white border border-slate-200/80 block">
                 <div class="flex items-center justify-between text-slate-400 mb-1.5">
@@ -201,7 +201,7 @@
             </div>
         </div>
 
-        <!-- Main Overview Grid -->
+        <!-- Main Overview Content -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 space-y-6">
                 <!-- Recent Conversations -->
@@ -302,7 +302,7 @@
                             </h2>
                             <p class="text-[11px] text-slate-500">Pages & WhatsApp mapped to {{ company.name }}</p>
                         </div>
-                        <button onclick="document.getElementById('linkChannelModal').classList.remove('hidden')" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200">
+                        <button onclick="document.getElementById('linkChannelModal').classList.remove('hidden')" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200 cursor-pointer">
                             + Link
                         </button>
                     </div>
@@ -321,7 +321,7 @@
                                     </div>
                                 </div>
                                 <form action="/admin/channels/delete/{{ channel.id }}" method="POST" onsubmit="return confirm('Unlink this channel from {{ company.name }}?')">
-                                    <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 text-xs">🗑️</button>
+                                    <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 text-xs cursor-pointer">🗑️</button>
                                 </form>
                             </div>
                             <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] text-slate-500">
@@ -346,7 +346,7 @@
                             </h2>
                             <p class="text-[11px] text-slate-500">Users with access locked to {{ company.name }}</p>
                         </div>
-                        <button onclick="document.getElementById('createUserModal').classList.remove('hidden')" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                        <button onclick="document.getElementById('createUserModal').classList.remove('hidden')" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200 cursor-pointer">
                             + Add Staff
                         </button>
                     </div>
@@ -365,7 +365,7 @@
                                     </div>
                                 </div>
                                 <form action="/admin/company-users/delete/{{ u.id }}" method="POST" onsubmit="return confirm('Delete user {{ u.username }}?')">
-                                    <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 text-xs">🗑️</button>
+                                    <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 text-xs cursor-pointer">🗑️</button>
                                 </form>
                             </div>
                         </div>
@@ -380,16 +380,21 @@
         </div>
     </div>
 
-    <!-- TAB 2: STEP 1 - AI PERSONA & RESPONSE RULES -->
+    <!-- TAB 2: STEP 1 - AI PERSONA & RESPONSE RULES (POSTS TO DEDICATED COMPANY ROUTE) -->
     <div x-show="activeTab === 'general'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
                 <h4 class="text-sm font-bold text-slate-900">🤖 AI Bot Persona & Response Setup for {{ company.name }}</h4>
                 <p class="text-xs text-slate-500">বটের উত্তরের দৈর্ঘ্য, মিসড কল রেসপন্স, ইমোজি হ্যান্ডলিং এবং সিস্টেম প্রম্পট সেট করুন</p>
             </div>
+            <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1 rounded-full border border-indigo-100">
+                Company Scope
+            </span>
         </div>
 
-        <form action="/admin/companies/edit/{{ company.id }}" method="POST" class="space-y-5">
+        <form action="/admin/companies/{{ company.id }}/settings" method="POST" class="space-y-5">
+            <input type="hidden" name="form_type" value="general" />
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 space-y-2">
                     <label class="block text-xs font-bold text-indigo-900">🏢 কোম্পানির নাম (Company Name)</label>
@@ -415,50 +420,37 @@
             <div class="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/70 space-y-2">
                 <label class="block text-xs font-bold text-amber-900">⚠️ এআই ফলব্যাক মেসেজ (Custom Fallback Response Message)</label>
                 <textarea name="fallback_message" rows="2" class="w-full bg-white border border-amber-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800" placeholder="দুঃখিত, এই মুহূর্তে উত্তর তৈরিতে সামান্য সমস্যা হচ্ছে। খুব দ্রুত আমাদের একজন প্রতিনিধি আপনার সাথে যোগাযোগ করবেন।">{{ company.fallback_message or creds.fallback_message }}</textarea>
-                <p class="text-[10px] text-amber-700 font-medium">💡 এআই এপিআই রেসপন্স না দিলে বা কোনো সার্ভার ত্রুটি হলে গ্রাহক এই কাস্টম বার্তাটি দেখতে পাবেন।</p>
+                <p class="text-[10px] text-amber-700 font-medium">💡 এআই এপিআই রেসপন্স না দিলে গ্রাহক এই কাস্টম বার্তাটি দেখতে পাবেন।</p>
             </div>
 
             <!-- System Prompt -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">System Instruction Prompt (কঠোর নিয়মাবলী)</label>
                 <textarea name="system_prompt" rows="6" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 font-mono leading-relaxed">{{ company.system_prompt or system_prompt }}</textarea>
-                <p class="text-[10px] text-slate-500 mt-1">💡 এই প্রম্পটটি শুধুমাত্র এই কোম্পানির সকল কাস্টমার চ্যাটের জন্য কার্যকর হবে।</p>
+                <p class="text-[10px] text-slate-500 mt-1">💡 এই প্রম্পটটি শুধুমাত্র এই কোম্পানির কাস্টমার চ্যাটের জন্য কার্যকর হবে।</p>
+            </div>
+
+            <!-- Dynamic Missed Call Auto-Reply Box -->
+            <div class="bg-rose-50/70 p-4 rounded-2xl border border-rose-200/70 space-y-2">
+                <label class="block text-xs font-bold text-rose-900">📞 মিসড কল অটো-রিপ্লাই (Dynamic Missed Call Auto-Reply Message)</label>
+                <textarea name="missed_call_message" rows="2" class="w-full bg-white border border-rose-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800">{{ creds.missed_call_message }}</textarea>
+                <p class="text-[10px] text-rose-700 font-medium">💡 ফেসবুক পেজে অডিও/ভিডিও কল বা মিসড কল আসলে স্বয়ংক্রিয়ভাবে ⚡ 0 টোকেন খরচে এই বার্তাটি পাঠানো হবে।</p>
+            </div>
+
+            <!-- Dynamic Emoji & Sticker Auto-Reply Box -->
+            <div class="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200/70 space-y-2">
+                <label class="block text-xs font-bold text-emerald-900">👍 ইমোজি ও স্টিকার অটো-রিপ্লাই (Dynamic Emoji & Sticker Auto-Reply)</label>
+                <input type="text" name="emoji_reply_message" value="{{ creds.emoji_reply_message }}" class="w-full bg-white border border-emerald-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800">
+                <p class="text-[10px] text-emerald-700 font-medium">💡 গ্রাহক থাম্বস-আপ, লাভ বা স্টিকার পাঠালে তাৎক্ষণিক ⚡ 0 টোকেন খরচে এই উত্তরটি যাবে।</p>
             </div>
 
             <div class="flex justify-end pt-2">
-                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md flex items-center space-x-2">
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md flex items-center space-x-2 cursor-pointer">
                     <span>💾</span>
                     <span>Save AI Persona for {{ company.name }}</span>
                 </button>
             </div>
         </form>
-
-        <div class="border-t border-slate-100 pt-6">
-            <h5 class="text-xs font-bold text-slate-800 mb-3">⚡ গ্লোবাল অটো-রিপ্লাই সেটিংস (Dynamic Missed Call & Emoji Auto-Reply)</h5>
-            <form action="/admin/settings" method="POST" class="space-y-4">
-                <input type="hidden" name="form_type" value="prompt" />
-                
-                <!-- Dynamic Missed Call Auto-Reply Box -->
-                <div class="bg-rose-50/70 p-4 rounded-2xl border border-rose-200/70 space-y-2">
-                    <label class="block text-xs font-bold text-rose-900">📞 মিসড কল অটো-রিপ্লাই (Dynamic Missed Call Auto-Reply Message)</label>
-                    <textarea name="missed_call_message" rows="2" class="w-full bg-white border border-rose-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800">{{ creds.missed_call_message }}</textarea>
-                    <p class="text-[10px] text-rose-700 font-medium">💡 গ্রাহক ফেসবুক পেজে অডিও/ভিডিও কল বা মিসড কল দিলে স্বয়ংক্রিয়ভাবে ⚡ 0 টোকেন খরচে এই বার্তাটি পাঠানো হবে।</p>
-                </div>
-
-                <!-- Dynamic Emoji & Sticker Auto-Reply Box -->
-                <div class="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200/70 space-y-2">
-                    <label class="block text-xs font-bold text-emerald-900">👍 ইমোজি ও স্টিকার অটো-রিপ্লাই (Dynamic Emoji & Sticker Auto-Reply)</label>
-                    <input type="text" name="emoji_reply_message" value="{{ creds.emoji_reply_message }}" class="w-full bg-white border border-emerald-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800">
-                    <p class="text-[10px] text-emerald-700 font-medium">💡 গ্রাহক থাম্বস-আপ, লাভ বা স্টিকার পাঠালে তাৎক্ষণিক ⚡ 0 টোকেন খরচে এই উত্তরটি যাবে।</p>
-                </div>
-
-                <div class="flex justify-end">
-                    <button type="submit" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-sm">
-                        Save Auto-Reply Rules
-                    </button>
-                </div>
-            </form>
-        </div>
     </div>
 
     <!-- TAB 3: STEP 2 - SOCIAL CHANNELS & META COMMERCE CATALOG -->
@@ -468,7 +460,7 @@
                 <h4 class="text-sm font-bold text-slate-900">🔑 Social Channels & Meta Catalog Sync for {{ company.name }}</h4>
                 <p class="text-xs text-slate-500">Facebook Messenger, WhatsApp Cloud API ও Commerce Catalog ইন্টিগ্রেশন</p>
             </div>
-            <button onclick="document.getElementById('linkChannelModal').classList.remove('hidden')" class="saas-btn-primary text-xs flex items-center gap-1.5 py-2 px-4 bg-indigo-600 hover:bg-indigo-500">
+            <button onclick="document.getElementById('linkChannelModal').classList.remove('hidden')" class="saas-btn-primary text-xs flex items-center gap-1.5 py-2 px-4 bg-indigo-600 hover:bg-indigo-500 cursor-pointer">
                 <span>+</span> Link New Channel
             </button>
         </div>
@@ -490,7 +482,7 @@
                             </div>
                         </div>
                         <form action="/admin/channels/delete/{{ channel.id }}" method="POST" onsubmit="return confirm('Unlink this channel?')">
-                            <button type="submit" class="text-rose-500 hover:text-rose-700 p-1.5 text-xs font-bold rounded-lg hover:bg-rose-50">🗑️ Unlink</button>
+                            <button type="submit" class="text-rose-500 hover:text-rose-700 p-1.5 text-xs font-bold rounded-lg hover:bg-rose-50 cursor-pointer">🗑️ Unlink</button>
                         </form>
                     </div>
                     <div class="bg-white p-2.5 rounded-xl border border-slate-100 text-[10px] font-mono text-slate-600 space-y-1">
@@ -506,9 +498,9 @@
             </div>
         </div>
 
-        <!-- Facebook Commerce Catalog Sync Panel -->
+        <!-- Facebook Commerce Catalog Sync Panel (Dedicated Company Route) -->
         <div class="border-t border-slate-100 pt-6">
-            <form action="/admin/settings" method="POST" class="space-y-4">
+            <form action="/admin/companies/{{ company.id }}/settings" method="POST" class="space-y-4">
                 <input type="hidden" name="form_type" value="credentials" />
                 <div class="bg-gradient-to-r from-blue-50/60 to-indigo-50/60 p-5 rounded-2xl border border-blue-100 space-y-4">
                     <div class="flex items-center justify-between">
@@ -531,7 +523,7 @@
                             <label class="block text-[11px] font-bold text-slate-700 mb-1">Meta Catalog Auto-Sync Feed URL</label>
                             <div class="flex items-center space-x-2">
                                 <input type="text" readonly value="https://testing.stcbazar.com/catalog/feed.xml" id="feedUrlCompany" class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-600">
-                                <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('feedUrlCompany').value); alert('Feed URL Copied!');" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl whitespace-nowrap shadow-sm">
+                                <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('feedUrlCompany').value); alert('Feed URL Copied!');" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl whitespace-nowrap shadow-sm cursor-pointer">
                                     Copy Feed 📋
                                 </button>
                             </div>
@@ -540,15 +532,15 @@
                 </div>
 
                 <div class="flex justify-end">
-                    <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md">
-                        Save Social & Catalog Settings
+                    <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md cursor-pointer">
+                        Save Social & Catalog Settings for {{ company.name }}
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- TAB 4: STEP 3 - GOOGLE CALENDAR INTEGRATION -->
+    <!-- TAB 4: STEP 3 - GOOGLE CALENDAR INTEGRATION (DEDICATED COMPANY ROUTE) -->
     <div x-show="activeTab === 'calendar'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
@@ -560,7 +552,7 @@
             </span>
         </div>
 
-        <!-- 1-Click Service Account JSON Key Upload Card -->
+        <!-- 1-Click Service Account JSON Key Upload Card (POSTS TO COMPANY UPLOAD ENDPOINT) -->
         <div class="p-5 bg-gradient-to-r from-purple-50 via-indigo-50/40 to-blue-50/40 border border-purple-200/80 rounded-2xl space-y-4">
             <div class="flex items-start space-x-3">
                 <div class="p-2.5 bg-purple-600 text-white rounded-xl text-lg shadow-sm">⚡</div>
@@ -572,9 +564,9 @@
                 </div>
             </div>
 
-            <form action="/admin/calendar/upload-json" method="POST" enctype="multipart/form-data" class="flex flex-col sm:flex-row items-center gap-3 pt-1">
+            <form action="/admin/companies/{{ company.id }}/calendar/upload-json" method="POST" enctype="multipart/form-data" class="flex flex-col sm:flex-row items-center gap-3 pt-1">
                 <input type="file" name="file" accept=".json" required class="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-purple-600 file:text-white hover:file:bg-purple-500 file:cursor-pointer bg-white border border-purple-200 rounded-xl p-1.5" />
-                <button type="submit" class="w-full sm:w-auto px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold rounded-xl whitespace-nowrap transition shadow-sm flex items-center justify-center space-x-1.5">
+                <button type="submit" class="w-full sm:w-auto px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold rounded-xl whitespace-nowrap transition shadow-sm flex items-center justify-center space-x-1.5 cursor-pointer">
                     <span>📤 Upload & Connect Key</span>
                 </button>
             </form>
@@ -582,13 +574,13 @@
             {% if creds.google_calendar_token %}
             <div class="flex items-center space-x-2 text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-xs font-bold">
                 <span>✅</span>
-                <span>Google Calendar JSON Key Connected & Active</span>
+                <span>Google Calendar JSON Key Connected & Active for {{ company.name }}</span>
             </div>
             {% endif %}
         </div>
 
-        <!-- Manual Calendar OAuth / Service Settings -->
-        <form action="/admin/settings" method="POST" class="space-y-4">
+        <!-- Manual Calendar OAuth / Service Settings (Dedicated Company Route) -->
+        <form action="/admin/companies/{{ company.id }}/settings" method="POST" class="space-y-4">
             <input type="hidden" name="form_type" value="calendar" />
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -615,14 +607,14 @@
             </div>
 
             <div class="flex justify-end pt-2">
-                <button type="submit" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl transition shadow-md">
-                    💾 Save Google Calendar Settings
+                <button type="submit" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl transition shadow-md cursor-pointer">
+                    💾 Save Google Calendar Settings for {{ company.name }}
                 </button>
             </div>
         </form>
     </div>
 
-    <!-- TAB 5: STEP 4 - SPECIAL INTENT & LEAD KEYWORDS MANAGER -->
+    <!-- TAB 5: STEP 4 - SPECIAL INTENT & LEAD KEYWORDS MANAGER (DEDICATED COMPANY ROUTE) -->
     <div x-show="activeTab === 'keywords'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
@@ -631,7 +623,7 @@
             </div>
         </div>
 
-        <form action="/admin/settings" method="POST" class="space-y-5">
+        <form action="/admin/companies/{{ company.id }}/settings" method="POST" class="space-y-5">
             <input type="hidden" name="form_type" value="keywords" />
 
             <!-- Booking / Meeting Keywords Box -->
@@ -675,23 +667,23 @@
             </div>
 
             <div class="flex justify-end pt-2">
-                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md">
-                    💾 Save Keyword Triggers
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md cursor-pointer">
+                    💾 Save Keyword Triggers for {{ company.name }}
                 </button>
             </div>
         </form>
     </div>
 
-    <!-- TAB 6: STEP 5 - MARKETING & AUTOMATION HUB -->
+    <!-- TAB 6: STEP 5 - MARKETING & AUTOMATION HUB (DEDICATED COMPANY ROUTE) -->
     <div x-show="activeTab === 'marketing'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-                <h4 class="text-sm font-bold text-slate-900">🚀 Marketing & Automation Hub</h4>
+                <h4 class="text-sm font-bold text-slate-900">🚀 Marketing & Automation Hub for {{ company.name }}</h4>
                 <p class="text-xs text-slate-500">Google Sheets লাইভ এক্সপোর্ট, Mailchimp নিউজলেটার ও Web Push অটোমেশন</p>
             </div>
         </div>
 
-        <form action="/admin/settings" method="POST" class="space-y-6">
+        <form action="/admin/companies/{{ company.id }}/settings" method="POST" class="space-y-6">
             <input type="hidden" name="form_type" value="marketing" />
 
             <!-- Google Sheets Live Lead Export -->
@@ -771,8 +763,8 @@
             </div>
 
             <div class="flex justify-end pt-2">
-                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md">
-                    💾 Save Marketing & Automation Settings
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md cursor-pointer">
+                    💾 Save Marketing & Automation for {{ company.name }}
                 </button>
             </div>
         </form>
@@ -785,7 +777,7 @@
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 class="text-base font-black text-slate-900">Link Channel to {{ company.name }}</h3>
-            <button onclick="document.getElementById('linkChannelModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">✕</button>
+            <button onclick="document.getElementById('linkChannelModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
         </div>
         <form action="/admin/channels/create" method="POST" class="space-y-4">
             <input type="hidden" name="company_id" value="{{ company.id }}">
@@ -816,8 +808,8 @@
                 <input type="text" name="verify_token" placeholder="Optional custom verify token" class="saas-input w-full">
             </div>
             <div class="flex justify-end gap-2 pt-2">
-                <button type="button" onclick="document.getElementById('linkChannelModal').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
-                <button type="submit" class="saas-btn-primary text-xs px-5 py-2">Link Channel</button>
+                <button type="button" onclick="document.getElementById('linkChannelModal').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Cancel</button>
+                <button type="submit" class="saas-btn-primary text-xs px-5 py-2 cursor-pointer">Link Channel</button>
             </div>
         </form>
     </div>
@@ -828,7 +820,7 @@
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 class="text-base font-black text-slate-900">Create Staff for {{ company.name }}</h3>
-            <button onclick="document.getElementById('createUserModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">✕</button>
+            <button onclick="document.getElementById('createUserModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
         </div>
         <form action="/admin/company-users/create" method="POST" class="space-y-4">
             <input type="hidden" name="role" value="company_user">
@@ -846,8 +838,8 @@
                 <input type="password" name="password" required placeholder="••••••••" class="saas-input w-full">
             </div>
             <div class="flex justify-end gap-2 pt-2">
-                <button type="button" onclick="document.getElementById('createUserModal').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
-                <button type="submit" class="saas-btn-primary text-xs px-5 py-2">Create Staff User</button>
+                <button type="button" onclick="document.getElementById('createUserModal').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">Cancel</button>
+                <button type="submit" class="saas-btn-primary text-xs px-5 py-2 cursor-pointer">Create Staff User</button>
             </div>
         </form>
     </div>
