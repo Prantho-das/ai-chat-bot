@@ -787,7 +787,9 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
         "gmail_sender_email": settings_dict.get("gmail_sender_email", getattr(settings, "GMAIL_SENDER_EMAIL", "")),
         "gmail_app_password": settings_dict.get("gmail_app_password", getattr(settings, "GMAIL_APP_PASSWORD", "")),
         "enable_bot_name_rotation": settings_dict.get("enable_bot_name_rotation", "false"),
-        "bot_names_list": settings_dict.get("bot_names_list", "PosTech, TechFlow, MarketAI, Assistant, DataBot")
+        "bot_names_list": settings_dict.get("bot_names_list", "PosTech, TechFlow, MarketAI, Assistant, DataBot"),
+        "missed_call_message": settings_dict.get("missed_call_message", "দুঃখিত, এই মুহূর্তে কল রিসিভ করা সম্ভব হয়নি। দয়া করে আপনার প্রশ্নটি এখানে লিখে বা ভয়েসে জানান, আমি সাহায্য করছি।"),
+        "emoji_reply_message": settings_dict.get("emoji_reply_message", "ধন্যবাদ! 😊 আপনাকে কীভাবে সাহায্য করতে পারি বলুন?")
     }
 
     available_models = ai_service.get_available_models(creds["gemini_api_key"])
@@ -808,6 +810,8 @@ async def update_settings(
     company_name: str = Form(None),
     response_length: str = Form(None),
     fallback_message: str = Form(None),
+    missed_call_message: str = Form(None),
+    emoji_reply_message: str = Form(None),
     max_history_turns: str = Form(None),
     enable_bot_name_rotation: str = Form(None),
     bot_names_list: str = Form(None),
@@ -860,6 +864,10 @@ async def update_settings(
             await upsert_bot_setting(db, "response_length", response_length.strip())
         if fallback_message is not None:
             await upsert_bot_setting(db, "fallback_message", fallback_message.strip())
+        if missed_call_message is not None:
+            await upsert_bot_setting(db, "missed_call_message", missed_call_message.strip())
+        if emoji_reply_message is not None:
+            await upsert_bot_setting(db, "emoji_reply_message", emoji_reply_message.strip())
         if max_history_turns is not None:
             await upsert_bot_setting(db, "max_history_turns", max_history_turns.strip())
         if bot_names_list is not None:
@@ -954,7 +962,10 @@ async def update_settings(
                 await upsert_bot_setting(db, k, v.strip())
         await db.commit()
 
-    return RedirectResponse(url="/admin/settings?saved=1", status_code=status.HTTP_302_FOUND)
+    referer = request.headers.get("referer", "/admin/settings")
+    sep = "&" if "?" in referer else "?"
+    redirect_url = referer if "saved=" in referer else f"{referer}{sep}saved=1"
+    return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
 @router.get("/appointments", response_class=HTMLResponse)
 async def appointments_page(request: Request, db: AsyncSession = Depends(get_db)):
@@ -1021,7 +1032,10 @@ async def upload_calendar_json(
     except Exception as e:
         print(f"Error uploading Google Calendar JSON key: {e}")
 
-    return RedirectResponse(url="/admin/settings?saved=1", status_code=status.HTTP_302_FOUND)
+    referer = request.headers.get("referer", "/admin/settings")
+    sep = "&" if "?" in referer else "?"
+    redirect_url = referer if "saved=" in referer else f"{referer}{sep}saved=1"
+    return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
 @router.get("/logs", response_class=HTMLResponse)
 async def live_logs_page(request: Request, db: AsyncSession = Depends(get_db)):
@@ -1405,6 +1419,54 @@ async def company_detail_page(company_id: int, request: Request, db: AsyncSessio
         "total_channels": len(channels)
     }
 
+    stmt_settings = select(BotSetting)
+    res_settings = await db.execute(stmt_settings)
+    records = res_settings.scalars().all()
+    settings_dict = {r.key: r.value for r in records}
+
+    creds = {
+        "fb_page_access_token": settings_dict.get("fb_page_access_token", getattr(settings, "FB_PAGE_ACCESS_TOKEN", "")),
+        "fb_verify_token": settings_dict.get("fb_verify_token", getattr(settings, "FB_VERIFY_TOKEN", "")),
+        "fb_catalog_id": settings_dict.get("fb_catalog_id", getattr(settings, "FB_CATALOG_ID", "")),
+        "wa_access_token": settings_dict.get("wa_access_token", getattr(settings, "WA_ACCESS_TOKEN", "")),
+        "wa_phone_number_id": settings_dict.get("wa_phone_number_id", getattr(settings, "WA_PHONE_NUMBER_ID", "")),
+        "wa_verify_token": settings_dict.get("wa_verify_token", getattr(settings, "WA_VERIFY_TOKEN", "")),
+        "google_client_id": settings_dict.get("google_client_id", getattr(settings, "GOOGLE_CLIENT_ID", "")),
+        "google_client_secret": settings_dict.get("google_client_secret", getattr(settings, "GOOGLE_CLIENT_SECRET", "")),
+        "google_refresh_token": settings_dict.get("google_refresh_token", getattr(settings, "GOOGLE_REFRESH_TOKEN", "")),
+        "google_calendar_id": settings_dict.get("google_calendar_id", getattr(settings, "GOOGLE_CALENDAR_ID", "")),
+        "google_calendar_token": settings_dict.get("google_calendar_token", ""),
+        "booking_keywords": settings_dict.get("booking_keywords", "meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, কল, ডেমো, ট্রায়াল"),
+        "detail_keywords": settings_dict.get("detail_keywords", getattr(settings, "DETAIL_KEYWORDS", "")),
+        "high_interest_keywords": settings_dict.get("high_interest_keywords", "বিকাশ, নগদ, কিনব, অর্ডার, পাঠাও, কত দাম, price, order, buy, send, bkash, nagad, cash, deliver, delivery, confirm"),
+        "price_keywords": settings_dict.get("price_keywords", "দাম কত, কত, মূল্য, রেট, চার্জ, প্রাইস, কত টাকা, price, cost, fee, charge, rate, how much, tk"),
+        "response_length": settings_dict.get("response_length", getattr(settings, "RESPONSE_LENGTH", "short")),
+        "fallback_message": comp.fallback_message or settings_dict.get("fallback_message", DEFAULT_FALLBACK_MESSAGE),
+        "max_history_turns": settings_dict.get("max_history_turns", "4"),
+        "company_name": comp.name or settings_dict.get("company_name", getattr(settings, "COMPANY_NAME", "PosTech")),
+        "missed_call_message": settings_dict.get("missed_call_message", "দুঃখিত, এই মুহূর্তে কল রিসিভ করা সম্ভব হয়নি। দয়া করে আপনার প্রশ্নটি এখানে লিখে বা ভয়েসে জানান, আমি সাহায্য করছি।"),
+        "emoji_reply_message": settings_dict.get("emoji_reply_message", "ধন্যবাদ! 😊 আপনাকে কীভাবে সাহায্য করতে পারি বলুন?"),
+        "ai_provider": settings_dict.get("ai_provider", getattr(settings, "AI_PROVIDER", "gemini")),
+        "gemini_api_key": settings_dict.get("gemini_api_key", getattr(settings, "GEMINI_API_KEY", "")),
+        "gemini_model": comp.ai_model or settings_dict.get("gemini_model", getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash")),
+        "openai_api_key": settings_dict.get("openai_api_key", getattr(settings, "OPENAI_API_KEY", "")),
+        "openai_model": settings_dict.get("openai_model", getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")),
+        "mailchimp_api_key": settings_dict.get("mailchimp_api_key", getattr(settings, "MAILCHIMP_API_KEY", "")),
+        "mailchimp_list_id": settings_dict.get("mailchimp_list_id", getattr(settings, "MAILCHIMP_LIST_ID", "")),
+        "mailchimp_server_prefix": settings_dict.get("mailchimp_server_prefix", getattr(settings, "MAILCHIMP_SERVER_PREFIX", "")),
+        "ig_access_token": settings_dict.get("ig_access_token", getattr(settings, "IG_ACCESS_TOKEN", "")),
+        "ig_verify_token": settings_dict.get("ig_verify_token", getattr(settings, "IG_VERIFY_TOKEN", "")),
+        "google_sheets_spreadsheet_id": settings_dict.get("google_sheets_spreadsheet_id", getattr(settings, "GOOGLE_SHEETS_SPREADSHEET_ID", "")),
+        "google_sheets_token_json": settings_dict.get("google_sheets_token_json", ""),
+        "fcm_server_key": settings_dict.get("fcm_server_key", getattr(settings, "FCM_SERVER_KEY", "")),
+        "vapid_public_key": settings_dict.get("vapid_public_key", getattr(settings, "VAPID_PUBLIC_KEY", "")),
+        "vapid_private_key": settings_dict.get("vapid_private_key", getattr(settings, "VAPID_PRIVATE_KEY", "")),
+        "vapid_claims_email": settings_dict.get("vapid_claims_email", getattr(settings, "VAPID_CLAIMS_EMAIL", "admin@example.com")),
+        "gmail_sender_email": settings_dict.get("gmail_sender_email", getattr(settings, "GMAIL_SENDER_EMAIL", "")),
+        "gmail_app_password": settings_dict.get("gmail_app_password", getattr(settings, "GMAIL_APP_PASSWORD", "")),
+    }
+    available_models = ai_service.get_available_models(creds["gemini_api_key"])
+
     return await render_admin_page("company_detail.html", request, db, {
         "page_title": f"{comp.name} — Workspace",
         "company": comp,
@@ -1412,7 +1474,12 @@ async def company_detail_page(company_id: int, request: Request, db: AsyncSessio
         "company_users": company_users,
         "stats": stats,
         "recent_conversations": recent_conversations,
-        "recent_leads": recent_leads
+        "recent_leads": recent_leads,
+        "creds": creds,
+        "settings_dict": settings_dict,
+        "available_models": available_models,
+        "system_prompt": comp.system_prompt or settings_dict.get("system_prompt", DEFAULT_SYSTEM_PROMPT),
+        "fallback_message": creds["fallback_message"]
     })
 
 @router.post("/companies/switch")

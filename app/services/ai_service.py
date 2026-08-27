@@ -22,11 +22,16 @@ DEFAULT_FALLBACK_MESSAGE = (
 )
 
 DEFAULT_SYSTEM_PROMPT = (
-    "তুমি প্রফেশনাল AI সাপোর্ট। রুলস: "
-    "১. সর্বোচ্চ ৩-৪ লাইনে উত্তর দাও। "
-    "২. সহজ প্রশ্নে ১-২ লাইন। "
-    "৩. শুধু Knowledge Base থেকে তথ্য দাও। "
-    "৪. মেসেঞ্জার ফ্রেন্ডলি ফর্মেট।"
+    "তুমি একজন প্রফেশনাল ও বিশ্বস্ত AI সাপোর্ট অ্যাসিস্ট্যান্ট।\n"
+    "কঠোর নিয়মাবলী:\n"
+    "১. STRICT PARAMETERS: শুধুমাত্র প্রদত্ত Knowledge Base (KB) এবং নির্দিষ্ট নিয়মের তথ্য ব্যবহার করে উত্তর দেবে। "
+    "Knowledge Base-এর বাইরে কোনো তথ্য নিজের থেকে বানিয়ে, অনুমান করে বা সাধারণ জ্ঞান দিয়ে উত্তর দেওয়া সম্পূর্ণ নিষিদ্ধ।\n"
+    "২. UNKNOWN / OUT OF KB: যদি কাস্টমারের প্রশ্নের উত্তর Knowledge Base-এ না থাকে, তবে বিনয়ের সাথে বলো: "
+    "'দুঃখিত, এই বিষয়ে আমার কাছে বিস্তারিত তথ্য নেই। খুব দ্রুত আমাদের একজন প্রতিনিধি আপনার সাথে যোগাযোগ করে সহায়তা করবেন।'\n"
+    "৩. MISSED CALL: কাস্টমার মিসড কল দিলে বলো: 'দুঃখিত, এই মুহূর্তে কল রিসিভ করা সম্ভব হয়নি। দয়া করে আপনার প্রশ্নটি এখানে লিখে বা ভয়েসে জানান, আমি সাহায্য করছি।'\n"
+    "৪. EMOJI / STICKER: কাস্টমার ইমোজি বা স্টিকার পাঠালে সংক্ষিপ্ত ও মার্জিত অভ্যর্থনা বা প্রতিক্রিয়া জানাও।\n"
+    "৫. MULTIMODAL: কাস্টমার প্রোডাক্টের ছবি পাঠালে ছবিটি বিশ্লেষণ করে KB-র সাথে মিলিয়ে পণ্যের দাম ও তথ্য দাও। ভয়েস মেসেজ পেলে বক্তব্য অনুযায়ী উত্তর দাও।\n"
+    "৬. FORMAT: সর্বদা বাংলায় মেসেঞ্জার ফ্রেন্ডলি সংক্ষিপ্ত ও নির্ভুল উত্তর দাও।"
 )
 
 class AIService:
@@ -108,6 +113,14 @@ class AIService:
     async def get_response_length(self, db: AsyncSession) -> str:
         val = await get_bot_setting(db, "response_length")
         return val if val else getattr(settings, "RESPONSE_LENGTH", "short")
+
+    async def get_missed_call_message(self, db: AsyncSession, company_id: int = None) -> str:
+        default_msg = "দুঃখিত, এই মুহূর্তে কল রিসিভ করা সম্ভব হয়নি। দয়া করে আপনার প্রশ্নটি এখানে লিখে বা ভয়েসে জানান, আমি সাহায্য করছি।"
+        return await get_bot_setting(db, "missed_call_message", default_msg) if db else default_msg
+
+    async def get_emoji_reply_message(self, db: AsyncSession, company_id: int = None) -> str:
+        default_msg = "ধন্যবাদ! 😊 আপনাকে কীভাবে সাহায্য করতে পারি বলুন?"
+        return await get_bot_setting(db, "emoji_reply_message", default_msg) if db else default_msg
 
     async def get_calendar_config(self, db: AsyncSession) -> dict:
         keys = [
@@ -412,8 +425,31 @@ class AIService:
             clean_raw = user_message.strip().lower()
             bot_name = await self.get_bot_name(db, user_identifier) if db else "PosTech"
 
-            # 1. Static Greeting Bypass (0 Tokens, Instant Reply) - Only if no media attached
+            # 1. Dynamic Missed Call Handling (0 Tokens, Instant Reply)
+            if "[কাস্টমার মিসড কল দিয়েছেন / Missed Call]" in user_message or "missed call" in clean_raw or clean_raw in ["[user gave a missed call]", "[missed call]"]:
+                missed_call_reply = await self.get_missed_call_message(db, company_id=company_id)
+                return missed_call_reply, True, {
+                    "matched_count": 0,
+                    "matched_titles": [],
+                    "search_method": "dynamic_missed_call_rule",
+                    "model_used": "Dynamic Rule (0 Tokens)",
+                    "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                }
+
+            # 2. Dynamic Emoji / Sticker Bypass (0 Tokens, Instant Reply) - Only if no media attached
             if not image_bytes and not audio_bytes:
+                emoji_set = {"👍", "👍🏻", "👍🏼", "👍🏽", "👍🏾", "👍🏿", "❤️", "💖", "💕", "😊", "😀", "😃", "🙏", "👋", "👌", "🔥", "🎉", "💐", "🌹", "✨", "🙌", "🥰", "😍"}
+                is_emoji = clean_raw in emoji_set or clean_raw in ["[user sent a sticker 👍]", "👍", "❤️"] or (len(clean_raw) <= 4 and all(ord(c) > 1000 for c in clean_raw.strip()) and not re.search(r'[\w]', clean_raw))
+                if is_emoji:
+                    emoji_reply = await self.get_emoji_reply_message(db, company_id=company_id)
+                    return emoji_reply, True, {
+                        "matched_count": 0,
+                        "matched_titles": [],
+                        "search_method": "dynamic_emoji_rule",
+                        "model_used": "Dynamic Rule (0 Tokens)",
+                        "tokens": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                    }
+
                 simple_greetings = {
                     "hi", "hello", "hey", "yo", "sup", "baby", "babe", "dear",
                     "হাই", "হ্যালো", "হে", "হেই", "বেবি",
@@ -451,6 +487,39 @@ class AIService:
                 print(f"[AI SERVICE WARNING] Missing or invalid API Key for provider '{provider}'! Returning fallback message.")
                 return fallback_msg, False, token_stats
 
+            # Voice transcription via OpenAI Whisper if using OpenAI or fallback
+            if audio_bytes and provider == "openai":
+                try:
+                    file_ext = "mp4"
+                    if "wav" in (audio_mime or ""):
+                        file_ext = "wav"
+                    elif "ogg" in (audio_mime or ""):
+                        file_ext = "ogg"
+                    elif "mp3" in (audio_mime or ""):
+                        file_ext = "mp3"
+                    elif "m4a" in (audio_mime or "") or "aac" in (audio_mime or ""):
+                        file_ext = "m4a"
+
+                    files = {
+                        "file": (f"audio.{file_ext}", audio_bytes, audio_mime or "audio/mp4")
+                    }
+                    async with httpx.AsyncClient(timeout=35.0) as whisper_client:
+                        whisper_res = await whisper_client.post(
+                            "https://api.openai.com/v1/audio/transcriptions",
+                            headers={"Authorization": f"Bearer {raw_key}"},
+                            files=files,
+                            data={"model": "whisper-1"}
+                        )
+                        if whisper_res.status_code == 200:
+                            trans_text = whisper_res.json().get("text", "").strip()
+                            if trans_text:
+                                user_message = trans_text
+                                clean_raw = trans_text
+                        else:
+                            print(f"[OPENAI WHISPER ERROR] {whisper_res.status_code}: {whisper_res.text}")
+                except Exception as w_err:
+                    print(f"[OPENAI WHISPER EXCEPTION] {w_err}")
+
             sys_prompt = await self.get_system_prompt(db, company_id=company_id) if db else DEFAULT_SYSTEM_PROMPT
             if bot_name:
                 sys_prompt = f"তোমার নাম {bot_name}। নিজেকে পরিচয় দিলে শুধু '{bot_name}' বলবে, 'AI অ্যাসিস্ট্যান্ট' বলবে না।\n" + sys_prompt
@@ -474,9 +543,9 @@ class AIService:
 
             # Add multimodal instruction if media attached
             if image_bytes:
-                sys_prompt += "\n\n[NOTE: কাস্টমার একটি ছবি পাঠিয়েছেন। ছবি এবং কাস্টমারের মেসেজটি বিশ্লেষণ করে প্রাসঙ্গিক উত্তর দাও।]"
+                sys_prompt += "\n\n[NOTE: কাস্টমার একটি ছবি পাঠিয়েছেন। ছবিটি গভীরভাবে বিশ্লেষণ করে Knowledge Base এর পণ্যের সাথে মিলিয়ে দাম ও অর্ডার সংক্রান্ত উত্তর দাও।]"
             if audio_bytes:
-                sys_prompt += "\n\n[NOTE: কাস্টমার একটি ভয়েস/অডিও মেসেজ পাঠিয়েছেন। অডিওটি শুনে বিশ্লেষণ করে বাংলায় সরাসরি উত্তর দাও।]"
+                sys_prompt += "\n\n[NOTE: কাস্টমার একটি ভয়েস/অডিও মেসেজ পাঠিয়েছেন। অডিওর বক্তব্য বিশ্লেষণ করে বাংলায় প্রাসঙ্গিক ও সরাসরি উত্তর দাও।]"
 
             # 2. Normalized Query for Higher Cache Hits
             clean_q = re.sub(r'[^\w\s]', '', clean_raw).strip()
@@ -537,18 +606,31 @@ class AIService:
                 full_prompt += hist_txt
             if booking_action_info:
                 full_prompt += f"ACTION: {booking_action_info}\n\n"
-            full_prompt += f"Q: {user_message if user_message else 'Media file.'}"
+            full_prompt += f"Q: {user_message if user_message else 'Analyze attached media and assist.'}"
 
             if provider in ["openai", "deepseek"]:
                 base_url = "https://api.openai.com/v1" if provider == "openai" else "https://api.deepseek.com"
                 messages_payload = [{"role": "system", "content": sys_prompt}]
-                user_content = f"KB:\n{kb_text}\n\n"
+                user_content_text = f"KB:\n{kb_text}\n\n"
                 if hist_txt:
-                    user_content += hist_txt
+                    user_content_text += hist_txt
                 if booking_action_info:
-                    user_content += f"ACTION: {booking_action_info}\n\n"
-                user_content += f"Q: {user_message if user_message else 'Media file.'}"
-                messages_payload.append({"role": "user", "content": user_content})
+                    user_content_text += f"ACTION: {booking_action_info}\n\n"
+                user_content_text += f"Q: {user_message if user_message else 'Analyze attached media and assist.'}"
+
+                if provider == "openai" and image_bytes:
+                    import base64
+                    b64_img = base64.b64encode(image_bytes).decode("utf-8")
+                    mime = image_mime if image_mime and "image" in image_mime else "image/jpeg"
+                    messages_payload.append({
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": user_content_text},
+                            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64_img}"}}
+                        ]
+                    })
+                else:
+                    messages_payload.append({"role": "user", "content": user_content_text})
 
                 try:
                     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -561,7 +643,7 @@ class AIService:
                             json={
                                 "model": model_name,
                                 "messages": messages_payload,
-                                "temperature": 0.7
+                                "temperature": 0.3
                             }
                         )
                         if resp.status_code == 200:
@@ -638,10 +720,12 @@ class AIService:
                             model = genai.GenerativeModel(m_name)
                             
                             prompt_contents = []
-                            if image_bytes and image_mime:
-                                prompt_contents.append({"mime_type": image_mime, "data": image_bytes})
-                            if audio_bytes and audio_mime:
-                                prompt_contents.append({"mime_type": audio_mime, "data": audio_bytes})
+                            if image_bytes:
+                                mime = image_mime if image_mime and "image" in image_mime else "image/jpeg"
+                                prompt_contents.append({"mime_type": mime, "data": image_bytes})
+                            if audio_bytes:
+                                mime = audio_mime if audio_mime and ("audio" in audio_mime or "video" in audio_mime) else "audio/mp4"
+                                prompt_contents.append({"mime_type": mime, "data": audio_bytes})
                             prompt_contents.append(full_prompt)
 
                             res = await model.generate_content_async(prompt_contents)

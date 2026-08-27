@@ -75,16 +75,33 @@ def _extract_user_text(messaging_event: dict) -> tuple[str | None, str | None, s
     if quick_reply and not user_text:
         user_text = quick_reply.get("payload", "")
 
-    attachments = message_data.get("attachments")
+    if message_data.get("sticker_id"):
+        if not user_text:
+            user_text = "👍"
+
+    attachments = message_data.get("attachments", [])
     if attachments:
         for att in attachments:
             att_type = att.get("type", "unknown")
             payload = att.get("payload", {})
             url = payload.get("url")
+            title = payload.get("title", "").lower()
+            
             if att_type == "image" and url:
-                image_url = url
-            elif att_type == "audio" and url:
+                if payload.get("sticker_id"):
+                    user_text = user_text or "👍"
+                else:
+                    image_url = url
+            elif (att_type == "audio" or att_type == "video") and url:
                 audio_url = url
+            elif att_type == "fallback":
+                if "call" in title or "missed" in title or "video" in title:
+                    user_text = "[কাস্টমার মিসড কল দিয়েছেন / Missed Call]"
+
+    if user_text:
+        lowered_txt = user_text.lower().strip()
+        if any(call_kw in lowered_txt for call_kw in ["missed audio call", "missed video call", "missed call", "you missed a call", "missed a call", "missed a video chat", "কল করেছেন", "মিসড কল"]):
+            user_text = "[কাস্টমার মিসড কল দিয়েছেন / Missed Call]"
 
     if not user_text and not image_url and not audio_url:
         return None, None, None
@@ -169,25 +186,31 @@ async def _process_dm(sender_id: str, user_text: str, access_token: str, db: Asy
         image_bytes, image_mime = None, None
         audio_bytes, audio_mime = None, None
 
+        http_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        }
+
         if image_url:
             try:
                 import httpx
-                async with httpx.AsyncClient(timeout=15.0) as client:
+                async with httpx.AsyncClient(timeout=20.0, headers=http_headers, follow_redirects=True) as client:
                     res = await client.get(image_url)
                     if res.status_code == 200:
                         image_bytes = res.content
-                        image_mime = res.headers.get("content-type", "image/jpeg")
+                        raw_ct = res.headers.get("content-type", "image/jpeg").split(";")[0].strip().lower()
+                        image_mime = raw_ct if "image" in raw_ct else "image/jpeg"
             except Exception as img_err:
                 print(f"[IMAGE FETCH ERROR] {img_err}")
 
         if audio_url:
             try:
                 import httpx
-                async with httpx.AsyncClient(timeout=15.0) as client:
+                async with httpx.AsyncClient(timeout=25.0, headers=http_headers, follow_redirects=True) as client:
                     res = await client.get(audio_url)
                     if res.status_code == 200:
                         audio_bytes = res.content
-                        audio_mime = res.headers.get("content-type", "audio/mp3")
+                        raw_ct = res.headers.get("content-type", "audio/mp4").split(";")[0].strip().lower()
+                        audio_mime = raw_ct if ("audio" in raw_ct or "video" in raw_ct) else "audio/mp4"
             except Exception as aud_err:
                 print(f"[AUDIO FETCH ERROR] {aud_err}")
 

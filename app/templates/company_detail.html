@@ -1,50 +1,50 @@
 {% extends "base.html" %}
 
 {% block title %}{{ company.name }} — Company Workspace — Piku AI{% endblock %}
-{% block header_title %}{{ company.name }} Workspace{% endblock %}
+{% block header_title %}{{ company.name }} Workspace & Setup{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6" x-data="{ activeTab: new URLSearchParams(window.location.search).get('tab') || 'overview' }">
 
     {% if request.query_params.get("msg") == "company_created" %}
-    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between">
+    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
         <span>✅ Company entity created successfully! Welcome to your new workspace.</span>
         <a href="/admin/companies/{{ company.id }}" class="text-emerald-600 hover:text-emerald-900">✕</a>
     </div>
-    {% elif request.query_params.get("msg") == "company_updated" %}
-    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between">
-        <span>✅ Company settings & AI persona updated successfully!</span>
+    {% elif request.query_params.get("msg") == "company_updated" or request.query_params.get("saved") %}
+    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
+        <span>✅ Company settings & integrations updated successfully!</span>
         <a href="/admin/companies/{{ company.id }}" class="text-emerald-600 hover:text-emerald-900">✕</a>
     </div>
     {% elif request.query_params.get("msg") == "channel_linked" %}
-    <div class="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold flex items-center justify-between">
+    <div class="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
         <span>✅ New channel linked to {{ company.name }}!</span>
         <a href="/admin/companies/{{ company.id }}" class="text-blue-600 hover:text-blue-900">✕</a>
     </div>
     {% elif request.query_params.get("msg") == "channel_deleted" %}
-    <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-between">
+    <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
         <span>🗑️ Channel removed from {{ company.name }}.</span>
         <a href="/admin/companies/{{ company.id }}" class="text-amber-600 hover:text-amber-900">✕</a>
     </div>
     {% elif request.query_params.get("msg") == "user_created" %}
-    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between">
+    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
         <span>✅ Staff account created for {{ company.name }}!</span>
         <a href="/admin/companies/{{ company.id }}" class="text-emerald-600 hover:text-emerald-900">✕</a>
     </div>
     {% elif request.query_params.get("msg") == "user_deleted" %}
-    <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-between">
+    <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
         <span>🗑️ Staff account removed.</span>
         <a href="/admin/companies/{{ company.id }}" class="text-amber-600 hover:text-amber-900">✕</a>
     </div>
     {% elif request.query_params.get("error") %}
-    <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center justify-between">
+    <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
         <span>⚠️ Action failed: {{ request.query_params.get("error") }}</span>
         <a href="/admin/companies/{{ company.id }}" class="text-rose-600 hover:text-rose-900">✕</a>
     </div>
     {% endif %}
 
     <!-- Top Header Banner -->
-    <div class="saas-card p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 text-white relative overflow-hidden">
+    <div class="saas-card p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 text-white relative overflow-hidden shadow-lg">
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="space-y-2">
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold backdrop-blur-md border border-white/15 text-indigo-200">
@@ -63,17 +63,17 @@
                     <div>
                         <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
                             {{ company.name }}
-                            <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Active</span>
+                            <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Active Workspace</span>
                         </h1>
-                        <p class="text-xs text-slate-300">{{ company.description or "No description provided for this business entity." }}</p>
+                        <p class="text-xs text-slate-300">{{ company.description or "Business entity & custom automation configuration hub." }}</p>
                     </div>
                 </div>
             </div>
 
             <!-- Quick Action Buttons -->
             <div class="flex flex-wrap items-center gap-2">
-                <button onclick="openEditCompanyModal()" class="saas-btn-primary text-xs flex items-center gap-1.5 py-2 px-4 bg-indigo-600 hover:bg-indigo-500">
-                    <span>✏️</span> Edit Settings & AI
+                <button @click="activeTab = 'general'" class="saas-btn-primary text-xs flex items-center gap-1.5 py-2 px-4 bg-indigo-600 hover:bg-indigo-500 shadow-md">
+                    <span>⚙️</span> Company Setup
                 </button>
                 <form action="/admin/companies/switch" method="POST" class="inline m-0">
                     <input type="hidden" name="company_id" value="{{ company.id }}">
@@ -88,318 +88,696 @@
         </div>
     </div>
 
-    <!-- Quick Stats Metric Grid -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <a href="/admin/conversations" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="saas-card saas-card-hover p-4 bg-white border border-slate-200/80 block">
-            <div class="flex items-center justify-between text-slate-400 mb-1.5">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Conversations</span>
-                <span class="text-lg">💬</span>
-            </div>
-            <div class="text-2xl font-black text-slate-900">{{ stats.total_conversations }}</div>
-            <span class="text-[11px] text-blue-600 font-semibold hover:underline mt-1 inline-block">View Chats →</span>
-        </a>
+    <!-- Navigation Tabs Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        <button
+            @click="activeTab = 'overview'"
+            :class="activeTab === 'overview' ? 'bg-[#5B4BFF] text-white shadow-md shadow-[#5B4BFF]/20 ring-2 ring-[#5B4BFF] ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+            class="p-3 rounded-2xl text-left transition-all cursor-pointer"
+        >
+            <div class="text-base mb-1">📊</div>
+            <div class="text-xs font-bold">Overview</div>
+            <div class="text-[10px] opacity-80 font-medium">Activity & Stats</div>
+        </button>
 
-        <a href="/admin/leads" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="saas-card saas-card-hover p-4 bg-white border border-slate-200/80 block">
-            <div class="flex items-center justify-between text-slate-400 mb-1.5">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Captured Leads</span>
-                <span class="text-lg">🔥</span>
-            </div>
-            <div class="text-2xl font-black text-amber-600">{{ stats.total_leads }}</div>
-            <span class="text-[11px] text-amber-600 font-semibold hover:underline mt-1 inline-block">View Leads →</span>
-        </a>
+        <button
+            @click="activeTab = 'general'"
+            :class="activeTab === 'general' ? 'bg-[#5B4BFF] text-white shadow-md shadow-[#5B4BFF]/20 ring-2 ring-[#5B4BFF] ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+            class="p-3 rounded-2xl text-left transition-all cursor-pointer"
+        >
+            <div class="text-base mb-1">🤖</div>
+            <div class="text-xs font-bold">Step 1: AI Persona</div>
+            <div class="text-[10px] opacity-80 font-medium">বটের উত্তর ও রুলস</div>
+        </button>
 
-        <a href="/admin/knowledge" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="saas-card saas-card-hover p-4 bg-white border border-slate-200/80 block">
-            <div class="flex items-center justify-between text-slate-400 mb-1.5">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">RAG Knowledge</span>
-                <span class="text-lg">🧠</span>
-            </div>
-            <div class="text-2xl font-black text-indigo-600">{{ stats.total_kb }}</div>
-            <span class="text-[11px] text-indigo-600 font-semibold hover:underline mt-1 inline-block">Manage Docs →</span>
-        </a>
+        <button
+            @click="activeTab = 'credentials'"
+            :class="activeTab === 'credentials' ? 'bg-[#5B4BFF] text-white shadow-md shadow-[#5B4BFF]/20 ring-2 ring-[#5B4BFF] ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+            class="p-3 rounded-2xl text-left transition-all cursor-pointer"
+        >
+            <div class="text-base mb-1">🔑</div>
+            <div class="text-xs font-bold">Step 2: Social APIs</div>
+            <div class="text-[10px] opacity-80 font-medium">FB, WA & Catalog</div>
+        </button>
 
-        <div class="saas-card p-4 bg-white border border-slate-200/80">
-            <div class="flex items-center justify-between text-slate-400 mb-1.5">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Linked Channels</span>
-                <span class="text-lg">🔗</span>
-            </div>
-            <div class="text-2xl font-black text-emerald-600">{{ stats.total_channels }}</div>
-            <span class="text-[11px] text-slate-400 font-medium mt-1 inline-block">{{ channels|length }} Active</span>
-        </div>
+        <button
+            @click="activeTab = 'calendar'"
+            :class="activeTab === 'calendar' ? 'bg-[#5B4BFF] text-white shadow-md shadow-[#5B4BFF]/20 ring-2 ring-[#5B4BFF] ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+            class="p-3 rounded-2xl text-left transition-all cursor-pointer"
+        >
+            <div class="text-base mb-1">📅</div>
+            <div class="text-xs font-bold">Step 3: Calendar</div>
+            <div class="text-[10px] opacity-80 font-medium">Google Calendar Flow</div>
+        </button>
+
+        <button
+            @click="activeTab = 'keywords'"
+            :class="activeTab === 'keywords' ? 'bg-[#5B4BFF] text-white shadow-md shadow-[#5B4BFF]/20 ring-2 ring-[#5B4BFF] ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+            class="p-3 rounded-2xl text-left transition-all cursor-pointer"
+        >
+            <div class="text-base mb-1">📌</div>
+            <div class="text-xs font-bold">Step 4: Keywords</div>
+            <div class="text-[10px] opacity-80 font-medium">Lead & Intent Triggers</div>
+        </button>
+
+        <button
+            @click="activeTab = 'marketing'"
+            :class="activeTab === 'marketing' ? 'bg-[#5B4BFF] text-white shadow-md shadow-[#5B4BFF]/20 ring-2 ring-[#5B4BFF] ring-offset-2' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'"
+            class="p-3 rounded-2xl text-left transition-all cursor-pointer"
+        >
+            <div class="text-base mb-1">🚀</div>
+            <div class="text-xs font-bold">Step 5: Marketing</div>
+            <div class="text-[10px] opacity-80 font-medium">Sheets, Mailchimp, Push</div>
+        </button>
     </div>
 
-    <!-- Main Grid: Left Details & Right Integrations -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <!-- Column 1 & 2: Overview & AI Personality & Recent Activity -->
-        <div class="lg:col-span-2 space-y-6">
-
-            <!-- AI Personality & Configuration Card -->
-            <div class="saas-card p-6">
-                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">🤖</span>
-                        <div>
-                            <h2 class="text-base font-black text-slate-900">AI Personality & Persona Rules</h2>
-                            <p class="text-xs text-slate-500">System prompt and AI model powering responses for this company</p>
-                        </div>
-                    </div>
-                    <button onclick="openEditCompanyModal()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-200 transition-all">
-                        ✏️ Edit AI
-                    </button>
+    <!-- TAB 1: OVERVIEW & ACTIVITY -->
+    <div x-show="activeTab === 'overview'" class="space-y-6">
+        <!-- Quick Stats Metric Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+            <a href="/admin/conversations" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="saas-card saas-card-hover p-4 bg-white border border-slate-200/80 block">
+                <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Chats</span>
+                    <span class="text-base">💬</span>
                 </div>
+                <div class="text-2xl font-black text-slate-900">{{ stats.total_conversations }}</div>
+                <span class="text-[11px] text-blue-600 font-semibold hover:underline mt-1 inline-block">View Chats →</span>
+            </a>
 
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
-                            <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">AI Model</span>
-                            <span class="font-bold text-slate-800 text-xs">{{ company.ai_model or 'gemini-2.5-flash' }}</span>
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
-                            <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Temperature</span>
-                            <span class="font-bold text-slate-800 text-xs">{{ company.temperature or 0.7 }}</span>
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
-                            <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Slug Identifier</span>
-                            <span class="font-mono text-slate-700 text-xs font-semibold">{{ company.slug }}</span>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Custom System Prompt</label>
-                        <div class="p-3.5 bg-slate-900 text-slate-200 rounded-xl text-xs font-mono leading-relaxed max-h-48 overflow-y-auto custom-scrollbar border border-slate-800">
-                            {{ company.system_prompt or "Default AI system prompt active." }}
-                        </div>
-                    </div>
-
-                    {% if company.fallback_message %}
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Fallback Message</label>
-                        <div class="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs text-amber-900 font-medium">
-                            {{ company.fallback_message }}
-                        </div>
-                    </div>
-                    {% endif %}
+            <a href="/admin/leads" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="saas-card saas-card-hover p-4 bg-white border border-slate-200/80 block">
+                <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Leads</span>
+                    <span class="text-base">🔥</span>
                 </div>
+                <div class="text-2xl font-black text-amber-600">{{ stats.total_leads }}</div>
+                <span class="text-[11px] text-amber-600 font-semibold hover:underline mt-1 inline-block">View Leads →</span>
+            </a>
+
+            <a href="/admin/knowledge" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="saas-card saas-card-hover p-4 bg-white border border-slate-200/80 block">
+                <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Knowledge</span>
+                    <span class="text-base">🧠</span>
+                </div>
+                <div class="text-2xl font-black text-indigo-600">{{ stats.total_kb }}</div>
+                <span class="text-[11px] text-indigo-600 font-semibold hover:underline mt-1 inline-block">Manage Docs →</span>
+            </a>
+
+            <a href="/admin/outreach" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="saas-card saas-card-hover p-4 bg-white border border-slate-200/80 block">
+                <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Outreach</span>
+                    <span class="text-base">🎯</span>
+                </div>
+                <div class="text-2xl font-black text-purple-600">Active</div>
+                <span class="text-[11px] text-purple-600 font-semibold hover:underline mt-1 inline-block">Cold Pitch ↗</span>
+            </a>
+
+            <div class="saas-card p-4 bg-white border border-slate-200/80">
+                <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Channels</span>
+                    <span class="text-base">🔗</span>
+                </div>
+                <div class="text-2xl font-black text-emerald-600">{{ stats.total_channels }}</div>
+                <span class="text-[11px] text-slate-400 font-medium mt-1 inline-block">{{ channels|length }} Active</span>
             </div>
+        </div>
 
-            <!-- Recent Conversations for this company -->
-            <div class="saas-card p-6">
-                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">💬</span>
-                        <div>
-                            <h2 class="text-base font-black text-slate-900">Recent Conversations</h2>
-                            <p class="text-xs text-slate-500">Latest active customer conversations for {{ company.name }}</p>
-                        </div>
-                    </div>
-                    <a href="/admin/conversations" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
-                        View All →
-                    </a>
-                </div>
-
-                <div class="space-y-2.5">
-                    {% for conv in recent_conversations %}
-                    <div class="p-3 rounded-xl border border-slate-200/80 hover:border-blue-300 bg-slate-50/50 hover:bg-white transition-all flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
-                                {% if conv.platform == 'messenger' %}🔵{% elif conv.platform == 'whatsapp' %}🟢{% else %}📷{% endif %}
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-slate-900 text-xs">{{ conv.sender_name or conv.sender_id }}</h4>
-                                <span class="text-[10px] text-slate-500 font-mono">{{ conv.platform|capitalize }} • {{ conv.created_at.strftime('%d %b, %I:%M %p') if conv.created_at else '' }}</span>
-                            </div>
-                        </div>
+        <!-- Main Overview Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Recent Conversations -->
+                <div class="saas-card p-6 bg-white border border-slate-200/80 rounded-2xl">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2">
-                            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold {% if conv.status == 'active' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-slate-100 text-slate-600{% endif %}">
-                                {{ conv.status|capitalize }}
-                            </span>
-                            <a href="/admin/conversations/{{ conv.id }}" class="text-xs font-bold text-blue-600 hover:text-blue-800 p-1">
-                                Open ↗
-                            </a>
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-6 text-slate-400 text-xs">
-                        No conversations recorded yet for this company.
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Recent Leads for this company -->
-            <div class="saas-card p-6">
-                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">🔥</span>
-                        <div>
-                            <h2 class="text-base font-black text-slate-900">Recent Captured Leads</h2>
-                            <p class="text-xs text-slate-500">High-intent customers extracted by AI</p>
-                        </div>
-                    </div>
-                    <a href="/admin/leads" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="text-xs font-bold text-amber-700 hover:text-amber-900 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                        View All Leads →
-                    </a>
-                </div>
-
-                <div class="space-y-2.5">
-                    {% for lead in recent_leads %}
-                    <div class="p-3 rounded-xl border border-slate-200/80 hover:border-amber-300 bg-slate-50/50 hover:bg-white transition-all flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
-                                🎯
-                            </div>
+                            <span class="text-xl">💬</span>
                             <div>
-                                <h4 class="font-bold text-slate-900 text-xs">{{ lead.customer_name or lead.business_name or 'Anonymous Customer' }}</h4>
-                                <div class="flex items-center gap-2 text-[10px] text-slate-500">
-                                    {% if lead.phone %}<span>📞 {{ lead.phone }}</span>{% endif %}
-                                    {% if lead.intent %}<span class="text-indigo-600 font-semibold">• {{ lead.intent }}</span>{% endif %}
-                                </div>
+                                <h2 class="text-base font-black text-slate-900">Recent Conversations</h2>
+                                <p class="text-xs text-slate-500">Latest active customer conversations for {{ company.name }}</p>
                             </div>
                         </div>
-                        <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                            {{ lead.status }}
-                        </span>
+                        <a href="/admin/conversations" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                            View All →
+                        </a>
                     </div>
-                    {% else %}
-                    <div class="text-center py-6 text-slate-400 text-xs">
-                        No leads captured yet for this company.
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
 
-        </div>
-
-        <!-- Column 3: Linked Channels & Staff Users -->
-        <div class="space-y-6">
-
-            <!-- Linked Channels Section -->
-            <div class="saas-card p-6">
-                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-                    <div>
-                        <h2 class="text-base font-black text-slate-900 flex items-center gap-1.5">
-                            <span>🔗</span> Linked Channels
-                        </h2>
-                        <p class="text-[11px] text-slate-500">Pages & WhatsApp numbers mapped to {{ company.name }}</p>
-                    </div>
-                    <button onclick="document.getElementById('linkChannelModal').classList.remove('hidden')" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200">
-                        + Link Channel
-                    </button>
-                </div>
-
-                <div class="space-y-3">
-                    {% for channel in channels %}
-                    <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-all space-y-2">
-                        <div class="flex items-center justify-between">
+                    <div class="space-y-2.5">
+                        {% for conv in recent_conversations %}
+                        <div class="p-3 rounded-xl border border-slate-200/80 hover:border-blue-300 bg-slate-50/50 hover:bg-white transition-all flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                                    {% if conv.platform == 'messenger' %}🔵{% elif conv.platform == 'whatsapp' %}🟢{% else %}📷{% endif %}
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-900 text-xs">{{ conv.sender_name or conv.sender_id }}</h4>
+                                    <span class="text-[10px] text-slate-500 font-mono">{{ conv.platform|capitalize }} • {{ conv.created_at.strftime('%d %b, %I:%M %p') if conv.created_at else '' }}</span>
+                                </div>
+                            </div>
                             <div class="flex items-center gap-2">
-                                <span class="text-lg">
-                                    {% if channel.platform == 'messenger' %}🔵{% elif channel.platform == 'whatsapp' %}🟢{% else %}📷{% endif %}
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold {% if conv.status == 'active' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-slate-100 text-slate-600{% endif %}">
+                                    {{ conv.status|capitalize }}
                                 </span>
+                                <a href="/admin/conversations/{{ conv.id }}" class="text-xs font-bold text-blue-600 hover:text-blue-800 p-1">
+                                    Open ↗
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-6 text-slate-400 text-xs">
+                            No conversations recorded yet for this company.
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Recent Leads -->
+                <div class="saas-card p-6 bg-white border border-slate-200/80 rounded-2xl">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🔥</span>
+                            <div>
+                                <h2 class="text-base font-black text-slate-900">Recent Captured Leads</h2>
+                                <p class="text-xs text-slate-500">High-intent customers extracted by AI</p>
+                            </div>
+                        </div>
+                        <a href="/admin/leads" onclick="fetch('/admin/companies/switch', {method: 'POST', body: new URLSearchParams({'company_id': '{{ company.id }}'})})" class="text-xs font-bold text-amber-700 hover:text-amber-900 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                            View All Leads →
+                        </a>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        {% for lead in recent_leads %}
+                        <div class="p-3 rounded-xl border border-slate-200/80 hover:border-amber-300 bg-slate-50/50 hover:bg-white transition-all flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
+                                    🎯
+                                </div>
                                 <div>
-                                    <h4 class="font-bold text-slate-900 text-xs">{{ channel.account_name or channel.platform_account_id }}</h4>
-                                    <span class="text-[10px] text-slate-500 font-mono">{{ channel.platform|capitalize }} ID: {{ channel.platform_account_id }}</span>
+                                    <h4 class="font-bold text-slate-900 text-xs">{{ lead.customer_name or lead.business_name or 'Anonymous Customer' }}</h4>
+                                    <div class="flex items-center gap-2 text-[10px] text-slate-500">
+                                        {% if lead.phone %}<span>📞 {{ lead.phone }}</span>{% endif %}
+                                        {% if lead.intent %}<span class="text-indigo-600 font-semibold">• {{ lead.intent }}</span>{% endif %}
+                                    </div>
                                 </div>
                             </div>
-                            <form action="/admin/channels/delete/{{ channel.id }}" method="POST" onsubmit="return confirm('Unlink this channel from {{ company.name }}?')">
-                                <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 text-xs">🗑️</button>
-                            </form>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                {{ lead.status }}
+                            </span>
                         </div>
-                        <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] text-slate-500">
-                            <span>Status:</span>
-                            <span class="font-bold text-emerald-600">● Connected</span>
+                        {% else %}
+                        <div class="text-center py-6 text-slate-400 text-xs">
+                            No leads captured yet for this company.
                         </div>
+                        {% endfor %}
                     </div>
-                    {% else %}
-                    <div class="text-center py-6 text-slate-400 text-xs">
-                        No dedicated channels linked yet. Click '+ Link Channel' to connect FB Page or WhatsApp.
-                    </div>
-                    {% endfor %}
                 </div>
             </div>
 
-            <!-- Company Staff Logins -->
-            <div class="saas-card p-6">
-                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-                    <div>
-                        <h2 class="text-base font-black text-slate-900 flex items-center gap-1.5">
-                            <span>👥</span> Staff Accounts
-                        </h2>
-                        <p class="text-[11px] text-slate-500">Users with access locked to {{ company.name }}</p>
+            <!-- Linked Channels & Staff Users Column -->
+            <div class="space-y-6">
+                <!-- Linked Channels -->
+                <div class="saas-card p-6 bg-white border border-slate-200/80 rounded-2xl">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <div>
+                            <h2 class="text-base font-black text-slate-900 flex items-center gap-1.5">
+                                <span>🔗</span> Linked Channels
+                            </h2>
+                            <p class="text-[11px] text-slate-500">Pages & WhatsApp mapped to {{ company.name }}</p>
+                        </div>
+                        <button onclick="document.getElementById('linkChannelModal').classList.remove('hidden')" class="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200">
+                            + Link
+                        </button>
                     </div>
-                    <button onclick="document.getElementById('createUserModal').classList.remove('hidden')" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
-                        + Add Staff
+
+                    <div class="space-y-3">
+                        {% for channel in channels %}
+                        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-all space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-lg">
+                                        {% if channel.platform == 'messenger' %}🔵{% elif channel.platform == 'whatsapp' %}🟢{% else %}📷{% endif %}
+                                    </span>
+                                    <div>
+                                        <h4 class="font-bold text-slate-900 text-xs">{{ channel.account_name or channel.platform_account_id }}</h4>
+                                        <span class="text-[10px] text-slate-500 font-mono">{{ channel.platform|capitalize }} ID: {{ channel.platform_account_id }}</span>
+                                    </div>
+                                </div>
+                                <form action="/admin/channels/delete/{{ channel.id }}" method="POST" onsubmit="return confirm('Unlink this channel from {{ company.name }}?')">
+                                    <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 text-xs">🗑️</button>
+                                </form>
+                            </div>
+                            <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] text-slate-500">
+                                <span>Status:</span>
+                                <span class="font-bold text-emerald-600">● Connected</span>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-6 text-slate-400 text-xs">
+                            No dedicated channels linked yet.
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Staff Accounts -->
+                <div class="saas-card p-6 bg-white border border-slate-200/80 rounded-2xl">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <div>
+                            <h2 class="text-base font-black text-slate-900 flex items-center gap-1.5">
+                                <span>👥</span> Staff Accounts
+                            </h2>
+                            <p class="text-[11px] text-slate-500">Users with access locked to {{ company.name }}</p>
+                        </div>
+                        <button onclick="document.getElementById('createUserModal').classList.remove('hidden')" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                            + Add Staff
+                        </button>
+                    </div>
+
+                    <div class="space-y-3">
+                        {% for u in company_users %}
+                        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-all space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                                        👤
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-900 text-xs">{{ u.username }}</h4>
+                                        <span class="text-[10px] text-slate-500">{{ u.full_name or 'Company Staff' }}</span>
+                                    </div>
+                                </div>
+                                <form action="/admin/company-users/delete/{{ u.id }}" method="POST" onsubmit="return confirm('Delete user {{ u.username }}?')">
+                                    <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 text-xs">🗑️</button>
+                                </form>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-6 text-slate-400 text-xs">
+                            No assigned staff users.
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: STEP 1 - AI PERSONA & RESPONSE RULES -->
+    <div x-show="activeTab === 'general'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900">🤖 AI Bot Persona & Response Setup for {{ company.name }}</h4>
+                <p class="text-xs text-slate-500">বটের উত্তরের দৈর্ঘ্য, মিসড কল রেসপন্স, ইমোজি হ্যান্ডলিং এবং সিস্টেম প্রম্পট সেট করুন</p>
+            </div>
+        </div>
+
+        <form action="/admin/companies/edit/{{ company.id }}" method="POST" class="space-y-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 space-y-2">
+                    <label class="block text-xs font-bold text-indigo-900">🏢 কোম্পানির নাম (Company Name)</label>
+                    <input type="text" name="name" value="{{ company.name }}" required class="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800">
+                </div>
+                <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 space-y-2">
+                    <label class="block text-xs font-bold text-indigo-900">🤖 এআই মডেল (AI Model)</label>
+                    <select name="ai_model" class="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800">
+                        <option value="gemini-2.5-flash" {% if company.ai_model == 'gemini-2.5-flash' %}selected{% endif %}>Gemini 2.5 Flash (Recommended)</option>
+                        <option value="gemini-2.5-pro" {% if company.ai_model == 'gemini-2.5-pro' %}selected{% endif %}>Gemini 2.5 Pro</option>
+                        <option value="gpt-4o-mini" {% if company.ai_model == 'gpt-4o-mini' %}selected{% endif %}>GPT-4o Mini (OpenAI)</option>
+                        <option value="gpt-4o" {% if company.ai_model == 'gpt-4o' %}selected{% endif %}>GPT-4o (OpenAI Vision)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">কোম্পানির বিবরণ (Description)</label>
+                <input type="text" name="description" value="{{ company.description or '' }}" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800" placeholder="কোম্পানির সংক্ষিপ্ত বিবরণ">
+            </div>
+
+            <!-- Custom AI Fallback Response Message Box -->
+            <div class="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/70 space-y-2">
+                <label class="block text-xs font-bold text-amber-900">⚠️ এআই ফলব্যাক মেসেজ (Custom Fallback Response Message)</label>
+                <textarea name="fallback_message" rows="2" class="w-full bg-white border border-amber-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800" placeholder="দুঃখিত, এই মুহূর্তে উত্তর তৈরিতে সামান্য সমস্যা হচ্ছে। খুব দ্রুত আমাদের একজন প্রতিনিধি আপনার সাথে যোগাযোগ করবেন।">{{ company.fallback_message or creds.fallback_message }}</textarea>
+                <p class="text-[10px] text-amber-700 font-medium">💡 এআই এপিআই রেসপন্স না দিলে বা কোনো সার্ভার ত্রুটি হলে গ্রাহক এই কাস্টম বার্তাটি দেখতে পাবেন।</p>
+            </div>
+
+            <!-- System Prompt -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">System Instruction Prompt (কঠোর নিয়মাবলী)</label>
+                <textarea name="system_prompt" rows="6" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 font-mono leading-relaxed">{{ company.system_prompt or system_prompt }}</textarea>
+                <p class="text-[10px] text-slate-500 mt-1">💡 এই প্রম্পটটি শুধুমাত্র এই কোম্পানির সকল কাস্টমার চ্যাটের জন্য কার্যকর হবে।</p>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md flex items-center space-x-2">
+                    <span>💾</span>
+                    <span>Save AI Persona for {{ company.name }}</span>
+                </button>
+            </div>
+        </form>
+
+        <div class="border-t border-slate-100 pt-6">
+            <h5 class="text-xs font-bold text-slate-800 mb-3">⚡ গ্লোবাল অটো-রিপ্লাই সেটিংস (Dynamic Missed Call & Emoji Auto-Reply)</h5>
+            <form action="/admin/settings" method="POST" class="space-y-4">
+                <input type="hidden" name="form_type" value="prompt" />
+                
+                <!-- Dynamic Missed Call Auto-Reply Box -->
+                <div class="bg-rose-50/70 p-4 rounded-2xl border border-rose-200/70 space-y-2">
+                    <label class="block text-xs font-bold text-rose-900">📞 মিসড কল অটো-রিপ্লাই (Dynamic Missed Call Auto-Reply Message)</label>
+                    <textarea name="missed_call_message" rows="2" class="w-full bg-white border border-rose-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800">{{ creds.missed_call_message }}</textarea>
+                    <p class="text-[10px] text-rose-700 font-medium">💡 গ্রাহক ফেসবুক পেজে অডিও/ভিডিও কল বা মিসড কল দিলে স্বয়ংক্রিয়ভাবে ⚡ 0 টোকেন খরচে এই বার্তাটি পাঠানো হবে।</p>
+                </div>
+
+                <!-- Dynamic Emoji & Sticker Auto-Reply Box -->
+                <div class="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200/70 space-y-2">
+                    <label class="block text-xs font-bold text-emerald-900">👍 ইমোজি ও স্টিকার অটো-রিপ্লাই (Dynamic Emoji & Sticker Auto-Reply)</label>
+                    <input type="text" name="emoji_reply_message" value="{{ creds.emoji_reply_message }}" class="w-full bg-white border border-emerald-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800">
+                    <p class="text-[10px] text-emerald-700 font-medium">💡 গ্রাহক থাম্বস-আপ, লাভ বা স্টিকার পাঠালে তাৎক্ষণিক ⚡ 0 টোকেন খরচে এই উত্তরটি যাবে।</p>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="submit" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-sm">
+                        Save Auto-Reply Rules
                     </button>
                 </div>
+            </form>
+        </div>
+    </div>
 
-                <div class="space-y-3">
-                    {% for u in company_users %}
-                    <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-all space-y-2">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
-                                    👤
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-slate-900 text-xs">{{ u.username }}</h4>
-                                    <span class="text-[10px] text-slate-500">{{ u.full_name or 'Company Staff' }}</span>
-                                </div>
+    <!-- TAB 3: STEP 2 - SOCIAL CHANNELS & META COMMERCE CATALOG -->
+    <div x-show="activeTab === 'credentials'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900">🔑 Social Channels & Meta Catalog Sync for {{ company.name }}</h4>
+                <p class="text-xs text-slate-500">Facebook Messenger, WhatsApp Cloud API ও Commerce Catalog ইন্টিগ্রেশন</p>
+            </div>
+            <button onclick="document.getElementById('linkChannelModal').classList.remove('hidden')" class="saas-btn-primary text-xs flex items-center gap-1.5 py-2 px-4 bg-indigo-600 hover:bg-indigo-500">
+                <span>+</span> Link New Channel
+            </button>
+        </div>
+
+        <!-- Channels Table / Cards -->
+        <div class="space-y-3">
+            <h5 class="text-xs font-bold text-slate-800">🔗 Linked Social Channels</h5>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {% for channel in channels %}
+                <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-all space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">
+                                {% if channel.platform == 'messenger' %}🔵{% elif channel.platform == 'whatsapp' %}🟢{% else %}📷{% endif %}
+                            </span>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-xs">{{ channel.account_name or channel.platform_account_id }}</h4>
+                                <span class="text-[11px] text-slate-500 font-mono">{{ channel.platform|capitalize }} Account</span>
                             </div>
-                            <form action="/admin/company-users/delete/{{ u.id }}" method="POST" onsubmit="return confirm('Delete user {{ u.username }}?')">
-                                <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 text-xs">🗑️</button>
-                            </form>
+                        </div>
+                        <form action="/admin/channels/delete/{{ channel.id }}" method="POST" onsubmit="return confirm('Unlink this channel?')">
+                            <button type="submit" class="text-rose-500 hover:text-rose-700 p-1.5 text-xs font-bold rounded-lg hover:bg-rose-50">🗑️ Unlink</button>
+                        </form>
+                    </div>
+                    <div class="bg-white p-2.5 rounded-xl border border-slate-100 text-[10px] font-mono text-slate-600 space-y-1">
+                        <div><strong>Account ID:</strong> {{ channel.platform_account_id }}</div>
+                        {% if channel.verify_token %}<div><strong>Verify Token:</strong> {{ channel.verify_token }}</div>{% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-span-2 text-center py-8 text-slate-400 text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    No channels linked yet for {{ company.name }}. Click "+ Link New Channel" above to connect Facebook Messenger or WhatsApp.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Facebook Commerce Catalog Sync Panel -->
+        <div class="border-t border-slate-100 pt-6">
+            <form action="/admin/settings" method="POST" class="space-y-4">
+                <input type="hidden" name="form_type" value="credentials" />
+                <div class="bg-gradient-to-r from-blue-50/60 to-indigo-50/60 p-5 rounded-2xl border border-blue-100 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2 text-xs font-bold text-blue-900">
+                            <span>🛍️</span>
+                            <span>Facebook Commerce Catalog Sync</span>
+                        </div>
+                        <a href="https://business.facebook.com/commerce" target="_blank" class="text-[11px] text-blue-600 hover:underline font-bold flex items-center space-x-1">
+                            <span>Meta Commerce Manager</span>
+                            <span>↗</span>
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 mb-1">Facebook Catalog ID (অপশনাল)</label>
+                            <input type="text" name="fb_catalog_id" value="{{ creds.fb_catalog_id }}" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-mono" placeholder="102938475610293...">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 mb-1">Meta Catalog Auto-Sync Feed URL</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" readonly value="https://testing.stcbazar.com/catalog/feed.xml" id="feedUrlCompany" class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-600">
+                                <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('feedUrlCompany').value); alert('Feed URL Copied!');" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl whitespace-nowrap shadow-sm">
+                                    Copy Feed 📋
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    {% else %}
-                    <div class="text-center py-6 text-slate-400 text-xs">
-                        No assigned staff users. Click '+ Add Staff' to create a login for this company.
-                    </div>
-                    {% endfor %}
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md">
+                        Save Social & Catalog Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TAB 4: STEP 3 - GOOGLE CALENDAR INTEGRATION -->
+    <div x-show="activeTab === 'calendar'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900">📅 Google Calendar Integration (n8n Super Easy Flow)</h4>
+                <p class="text-xs text-slate-500">গ্রাহকের সাথে মিটিং/অ্যাপয়েন্টমেন্ট গুগল ক্যালেন্ডারে সরাসরি বুক ও সিঙ্ক করার কনফিগারেশন</p>
+            </div>
+            <span class="text-xs bg-purple-50 text-purple-700 font-semibold px-3 py-1.5 rounded-full border border-purple-100">
+                ⚡ Real-time Calendar Sync
+            </span>
+        </div>
+
+        <!-- 1-Click Service Account JSON Key Upload Card -->
+        <div class="p-5 bg-gradient-to-r from-purple-50 via-indigo-50/40 to-blue-50/40 border border-purple-200/80 rounded-2xl space-y-4">
+            <div class="flex items-start space-x-3">
+                <div class="p-2.5 bg-purple-600 text-white rounded-xl text-lg shadow-sm">⚡</div>
+                <div>
+                    <h5 class="text-xs font-bold text-purple-950">১-ক্লিক গুগল সার্ভিস অ্যাকাউন্ট (1-Click Google Service Account Key)</h5>
+                    <p class="text-[11px] text-purple-800 leading-relaxed mt-0.5">
+                        Google Cloud Console থেকে ডাউনলোড করা Service Account JSON কী ফাইলটি নিচে আপলোড করুন। সম্পূর্ণ নো-কোড সেটআপ!
+                    </p>
                 </div>
             </div>
 
+            <form action="/admin/calendar/upload-json" method="POST" enctype="multipart/form-data" class="flex flex-col sm:flex-row items-center gap-3 pt-1">
+                <input type="file" name="file" accept=".json" required class="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-purple-600 file:text-white hover:file:bg-purple-500 file:cursor-pointer bg-white border border-purple-200 rounded-xl p-1.5" />
+                <button type="submit" class="w-full sm:w-auto px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold rounded-xl whitespace-nowrap transition shadow-sm flex items-center justify-center space-x-1.5">
+                    <span>📤 Upload & Connect Key</span>
+                </button>
+            </form>
+
+            {% if creds.google_calendar_token %}
+            <div class="flex items-center space-x-2 text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-xs font-bold">
+                <span>✅</span>
+                <span>Google Calendar JSON Key Connected & Active</span>
+            </div>
+            {% endif %}
         </div>
 
-    </div>
-</div>
+        <!-- Manual Calendar OAuth / Service Settings -->
+        <form action="/admin/settings" method="POST" class="space-y-4">
+            <input type="hidden" name="form_type" value="calendar" />
 
-<!-- Modal: Edit Company & AI Prompt -->
-<div id="editCompanyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 class="text-base font-black text-slate-900">Configure Company AI Persona</h3>
-            <button onclick="document.getElementById('editCompanyModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">✕</button>
-        </div>
-        <form action="/admin/companies/edit/{{ company.id }}" method="POST" class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Company Name</label>
-                <input type="text" name="name" value="{{ company.name }}" required class="saas-input w-full">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Google Calendar ID (ইমেইল বা ক্যালেন্ডার আইডি)</label>
+                    <input type="text" name="google_calendar_id" value="{{ creds.google_calendar_id }}" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono" placeholder="your-email@gmail.com অথবা primary">
+                    <p class="text-[10px] text-slate-500 mt-1">💡 Service Account ব্যবহার করলে ক্যালেন্ডারটি উক্ত Service Account ইমেইলে Share/Permission দিয়ে দিন।</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Google OAuth Client ID</label>
+                    <input type="text" name="google_client_id" value="{{ creds.google_client_id }}" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono" placeholder="1029384756-xxx.apps.googleusercontent.com">
+                </div>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Description</label>
-                <input type="text" name="description" value="{{ company.description or '' }}" class="saas-input w-full">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Google OAuth Client Secret</label>
+                    <input type="password" name="google_client_secret" value="{{ creds.google_client_secret }}" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono" placeholder="••••••••••••••••">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Google OAuth Refresh Token</label>
+                    <input type="password" name="google_refresh_token" value="{{ creds.google_refresh_token }}" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono" placeholder="1//04xxx••••">
+                </div>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">AI Model</label>
-                <select name="ai_model" class="saas-input w-full">
-                    <option value="gemini-2.5-flash" {% if company.ai_model == 'gemini-2.5-flash' %}selected{% endif %}>Gemini 2.5 Flash</option>
-                    <option value="gemini-2.5-pro" {% if company.ai_model == 'gemini-2.5-pro' %}selected{% endif %}>Gemini 2.5 Pro</option>
-                    <option value="gpt-4o-mini" {% if company.ai_model == 'gpt-4o-mini' %}selected{% endif %}>GPT-4o Mini</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Custom System Prompt</label>
-                <textarea name="system_prompt" rows="5" class="saas-input w-full font-mono text-xs">{{ company.system_prompt or '' }}</textarea>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Fallback Message</label>
-                <textarea name="fallback_message" rows="2" class="saas-input w-full text-xs">{{ company.fallback_message or '' }}</textarea>
-            </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button type="button" onclick="document.getElementById('editCompanyModal').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
-                <button type="submit" class="saas-btn-primary text-xs px-5 py-2">Save Configurations</button>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl transition shadow-md">
+                    💾 Save Google Calendar Settings
+                </button>
             </div>
         </form>
     </div>
+
+    <!-- TAB 5: STEP 4 - SPECIAL INTENT & LEAD KEYWORDS MANAGER -->
+    <div x-show="activeTab === 'keywords'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900">📌 Special Intent & Lead Keywords Manager</h4>
+                <p class="text-xs text-slate-500">গ্রাহকের কেনার আগ্রহ, দাম জিজ্ঞাসা ও মিটিং বুকিং ডিটেকশনের কিওয়ার্ড তালিকা</p>
+            </div>
+        </div>
+
+        <form action="/admin/settings" method="POST" class="space-y-5">
+            <input type="hidden" name="form_type" value="keywords" />
+
+            <!-- Booking / Meeting Keywords Box -->
+            <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 space-y-2">
+                <label class="block text-xs font-bold text-indigo-950 flex items-center space-x-1.5">
+                    <span>🎯</span>
+                    <span>অ্যাপয়েন্টমেন্ট ও মিটিং বুকিং কিওয়ার্ড (Appointment Booking Keywords)</span>
+                </label>
+                <textarea name="booking_keywords" rows="3" class="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800" placeholder="meeting, appointment, book, schedule, appoint, মিটিং, অ্যাপয়েন্টমেন্ট, বুক, শিডিউল, দেখা, কল, ডেমো, ট্রায়াল">{{ creds.booking_keywords }}</textarea>
+                <p class="text-[10px] text-indigo-700 font-medium">💡 গ্রাহকের মেসেজে এই শব্দগুলো থাকলে এআই স্বয়ংক্রিয়ভাবে ক্যালেন্ডার বুকিং শিডিউল প্রসেস করবে। (কমা দিয়ে আলাদা করুন)</p>
+            </div>
+
+            <!-- Price Keywords Box -->
+            <div class="bg-blue-50/60 p-4 rounded-2xl border border-blue-100 space-y-2">
+                <label class="block text-xs font-bold text-blue-950 flex items-center space-x-1.5">
+                    <span>💰</span>
+                    <span>মূল্য ও দাম জিজ্ঞাসা কিওয়ার্ড (Price & Cost Intent Keywords)</span>
+                </label>
+                <textarea name="price_keywords" rows="2" class="w-full bg-white border border-blue-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800" placeholder="দাম কত, কত, মূল্য, রেট, চার্জ, প্রাইস, কত টাকা, price, cost, fee, charge, rate, how much, tk">{{ creds.price_keywords }}</textarea>
+                <p class="text-[10px] text-blue-700 font-medium">💡 গ্রাহক দাম জানতে চাইলে তাৎক্ষণিক হাই-ভ্যালু লিড হিসেবে মার্ক হবে।</p>
+            </div>
+
+            <!-- High Interest Lead Keywords Box -->
+            <div class="bg-amber-50/60 p-4 rounded-2xl border border-amber-200 space-y-2">
+                <label class="block text-xs font-bold text-amber-950 flex items-center space-x-1.5">
+                    <span>🔥</span>
+                    <span>উচ্চ-আগ্রহী লিড কিওয়ার্ড (High-Intent Lead Purchase Triggers)</span>
+                </label>
+                <textarea name="high_interest_keywords" rows="2" class="w-full bg-white border border-amber-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800" placeholder="বিকাশ, নগদ, কিনব, অর্ডার, পাঠাও, কত দাম, price, order, buy, send, bkash, nagad, cash, deliver, delivery, confirm">{{ creds.high_interest_keywords }}</textarea>
+                <p class="text-[10px] text-amber-700 font-medium">💡 কেনা/পেমেন্ট/অর্ডার সংক্রান্ত নিশ্চিত কিওয়ার্ড। লিড ম্যানেজারে 'High Intent' হিসেবে ট্র্যাক হবে।</p>
+            </div>
+
+            <!-- Detail Keywords Box -->
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                <label class="block text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                    <span>ℹ️</span>
+                    <span>বিস্তারিত উত্তরের অটো-আপগ্রেড কিওয়ার্ড (Detail Auto-Upgrade Keywords)</span>
+                </label>
+                <textarea name="detail_keywords" rows="2" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800" placeholder="details, feature, specs, list, package, বিস্তারিত, ফিচার, সুবিধা">{{ creds.detail_keywords }}</textarea>
+                <p class="text-[10px] text-slate-500 font-medium">💡 শর্ট মোডে থাকলেও গ্রাহক বিস্তারিত জানতে চাইলে এআই মাঝারি/বড় উত্তর দেবে।</p>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md">
+                    💾 Save Keyword Triggers
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- TAB 6: STEP 5 - MARKETING & AUTOMATION HUB -->
+    <div x-show="activeTab === 'marketing'" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900">🚀 Marketing & Automation Hub</h4>
+                <p class="text-xs text-slate-500">Google Sheets লাইভ এক্সপোর্ট, Mailchimp নিউজলেটার ও Web Push অটোমেশন</p>
+            </div>
+        </div>
+
+        <form action="/admin/settings" method="POST" class="space-y-6">
+            <input type="hidden" name="form_type" value="marketing" />
+
+            <!-- Google Sheets Live Lead Export -->
+            <div class="bg-emerald-50/60 p-5 rounded-2xl border border-emerald-100 space-y-3">
+                <div class="flex items-center space-x-2 text-xs font-bold text-emerald-950">
+                    <span>📊</span>
+                    <span>Google Sheets Live Lead Sync (স্বয়ংক্রিয় গুগল শিট ব্যাকআপ)</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Google Spreadsheet ID</label>
+                        <input type="text" name="google_sheets_spreadsheet_id" value="{{ creds.google_sheets_spreadsheet_id }}" class="w-full bg-white border border-emerald-200 rounded-xl px-4 py-2 text-xs font-mono" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Service Account Token JSON (Sheets API)</label>
+                        <input type="password" name="google_sheets_token_json" value="{{ creds.google_sheets_token_json }}" class="w-full bg-white border border-emerald-200 rounded-xl px-4 py-2 text-xs font-mono" placeholder="••••••••••••••••">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mailchimp Newsletter Sync -->
+            <div class="bg-yellow-50/60 p-5 rounded-2xl border border-yellow-200/80 space-y-3">
+                <div class="flex items-center space-x-2 text-xs font-bold text-yellow-950">
+                    <span>📬</span>
+                    <span>Mailchimp Audience & Email Campaign Sync</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">API Key</label>
+                        <input type="password" name="mailchimp_api_key" value="{{ creds.mailchimp_api_key }}" class="w-full bg-white border border-yellow-200 rounded-xl px-3 py-2 text-xs font-mono" placeholder="md5-us20">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Audience / List ID</label>
+                        <input type="text" name="mailchimp_list_id" value="{{ creds.mailchimp_list_id }}" class="w-full bg-white border border-yellow-200 rounded-xl px-3 py-2 text-xs font-mono" placeholder="a1b2c3d4e5">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Server Prefix</label>
+                        <input type="text" name="mailchimp_server_prefix" value="{{ creds.mailchimp_server_prefix }}" class="w-full bg-white border border-yellow-200 rounded-xl px-3 py-2 text-xs font-mono" placeholder="us20">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Web Push Notifications -->
+            <div class="bg-purple-50/60 p-5 rounded-2xl border border-purple-100 space-y-3">
+                <div class="flex items-center space-x-2 text-xs font-bold text-purple-950">
+                    <span>🔔</span>
+                    <span>Web Push Notifications (FCM / VAPID)</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">FCM Server Key</label>
+                        <input type="password" name="fcm_server_key" value="{{ creds.fcm_server_key }}" class="w-full bg-white border border-purple-200 rounded-xl px-4 py-2 text-xs font-mono" placeholder="AAAAxxxx...">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">VAPID Public Key</label>
+                        <input type="text" name="vapid_public_key" value="{{ creds.vapid_public_key }}" class="w-full bg-white border border-purple-200 rounded-xl px-4 py-2 text-xs font-mono" placeholder="BC5xxxx...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gmail SMTP Instant Lead Notification -->
+            <div class="bg-indigo-50/60 p-5 rounded-2xl border border-indigo-100 space-y-3">
+                <div class="flex items-center space-x-2 text-xs font-bold text-indigo-950">
+                    <span>📧</span>
+                    <span>Gmail SMTP Instant Lead Notification</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Sender Gmail Address</label>
+                        <input type="email" name="gmail_sender_email" value="{{ creds.gmail_sender_email }}" class="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2 text-xs" placeholder="notify@gmail.com">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Google App Password (16 Characters)</label>
+                        <input type="password" name="gmail_app_password" value="{{ creds.gmail_app_password }}" class="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2 text-xs font-mono" placeholder="xxxx xxxx xxxx xxxx">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-md">
+                    💾 Save Marketing & Automation Settings
+                </button>
+            </div>
+        </form>
+    </div>
+
 </div>
 
 <!-- Modal: Link Channel -->
@@ -474,10 +852,4 @@
         </form>
     </div>
 </div>
-
-<script>
-function openEditCompanyModal() {
-    document.getElementById('editCompanyModal').classList.remove('hidden');
-}
-</script>
 {% endblock %}

@@ -195,6 +195,7 @@ class OutreachCampaign(Base):
     __tablename__ = "outreach_campaigns"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, default=1, index=True)
     title: Mapped[str] = mapped_column(String(200))
     niche: Mapped[str] = mapped_column(String(100))
     target_area: Mapped[str] = mapped_column(String(100))
@@ -207,6 +208,7 @@ class EmailTemplate(Base):
     __tablename__ = "email_templates"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, default=1, index=True)
     name: Mapped[str] = mapped_column(String(100))
     subject: Mapped[str] = mapped_column(String(200), nullable=True)
     body: Mapped[str] = mapped_column(Text)

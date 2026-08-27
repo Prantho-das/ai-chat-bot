@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, Body, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from datetime import datetime
@@ -12,10 +11,21 @@ from app.database import get_db
 from app.models import Lead, OutreachCampaign, EmailTemplate
 from app.services.lead_service import lead_service
 from app.services.log_service import log_service
-from app.routers.admin import is_authenticated
+from app.routers.admin import is_authenticated, render_admin_page, get_current_user_context
 
 router = APIRouter(prefix="/admin/outreach", tags=["Outreach Engine"])
-templates = Jinja2Templates(directory="app/templates")
+
+def _get_target_company_id(request: Request) -> int | None:
+    user_ctx = get_current_user_context(request) or {}
+    active_comp_id = request.cookies.get("active_company_id", "all")
+    if user_ctx.get("role") == "company_user" and user_ctx.get("company_id"):
+        return user_ctx.get("company_id")
+    elif active_comp_id and active_comp_id != "all":
+        try:
+            return int(active_comp_id)
+        except ValueError:
+            return None
+    return None
 
 @router.get("", response_class=HTMLResponse)
 @router.get("/", response_class=HTMLResponse)
@@ -23,27 +33,43 @@ async def outreach_dashboard(request: Request, db: AsyncSession = Depends(get_db
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login")
 
-    res = await db.execute(select(Lead).order_by(desc(Lead.id)).limit(100))
+    target_comp_id = _get_target_company_id(request)
+
+    stmt_lead = select(Lead)
+    if target_comp_id:
+        stmt_lead = stmt_lead.where(Lead.company_id == target_comp_id)
+    stmt_lead = stmt_lead.order_by(desc(Lead.id)).limit(100)
+    res = await db.execute(stmt_lead)
     leads = res.scalars().all()
 
-    camp_res = await db.execute(select(OutreachCampaign).order_by(desc(OutreachCampaign.id)).limit(20))
+    stmt_camp = select(OutreachCampaign)
+    if target_comp_id:
+        stmt_camp = stmt_camp.where(OutreachCampaign.company_id == target_comp_id)
+    stmt_camp = stmt_camp.order_by(desc(OutreachCampaign.id)).limit(20)
+    camp_res = await db.execute(stmt_camp)
     campaigns = camp_res.scalars().all()
 
-    temp_res = await db.execute(select(EmailTemplate).order_by(desc(EmailTemplate.id)))
+    stmt_temp = select(EmailTemplate)
+    if target_comp_id:
+        stmt_temp = stmt_temp.where(EmailTemplate.company_id == target_comp_id)
+    stmt_temp = stmt_temp.order_by(desc(EmailTemplate.id))
+    temp_res = await db.execute(stmt_temp)
     templates_list = temp_res.scalars().all()
 
-    return templates.TemplateResponse("outreach.html", {
-        "request": request,
+    return await render_admin_page("outreach.html", request, db, {
         "leads": leads,
         "campaigns": campaigns,
-        "templates": templates_list
+        "templates": templates_list,
+        "target_company_id": target_comp_id
     })
 
 @router.post("/api/search")
 async def api_search_leads(
+    request: Request,
     payload: Dict[str, Any] = Body(...),
     db: AsyncSession = Depends(get_db)
 ):
+    target_comp_id = _get_target_company_id(request) or 1
     idea = payload.get("idea", "")
     niche = payload.get("niche", "")
     area = payload.get("area", "")
@@ -54,9 +80,9 @@ async def api_search_leads(
 
     found_items = await lead_service.search_leads(niche, area, limit=8, custom_query=custom_query)
     
-    # Save campaign record
     title_val = custom_query if custom_query else f"{niche.title()} in {area.title()}"
     campaign = OutreachCampaign(
+        company_id=target_comp_id,
         title=title_val,
         niche=niche or "custom",
         target_area=area or "custom",
@@ -67,7 +93,6 @@ async def api_search_leads(
 
     saved_leads = []
     for item in found_items:
-        # Generate initial AI pitch
         pitch = await lead_service.generate_cold_pitch(
             business_idea=idea or f"Automated AI Chatbot Solution",
             lead_name=item["business_name"],
@@ -76,6 +101,7 @@ async def api_search_leads(
         )
 
         lead = Lead(
+            company_id=target_comp_id,
             business_name=item["business_name"],
             niche=item["niche"],
             area=item["area"],
@@ -93,10 +119,9 @@ async def api_search_leads(
 
     await db.commit()
     await log_service.log(
-        db, 
-        source="Outreach", 
-        level="SUCCESS", 
-        message=f"Discovered {len(saved_leads)} business leads for query: {title_val}"
+        "SUCCESS", 
+        "Outreach", 
+        f"Discovered {len(saved_leads)} business leads for query: {title_val} (Company #{target_comp_id})"
     )
 
     return {
@@ -186,10 +211,9 @@ async def api_send_bulk_dm(
 
         sent_count += 1
         await log_service.log(
-            db,
-            source="Outreach",
-            level="INFO",
-            message=f"Bulk Cold DM sent to {lead.business_name} via {channel}",
+            "INFO",
+            "Outreach",
+            f"Bulk Cold DM sent to {lead.business_name} via {channel}",
             details=f"Email: {lead.email} | Instagram: {lead.instagram}"
         )
 
@@ -202,12 +226,14 @@ async def api_send_bulk_dm(
 
 @router.post("/api/upload-csv")
 async def api_upload_csv(
+    request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db)
 ):
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed")
 
+    target_comp_id = _get_target_company_id(request) or 1
     contents = await file.read()
     decoded = contents.decode("utf-8-sig")
     reader = csv.DictReader(io.StringIO(decoded))
@@ -228,6 +254,7 @@ async def api_upload_csv(
             continue
 
         lead = Lead(
+            company_id=target_comp_id,
             business_name=business_name or f"Imported Lead {imported_count+1}",
             email=email,
             phone=phone,
@@ -243,10 +270,9 @@ async def api_upload_csv(
 
     await db.commit()
     await log_service.log(
-        db,
-        source="Outreach",
-        level="SUCCESS",
-        message=f"Successfully imported {imported_count} leads via CSV upload"
+        "SUCCESS",
+        "Outreach",
+        f"Successfully imported {imported_count} leads via CSV upload for Company #{target_comp_id}"
     )
 
     return {
@@ -256,16 +282,23 @@ async def api_upload_csv(
     }
 
 @router.get("/api/templates")
-async def api_get_templates(db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(EmailTemplate).order_by(desc(EmailTemplate.id)))
+async def api_get_templates(request: Request, db: AsyncSession = Depends(get_db)):
+    target_comp_id = _get_target_company_id(request)
+    stmt = select(EmailTemplate)
+    if target_comp_id:
+        stmt = stmt.where(EmailTemplate.company_id == target_comp_id)
+    stmt = stmt.order_by(desc(EmailTemplate.id))
+    res = await db.execute(stmt)
     templates_list = res.scalars().all()
     return [{"id": t.id, "name": t.name, "subject": t.subject, "body": t.body} for t in templates_list]
 
 @router.post("/api/templates")
 async def api_upsert_template(
+    request: Request,
     payload: Dict[str, Any] = Body(...),
     db: AsyncSession = Depends(get_db)
 ):
+    target_comp_id = _get_target_company_id(request) or 1
     template_id = payload.get("id")
     name = payload.get("name")
     subject = payload.get("subject", "")
@@ -283,7 +316,7 @@ async def api_upsert_template(
         template.subject = subject
         template.body = body
     else:
-        template = EmailTemplate(name=name, subject=subject, body=body)
+        template = EmailTemplate(company_id=target_comp_id, name=name, subject=subject, body=body)
         db.add(template)
 
     await db.commit()

@@ -311,15 +311,55 @@ block content %}
         </label>
         <textarea
           name="fallback_message"
-          rows="3"
+          rows="2"
           class="w-full bg-white border border-amber-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/10 leading-relaxed"
           placeholder="দুঃখিত, এই মুহূর্তে উত্তর তৈরিতে সামান্য সমস্যা হচ্ছে। খুব দ্রুত আমাদের একজন প্রতিনিধি আপনার সাথে যোগাযোগ করবেন।"
-        >
-{{ fallback_message }}</textarea
-        >
+        >{{ fallback_message }}</textarea>
         <p class="text-[10px] text-amber-700 font-medium">
-          💡 এআই এপিআই রেসপন্স না দিলে বা কোনো সার্ভার ত্রুটি হলে গ্রাহক এই
-          কাস্টম বার্তাটি দেখতে পাবেন।
+          💡 এআই এপিআই রেসপন্স না দিলে বা কোনো সার্ভার ত্রুটি হলে গ্রাহক এই কাস্টম বার্তাটি দেখতে পাবেন।
+        </p>
+      </div>
+
+      <!-- Dynamic Missed Call Auto-Reply Box -->
+      <div
+        class="bg-rose-50/70 p-4 rounded-2xl border border-rose-200/70 space-y-2"
+      >
+        <label
+          class="block text-xs font-bold text-rose-900 flex items-center space-x-1.5"
+        >
+          <span>📞</span>
+          <span>মিসড কল অটো-রিপ্লাই (Dynamic Missed Call Auto-Reply Message)</span>
+        </label>
+        <textarea
+          name="missed_call_message"
+          rows="2"
+          class="w-full bg-white border border-rose-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-600/10 leading-relaxed"
+          placeholder="দুঃখিত, এই মুহূর্তে কল রিসিভ করা সম্ভব হয়নি। দয়া করে আপনার প্রশ্নটি এখানে লিখে বা ভয়েসে জানান, আমি সাহায্য করছি।"
+        >{{ creds.missed_call_message }}</textarea>
+        <p class="text-[10px] text-rose-700 font-medium">
+          💡 গ্রাহক ফেসবুক পেজে অডিও/ভিডিও কল বা মিসড কল দিলে স্বয়ংক্রিয়ভাবে ⚡ 0 টোকেন খরচে এই বার্তাটি পাঠানো হবে।
+        </p>
+      </div>
+
+      <!-- Dynamic Emoji & Sticker Auto-Reply Box -->
+      <div
+        class="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200/70 space-y-2"
+      >
+        <label
+          class="block text-xs font-bold text-emerald-900 flex items-center space-x-1.5"
+        >
+          <span>👍</span>
+          <span>ইমোজি ও স্টিকার অটো-রিপ্লাই (Dynamic Emoji & Sticker Auto-Reply)</span>
+        </label>
+        <input
+          type="text"
+          name="emoji_reply_message"
+          value="{{ creds.emoji_reply_message }}"
+          class="w-full bg-white border border-emerald-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10"
+          placeholder="ধন্যবাদ! 😊 আপনাকে কীভাবে সাহায্য করতে পারি বলুন?"
+        />
+        <p class="text-[10px] text-emerald-700 font-medium">
+          💡 গ্রাহক থাম্বস-আপ, লাভ বা স্টিকার পাঠালে তাৎক্ষণিক ⚡ 0 টোকেন খরচে এই উত্তরটি যাবে।
         </p>
       </div>
 
