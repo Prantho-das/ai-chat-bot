@@ -777,6 +777,10 @@ async def settings_page(request: Request, db: AsyncSession = Depends(get_db)):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
 
+    user_ctx = get_current_user_context(request) or {}
+    if user_ctx.get("role") == "company_user" and user_ctx.get("company_id"):
+        return RedirectResponse(url=f"/admin/companies/{user_ctx.get('company_id')}", status_code=status.HTTP_302_FOUND)
+
     stmt = select(BotSetting)
     result = await db.execute(stmt)
     settings_records = result.scalars().all()
